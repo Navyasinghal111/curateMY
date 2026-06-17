@@ -7,7 +7,6 @@ import Link from 'next/link'
 
 type Role = 'shopper' | 'creator' | 'brand' | null
 
-// ── PENDING SCREEN ──────────────────────────────────────────────
 function PendingScreen({ title, sub, onHome }: { title: string; sub: string; onHome: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6 text-center py-16">
@@ -22,7 +21,6 @@ function PendingScreen({ title, sub, onHome }: { title: string; sub: string; onH
   )
 }
 
-// ── SHOPPER FORM ────────────────────────────────────────────────
 function ShopperForm({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -83,7 +81,6 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
   )
 }
 
-// ── CREATOR FORM ────────────────────────────────────────────────
 function CreatorForm({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
@@ -158,9 +155,9 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
               <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPassword(e.target.value)} minLength={6} className={inputClass} />
               <div className="flex gap-2">
                 <select className="w-24 px-3 py-3 bg-white/5 border border-white/20 text-[12px] text-white/70 outline-none focus:border-[#B89A6E] appearance-none">
-                  <option>🇮🇳 +91</option><option>🇺🇸 +1</option><option>🇬🇧 +44</option>
+                  <option>+91</option><option>+1</option><option>+44</option>
                 </select>
-                <input type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} className={`flex-1 px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors`} />
+                <input type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} className="flex-1 px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors" />
               </div>
               <button onClick={() => name && email && password ? setStep(2) : setError('Please fill all required fields')}
                 className="w-full py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors mt-2">NEXT</button>
@@ -178,7 +175,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
               <input type="text" placeholder="Your handle or profile URL*" value={handle} onChange={e => setHandle(e.target.value)} className={inputClass} />
               <select value={followers} onChange={e => setFollowers(e.target.value)} className={selectClass}>
                 <option value="">Follower count*</option>
-                <option>Under 1,000</option><option>1,000 – 10,000</option><option>10,000 – 50,000</option><option>50,000 – 2,00,000</option><option>2,00,000+</option>
+                <option>Under 1,000</option><option>1,000 - 10,000</option><option>10,000 - 50,000</option><option>50,000 - 2,00,000</option><option>2,00,000+</option>
               </select>
               <div>
                 <p className="text-[10px] tracking-[0.12em] text-[#B89A6E] mb-2">YOUR NICHE</p>
@@ -220,7 +217,6 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   )
 }
 
-// ── BRAND FORM ──────────────────────────────────────────────────
 function BrandForm({ onBack }: { onBack: () => void }) {
   const [company, setCompany] = useState('')
   const [email, setEmail] = useState('')
@@ -272,7 +268,7 @@ function BrandForm({ onBack }: { onBack: () => void }) {
             </select>
             <select value={budget} onChange={e => setBudget(e.target.value)} className={selectClass}>
               <option value="">Monthly budget</option>
-              <option>Under ₹50,000</option><option>₹50,000 – ₹2,00,000</option><option>₹2,00,000 – ₹10,00,000</option><option>₹10,00,000+</option>
+              <option>Under 50,000</option><option>50,000 - 2,00,000</option><option>2,00,000 - 10,00,000</option><option>10,00,000+</option>
             </select>
             <textarea placeholder="Tell us about your brand and goals..." value={message} onChange={e => setMessage(e.target.value)} rows={3}
               className={`${inputClass} resize-none`} />
@@ -287,12 +283,10 @@ function BrandForm({ onBack }: { onBack: () => void }) {
   )
 }
 
-// ── MAIN SIGNUP PAGE ────────────────────────────────────────────
 export default function SignupPage() {
   const [role, setRole] = useState<Role>(null)
   const router = useRouter()
 
-  // Close modal on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') router.push('/')
@@ -305,57 +299,58 @@ export default function SignupPage() {
     {
       role: 'shopper' as Role,
       image: '/card-shopper.jpg',
-      title: 'Shopper',
+      title: 'For Shoppers',
       sub: 'A destination for shopping, from trusted brands and quality.',
       btn: 'CREATE AN ACCOUNT',
     },
     {
       role: 'creator' as Role,
       image: '/card-creator.jpg',
-      title: 'Creator',
+      title: 'For Creators',
       sub: 'Curate your great taste. Build your storefront and earn.',
       btn: 'APPLY',
     },
     {
       role: 'brand' as Role,
       image: '/card-brand.jpg',
-      title: 'Brand',
-      sub: "No one pushes your product like the people who love them.",
+      title: 'For Brands',
+      sub: 'No one pushes your product like the people who love them.',
       btn: 'APPLY',
     },
   ]
 
   return (
     <>
-      {/* Blurred homepage background */}
       <div className="fixed inset-0 bg-[#1C1814]/80 backdrop-blur-sm z-40" onClick={() => !role && router.push('/')} />
 
-      {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-3xl bg-[#1C1814] shadow-2xl flex flex-col"
-          style={{ height: 'min(620px, 90vh)' }}>
-
-          {/* Close button */}
+        <div
+          className="relative w-full max-w-6xl bg-[#1C1814] shadow-2xl flex flex-col"
+          style={{ height: 'min(780px, 94vh)' }}
+        >
           {!role && (
-            <button onClick={() => router.push('/')}
-              className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-xl">
-              ×
+            <button
+              onClick={() => router.push('/')}
+              className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-xl"
+            >
+              x
             </button>
           )}
 
-          {/* Role selection — 3 cards */}
           {!role && (
             <div className="flex flex-col h-full">
               <div className="flex-1 grid grid-cols-3 gap-0">
                 {cards.map((card) => (
-                  <button key={card.role} onClick={() => setRole(card.role)}
-                    className="relative overflow-hidden group text-left flex flex-col justify-between">
-                    {/* Image */}
-                    <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                      style={{ backgroundImage: `url(${card.image})` }} />
-                    {/* Overlay */}
+                  <button
+                    key={card.role}
+                    onClick={() => setRole(card.role)}
+                    className="relative overflow-hidden group text-left flex flex-col justify-between"
+                  >
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+                      style={{ backgroundImage: `url(${card.image})` }}
+                    />
                     <div className="absolute inset-0 bg-black/50 group-hover:bg-black/40 transition-colors duration-300" />
-                    {/* Content */}
                     <div className="relative z-10 flex flex-col justify-between h-full p-6">
                       <div />
                       <div>
@@ -372,17 +367,17 @@ export default function SignupPage() {
                 ))}
               </div>
 
-              {/* Bottom bar */}
               <div className="border-t border-white/10 py-4 text-center">
                 <p className="text-[11px] text-white/40">
                   Already have an account?{' '}
-                  <Link href="/login" className="text-white/70 underline hover:text-white transition-colors">Log in</Link>
+                  <Link href="/login" className="text-white/70 underline hover:text-white transition-colors">
+                    Log in
+                  </Link>
                 </p>
               </div>
             </div>
           )}
 
-          {/* Role forms */}
           {role === 'shopper' && <ShopperForm onBack={() => setRole(null)} />}
           {role === 'creator' && <CreatorForm onBack={() => setRole(null)} />}
           {role === 'brand' && <BrandForm onBack={() => setRole(null)} />}
