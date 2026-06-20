@@ -364,26 +364,7 @@ export default function Home() {
     if (window.location.search.includes('signup')) setShowSignup(true)
   }, [])
 
-  if (UNDER_CONSTRUCTION && process.env.NODE_ENV === "production") {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "#FAFAF8",
-          textAlign: "center",
-        }}
-      >
-        <div>
-          <h1>CurateKin</h1>
-          <p>Site under construction ✨</p>
-        </div>
-      </div>
-    );
-  }
-
+  
   return (
     <>
       <style>{`
