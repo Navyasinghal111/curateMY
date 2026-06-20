@@ -7,7 +7,41 @@ import Link from 'next/link'
 
 type Role = 'shopper' | 'creator' | 'brand' | null
 
-// ── PENDING SCREEN ──────────────────────────────────────────────
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.05)',
+  border: '0.5px solid rgba(255,255,255,0.15)', fontSize: 12, color: '#fff',
+  outline: 'none', fontFamily: 'DM Sans,sans-serif',
+}
+const selectStyle: React.CSSProperties = { ...inputStyle, color: 'rgba(255,255,255,0.6)', appearance: 'none' }
+const primaryBtnStyle: React.CSSProperties = {
+  width: '100%', padding: '12px', background: '#fff', color: '#141210', fontSize: 11,
+  letterSpacing: '0.1em', border: 'none', cursor: 'pointer', marginTop: 8,
+}
+
+const SKINCARE_PRODUCTS = [
+  { glyph:'Sk',tone:'c1',tag:'Serum',brand:'Minimalist',name:'10% Niacinamide',price:'₹599' },
+  { glyph:'Sp',tone:'c2',tag:'SPF',brand:'Dot & Key',name:'UV Shield SPF 50',price:'₹849' },
+  { glyph:'Cr',tone:'c3',tag:'Moisturiser',brand:'Forest Essentials',name:'Daily Repair Creme',price:'₹1,200' },
+  { glyph:'To',tone:'c4',tag:'Toner',brand:'Plum',name:'Glycolic Toner',price:'₹449' },
+  { glyph:'Ey',tone:'c5',tag:'Eye Cream',brand:'Kama Ayurveda',name:'Radiant Eye Butter',price:'₹2,100' },
+  { glyph:'Cl',tone:'c6',tag:'Cleanser',brand:'Cetaphil',name:'Gentle Skin Cleanser',price:'₹380' },
+]
+
+async function signUpProfile(
+  supabase: ReturnType<typeof createClient>,
+  email: string,
+  password: string,
+  profile: Record<string, unknown>
+) {
+  const { data, error } = await supabase.auth.signUp({ email, password })
+  if (error) return { error }
+  if (data.user) {
+    await supabase.from('profiles').insert({ id: data.user.id, status: 'pending', ...profile })
+  }
+  return { error: null }
+}
+
+// Pending screen
 function PendingScreen({ title, sub, onClose }: { title: string; sub: string; onClose: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6 text-center py-16">
@@ -22,7 +56,7 @@ function PendingScreen({ title, sub, onClose }: { title: string; sub: string; on
   )
 }
 
-// ── SHOPPER FORM ────────────────────────────────────────────────
+// Shopper form
 function ShopperForm({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -36,16 +70,11 @@ function ShopperForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
-    if (signUpError) { setError(signUpError.message); setLoading(false); return }
-    if (data.user) {
-      await supabase.from('profiles').insert({ id: data.user.id, display_name: name, role: 'shopper', status: 'pending' })
-    }
+    const { error: signUpError } = await signUpProfile(supabase, email, password, { display_name: name, role: 'shopper' })
     setLoading(false)
+    if (signUpError) { setError(signUpError.message); return }
     setSubmitted(true)
   }
-
-  const inp = { width:'100%', padding:'12px 16px', background:'rgba(255,255,255,0.05)', border:'0.5px solid rgba(255,255,255,0.15)', fontSize:12, color:'#fff', outline:'none', fontFamily:'DM Sans,sans-serif' } as React.CSSProperties
 
   if (submitted) return <PendingScreen title="You're on the list." sub="We're setting up your account. Check back soon to start discovering." onClose={onClose} />
 
@@ -62,10 +91,10 @@ function ShopperForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
           <p style={{ fontSize:11,color:'rgba(255,255,255,0.4)',textAlign:'center',marginBottom:28 }}>Discover products curated by people you trust.</p>
           <form onSubmit={handleSubmit} style={{ display:'flex',flexDirection:'column',gap:10 }}>
             {error && <p style={{ fontSize:11,color:'#f87171',textAlign:'center' }}>{error}</p>}
-            <input style={inp} type="text" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required />
-            <input style={inp} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required />
-            <input style={inp} type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
-            <button type="submit" disabled={loading} style={{ width:'100%',padding:'12px',background:'#fff',color:'#141210',fontSize:11,letterSpacing:'0.1em',border:'none',cursor:'pointer',marginTop:8,opacity:loading?0.5:1 }}>
+            <input style={inputStyle} type="text" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required />
+            <input style={inputStyle} type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input style={inputStyle} type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+            <button type="submit" disabled={loading} style={{ ...primaryBtnStyle, opacity: loading ? 0.5 : 1 }}>
               {loading ? 'CREATING...' : 'CREATE AN ACCOUNT'}
             </button>
           </form>
@@ -75,7 +104,7 @@ function ShopperForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
   )
 }
 
-// ── CREATOR FORM ────────────────────────────────────────────────
+// Creator form
 function CreatorForm({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
@@ -100,21 +129,14 @@ function CreatorForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
   const handleSubmit = async () => {
     setLoading(true)
     setError('')
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
-    if (signUpError) { setError(signUpError.message); setLoading(false); return }
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id, display_name: name, phone, role: 'creator',
-        status: 'pending', platform, handle, followers_range: followers,
-        niches, bio, referral_code: referral || null,
-      })
-    }
+    const { error: signUpError } = await signUpProfile(supabase, email, password, {
+      display_name: name, phone, role: 'creator', platform, handle,
+      followers_range: followers, niches, bio, referral_code: referral || null,
+    })
     setLoading(false)
+    if (signUpError) { setError(signUpError.message); return }
     setSubmitted(true)
   }
-
-  const inp = { width:'100%', padding:'12px 16px', background:'rgba(255,255,255,0.05)', border:'0.5px solid rgba(255,255,255,0.15)', fontSize:12, color:'#fff', outline:'none', fontFamily:'DM Sans,sans-serif' } as React.CSSProperties
-  const sel = { ...inp, color:'rgba(255,255,255,0.6)', appearance:'none' as const }
 
   if (submitted) return <PendingScreen title="Application received." sub="We'll review your profile and get back to you within 3–5 days." onClose={onClose} />
 
@@ -143,12 +165,12 @@ function CreatorForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
             <h2 style={{ fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'#fff',textAlign:'center',marginBottom:6 }}>Apply as a creator</h2>
             <p style={{ fontSize:11,color:'rgba(255,255,255,0.4)',textAlign:'center',marginBottom:20 }}>Turn your taste into income.</p>
             <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-              <input style={inp} type="text" placeholder="Full name*" value={name} onChange={e => setName(e.target.value)} />
-              <input style={inp} type="email" placeholder="Email address*" value={email} onChange={e => setEmail(e.target.value)} />
-              <input style={inp} type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
+              <input style={inputStyle} type="text" placeholder="Full name*" value={name} onChange={e => setName(e.target.value)} />
+              <input style={inputStyle} type="email" placeholder="Email address*" value={email} onChange={e => setEmail(e.target.value)} />
+              <input style={inputStyle} type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPassword(e.target.value)} minLength={6} />
               <div style={{ display:'flex',gap:8 }}>
-                <select style={{ ...sel,width:90,flexShrink:0 }}><option>🇮🇳 +91</option><option>🇺🇸 +1</option><option>🇬🇧 +44</option></select>
-                <input style={{ ...inp,flex:1 }} type="tel" placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} />
+                <select style={{ ...selectStyle,width:90,flexShrink:0 }}><option>🇮🇳 +91</option><option>🇺🇸 +1</option><option>🇬🇧 +44</option></select>
+                <input style={{ ...inputStyle,flex:1 }} type="tel" placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} />
               </div>
               <button onClick={() => name&&email&&password ? setStep(2) : setError('Please fill all required fields')} style={{ width:'100%',padding:'12px',background:'#fff',color:'#141210',fontSize:11,letterSpacing:'0.1em',border:'none',cursor:'pointer',marginTop:4 }}>NEXT</button>
             </div>
@@ -158,12 +180,12 @@ function CreatorForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
             <h2 style={{ fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'#fff',textAlign:'center',marginBottom:6 }}>Your platforms</h2>
             <p style={{ fontSize:11,color:'rgba(255,255,255,0.4)',textAlign:'center',marginBottom:20 }}>It's about taste, not follower count.</p>
             <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-              <select style={sel} value={platform} onChange={e => setPlatform(e.target.value)}>
+              <select style={selectStyle} value={platform} onChange={e => setPlatform(e.target.value)}>
                 <option value="">Primary platform*</option>
                 <option>Instagram</option><option>YouTube</option><option>Pinterest</option><option>Blog</option><option>Other</option>
               </select>
-              <input style={inp} type="text" placeholder="Your handle or profile URL*" value={handle} onChange={e => setHandle(e.target.value)} />
-              <select style={sel} value={followers} onChange={e => setFollowers(e.target.value)}>
+              <input style={inputStyle} type="text" placeholder="Your handle or profile URL*" value={handle} onChange={e => setHandle(e.target.value)} />
+              <select style={selectStyle} value={followers} onChange={e => setFollowers(e.target.value)}>
                 <option value="">Follower count*</option>
                 <option>Under 1,000</option><option>1,000–10,000</option><option>10,000–50,000</option><option>50,000–2,00,000</option><option>2,00,000+</option>
               </select>
@@ -185,12 +207,12 @@ function CreatorForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
             <h2 style={{ fontFamily:'Cormorant Garamond,serif',fontSize:26,fontWeight:300,color:'#fff',textAlign:'center',marginBottom:6 }}>Your aesthetic</h2>
             <p style={{ fontSize:11,color:'rgba(255,255,255,0.4)',textAlign:'center',marginBottom:20 }}>Tell us what makes your taste unique.</p>
             <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-              <textarea style={{ ...inp,resize:'none',minHeight:80 } as React.CSSProperties} placeholder="Describe your content style..." value={bio} onChange={e => setBio(e.target.value)} rows={3} />
-              <select style={sel} value={source} onChange={e => setSource(e.target.value)}>
+              <textarea style={{ ...inputStyle,resize:'none',minHeight:80 } as React.CSSProperties} placeholder="Describe your content style..." value={bio} onChange={e => setBio(e.target.value)} rows={3} />
+              <select style={selectStyle} value={source} onChange={e => setSource(e.target.value)}>
                 <option value="">How did you hear about us?</option>
                 <option>Instagram</option><option>A friend or creator</option><option>Google</option><option>A brand I work with</option><option>Other</option>
               </select>
-              <input style={inp} type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} />
+              <input style={inputStyle} type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} />
               <button onClick={handleSubmit} disabled={loading} style={{ width:'100%',padding:'12px',background:'#B07D4A',color:'#fff',fontSize:11,letterSpacing:'0.1em',border:'none',cursor:'pointer',marginTop:4,opacity:loading?0.5:1 }}>
                 {loading ? 'SUBMITTING...' : 'APPLY'}
               </button>
@@ -202,7 +224,7 @@ function CreatorForm({ onBack, onClose }: { onBack: () => void; onClose: () => v
   )
 }
 
-// ── BRAND FORM ──────────────────────────────────────────────────
+// Brand form
 function BrandForm({ onBack, onClose }: { onBack: () => void; onClose: () => void }) {
   const [company, setCompany] = useState('')
   const [email, setEmail] = useState('')
@@ -224,9 +246,6 @@ function BrandForm({ onBack, onClose }: { onBack: () => void; onClose: () => voi
     setSubmitted(true)
   }
 
-  const inp = { width:'100%', padding:'12px 16px', background:'rgba(255,255,255,0.05)', border:'0.5px solid rgba(255,255,255,0.15)', fontSize:12, color:'#fff', outline:'none', fontFamily:'DM Sans,sans-serif' } as React.CSSProperties
-  const sel = { ...inp, color:'rgba(255,255,255,0.6)', appearance:'none' as const }
-
   if (submitted) return <PendingScreen title="We'll be in touch." sub="Our team will reach out within 24 hours to schedule your walkthrough." onClose={onClose} />
 
   return (
@@ -242,19 +261,19 @@ function BrandForm({ onBack, onClose }: { onBack: () => void; onClose: () => voi
           <p style={{ fontSize:11,color:'rgba(255,255,255,0.4)',textAlign:'center',marginBottom:20 }}>No one pushes your product like the people who love it.</p>
           <form onSubmit={handleSubmit} style={{ display:'flex',flexDirection:'column',gap:10 }}>
             {error && <p style={{ fontSize:11,color:'#f87171',textAlign:'center' }}>{error}</p>}
-            <input style={inp} type="text" placeholder="Brand / company name*" value={company} onChange={e => setCompany(e.target.value)} required />
-            <input style={inp} type="email" placeholder="Work email*" value={email} onChange={e => setEmail(e.target.value)} required />
-            <input style={inp} type="url" placeholder="Website URL" value={website} onChange={e => setWebsite(e.target.value)} />
-            <select style={sel} value={category} onChange={e => setCategory(e.target.value)}>
+            <input style={inputStyle} type="text" placeholder="Brand / company name*" value={company} onChange={e => setCompany(e.target.value)} required />
+            <input style={inputStyle} type="email" placeholder="Work email*" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input style={inputStyle} type="url" placeholder="Website URL" value={website} onChange={e => setWebsite(e.target.value)} />
+            <select style={selectStyle} value={category} onChange={e => setCategory(e.target.value)}>
               <option value="">Category</option>
               <option>Beauty</option><option>Skincare</option><option>Fashion</option><option>Home Decor</option><option>Wellness</option><option>Other</option>
             </select>
-            <select style={sel} value={budget} onChange={e => setBudget(e.target.value)}>
+            <select style={selectStyle} value={budget} onChange={e => setBudget(e.target.value)}>
               <option value="">Monthly budget</option>
               <option>Under ₹50,000</option><option>₹50,000–₹2,00,000</option><option>₹2,00,000–₹10,00,000</option><option>₹10,00,000+</option>
             </select>
-            <textarea style={{ ...inp,resize:'none' } as React.CSSProperties} placeholder="Tell us about your brand and goals..." value={message} onChange={e => setMessage(e.target.value)} rows={3} />
-            <button type="submit" disabled={loading} style={{ width:'100%',padding:'12px',background:'#fff',color:'#141210',fontSize:11,letterSpacing:'0.1em',border:'none',cursor:'pointer',marginTop:4,opacity:loading?0.5:1 }}>
+            <textarea style={{ ...inputStyle,resize:'none' } as React.CSSProperties} placeholder="Tell us about your brand and goals..." value={message} onChange={e => setMessage(e.target.value)} rows={3} />
+            <button type="submit" disabled={loading} style={{ ...primaryBtnStyle, marginTop: 4, opacity: loading ? 0.5 : 1 }}>
               {loading ? 'SENDING...' : 'APPLY'}
             </button>
           </form>
@@ -264,7 +283,7 @@ function BrandForm({ onBack, onClose }: { onBack: () => void; onClose: () => voi
   )
 }
 
-// ── SIGNUP MODAL ────────────────────────────────────────────────
+// Signup modal
 function SignupModal({ onClose }: { onClose: () => void }) {
   const [role, setRole] = useState<Role>(null)
 
@@ -336,14 +355,34 @@ function SignupModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ── HOMEPAGE ────────────────────────────────────────────────────
+// Homepage
 export default function Home() {
-  const [showSignup, setShowSignup] = useState(false)
+  const UNDER_CONSTRUCTION = true;
+  const [showSignup, setShowSignup] = useState(false);
 
-  // Auto-open if ?signup=true in URL
   useEffect(() => {
     if (window.location.search.includes('signup')) setShowSignup(true)
   }, [])
+
+  if (UNDER_CONSTRUCTION && process.env.NODE_ENV === "production") {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: "#FAFAF8",
+          textAlign: "center",
+        }}
+      >
+        <div>
+          <h1>CurateKin</h1>
+          <p>Site under construction ✨</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -522,12 +561,9 @@ export default function Home() {
             </div>
             <div className="sf-label">Skincare Essentials</div>
             <div className="sf-grid">
-              <div className="sf-card"><div className="sf-card-img c1"><div className="sf-glyph">Sk</div><div className="sf-tag">Serum</div></div><div className="sf-card-body"><div className="sf-brand">Minimalist</div><div className="sf-pname">10% Niacinamide</div><div className="sf-price">₹599</div></div></div>
-              <div className="sf-card"><div className="sf-card-img c2"><div className="sf-glyph">Sp</div><div className="sf-tag">SPF</div></div><div className="sf-card-body"><div className="sf-brand">Dot & Key</div><div className="sf-pname">UV Shield SPF 50</div><div className="sf-price">₹849</div></div></div>
-              <div className="sf-card"><div className="sf-card-img c3"><div className="sf-glyph">Cr</div><div className="sf-tag">Moisturiser</div></div><div className="sf-card-body"><div className="sf-brand">Forest Essentials</div><div className="sf-pname">Daily Repair Creme</div><div className="sf-price">₹1,200</div></div></div>
-              <div className="sf-card"><div className="sf-card-img c4"><div className="sf-glyph">To</div><div className="sf-tag">Toner</div></div><div className="sf-card-body"><div className="sf-brand">Plum</div><div className="sf-pname">Glycolic Toner</div><div className="sf-price">₹449</div></div></div>
-              <div className="sf-card"><div className="sf-card-img c5"><div className="sf-glyph">Ey</div><div className="sf-tag">Eye Cream</div></div><div className="sf-card-body"><div className="sf-brand">Kama Ayurveda</div><div className="sf-pname">Radiant Eye Butter</div><div className="sf-price">₹2,100</div></div></div>
-              <div className="sf-card"><div className="sf-card-img c6"><div className="sf-glyph">Cl</div><div className="sf-tag">Cleanser</div></div><div className="sf-card-body"><div className="sf-brand">Cetaphil</div><div className="sf-pname">Gentle Skin Cleanser</div><div className="sf-price">₹380</div></div></div>
+              {SKINCARE_PRODUCTS.map(p => (
+                <div className="sf-card" key={p.name}><div className={`sf-card-img ${p.tone}`}><div className="sf-glyph">{p.glyph}</div><div className="sf-tag">{p.tag}</div></div><div className="sf-card-body"><div className="sf-brand">{p.brand}</div><div className="sf-pname">{p.name}</div><div className="sf-price">{p.price}</div></div></div>
+              ))}
             </div>
           </div>
           <div className="sf-fade"></div>
