@@ -94,11 +94,29 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   const [bio, setBio] = useState('')
   const [source, setSource] = useState('')
   const [referral, setReferral] = useState('')
+  const [igConnected, setIgConnected] = useState(false)
+  const [igHandle, setIgHandle] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const supabase = createClient()
   const router = useRouter()
+
+  // Check if Instagram was just verified (coming back from OAuth)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('ig_success') === 'true') {
+      setIgConnected(true)
+      setIgHandle(params.get('ig_handle') || '')
+      setStep(4)
+      window.history.replaceState({}, '', '/signup')
+    }
+    if (params.get('ig_error')) {
+      setError('Instagram verification failed. Please try again.')
+      setStep(4)
+      window.history.replaceState({}, '', '/signup')
+    }
+  }, [])
 
   const NICHES = ['Beauty', 'Skincare', 'Fashion', 'Home Decor', 'Wellness', 'Jewellery', 'Food & Lifestyle', 'Travel', 'Fitness']
   const toggleNiche = (n: string) => setNiches(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n])
@@ -113,6 +131,8 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         id: data.user.id, display_name: name, phone, role: 'creator',
         status: 'pending', platform, handle, followers_range: followers,
         niches, bio, referral_code: referral || null,
+        instagram_handle: igHandle || null,
+        instagram_verified: igConnected,
       })
     }
     setLoading(false)
@@ -129,13 +149,13 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
         <button onClick={step > 1 ? () => setStep(s => s - 1) : onBack} className="text-[11px] tracking-[0.08em] text-white/50 hover:text-white transition-colors">← Back</button>
         <div className="flex items-center gap-2">
-          {[1, 2, 3].map((s, i) => (
+          {[1, 2, 3, 4].map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border transition-all
                 ${step > s ? 'bg-[#B89A6E] border-[#B89A6E] text-white' : step === s ? 'bg-white border-white text-[#1C1814]' : 'border-white/30 text-white/30'}`}>
                 {step > s ? '✓' : s}
               </div>
-              {i < 2 && <div className={`w-6 h-px ${step > s ? 'bg-[#B89A6E]' : 'bg-white/20'}`} />}
+              {i < 3 && <div className={`w-6 h-px ${step > s ? 'bg-[#B89A6E]' : 'bg-white/20'}`} />}
             </div>
           ))}
         </div>
@@ -205,10 +225,38 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                 <option>Instagram</option><option>A friend or creator</option><option>Google</option><option>A brand I work with</option><option>Other</option>
               </select>
               <input type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} className={inputClass} />
-              <button onClick={handleSubmit} disabled={loading}
-                className="w-full py-3 bg-[#B89A6E] text-white text-[11px] tracking-[0.1em] hover:bg-[#A6895D] transition-colors mt-2 disabled:opacity-50">
+              <button onClick={() => setStep(4)}
+                className="w-full py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors mt-2">NEXT</button>
+            </div>
+          </>}
+
+          {step === 4 && <>
+            <h2 className="font-[family-name:var(--font-cormorant)] text-[28px] font-light text-white text-center mb-2">Verify Instagram</h2>
+            <p className="text-[11px] text-white/50 text-center mb-6 font-light">Confirm you own the account you're applying with.</p>
+            <div className="flex flex-col gap-4">
+              {igConnected ? (
+                <div className="flex items-center gap-3 px-4 py-3 border border-[#B89A6E]/50 bg-[#B89A6E]/10">
+                  <div className="w-8 h-8 rounded-full bg-[#B89A6E] flex items-center justify-center text-white text-sm">✓</div>
+                  <div>
+                    <p className="text-[12px] text-white font-medium">@{igHandle}</p>
+                    <p className="text-[10px] text-[#B89A6E]">Instagram verified</p>
+                  </div>
+                </div>
+              ) : (
+                <a href="/api/auth/instagram"
+                  className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] text-center block hover:opacity-90 transition-opacity">
+                  CONNECT INSTAGRAM
+                </a>
+              )}
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !igConnected}
+                className="w-full py-3 bg-[#B89A6E] text-white text-[11px] tracking-[0.1em] hover:bg-[#A6895D] transition-colors disabled:opacity-40">
                 {loading ? 'Submitting...' : 'APPLY'}
               </button>
+              {!igConnected && (
+                <p className="text-[10px] text-white/30 text-center">Please connect your Instagram to continue</p>
+              )}
             </div>
           </>}
         </div>
