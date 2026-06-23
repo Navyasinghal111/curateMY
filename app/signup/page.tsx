@@ -5,11 +5,13 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-// ── OTP CONFIG ────────────────────────────────────────────────────
-// Flip to true when you have MSG91 credentials set in Vercel env vars:
+// ── OTP CONFIG ─────────────────────────────────────────────────────
+// Flip to true when MSG91 credentials are in Vercel env vars:
 // MSG91_AUTH_KEY, MSG91_TEMPLATE_ID, MSG91_SENDER_ID
 const OTP_ENABLED = false
-// ─────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────
+
+const SESSION_KEY = 'ck_creator_draft'
 
 type Role = 'shopper' | 'creator' | 'brand' | null
 
@@ -39,17 +41,13 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
     if (signUpError) { setError(signUpError.message); setLoading(false); return }
     if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id, display_name: name, role: 'shopper', status: 'pending',
-      })
+      await supabase.from('profiles').insert({ id: data.user.id, display_name: name, role: 'shopper', status: 'pending' })
     }
-    setLoading(false)
-    setSubmitted(true)
+    setLoading(false); setSubmitted(true)
   }
 
   if (submitted) return <PendingScreen title="You're on the list." sub="We're setting up your account. Check back soon to start discovering." onHome={() => router.push('/')} />
@@ -142,22 +140,63 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     const updated = [...portfolioLinks]; updated[i] = val; setPortfolioLinks(updated)
   }
 
+  // ── Save draft to sessionStorage ─────────────────────────────────
+  const saveDraft = () => {
+    const draft = {
+      name, email, password, countryCode, phone, city, ageConfirmed,
+      primaryPlatform, primaryHandle, primaryFollowers,
+      secondaryPlatform, secondaryHandle, secondaryFollowers, engagementRate,
+      niches, contentLanguage, bio, portfolioLinks, source, referral,
+    }
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(draft))
+  }
+
+  // ── Restore draft from sessionStorage ────────────────────────────
+  const restoreDraft = () => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY)
+      if (!raw) return false
+      const d = JSON.parse(raw)
+      setName(d.name || ''); setEmail(d.email || ''); setPassword(d.password || '')
+      setCountryCode(d.countryCode || '+91'); setPhone(d.phone || ''); setCity(d.city || '')
+      setAgeConfirmed(d.ageConfirmed || false)
+      setPrimaryPlatform(d.primaryPlatform || ''); setPrimaryHandle(d.primaryHandle || '')
+      setPrimaryFollowers(d.primaryFollowers || '')
+      setSecondaryPlatform(d.secondaryPlatform || ''); setSecondaryHandle(d.secondaryHandle || '')
+      setSecondaryFollowers(d.secondaryFollowers || ''); setEngagementRate(d.engagementRate || '')
+      setNiches(d.niches || []); setContentLanguage(d.contentLanguage || '')
+      setBio(d.bio || ''); setPortfolioLinks(d.portfolioLinks || ['', '', ''])
+      setSource(d.source || ''); setReferral(d.referral || '')
+      return true
+    } catch { return false }
+  }
+
+  // ── Check Instagram OAuth callback on mount ───────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('ig_success') === 'true') {
-      setIgConnected(true)
-      setIgHandle(params.get('ig_handle') || '')
-      setStep(4)
-      window.history.replaceState({}, '', '/signup')
+      const restored = restoreDraft()
+      if (restored) {
+        setIgConnected(true)
+        setIgHandle(params.get('ig_handle') || '')
+        setStep(5)
+        sessionStorage.removeItem(SESSION_KEY)
+        window.history.replaceState({}, '', '/signup')
+      } else {
+        // Draft lost — send back to step 1
+        setError('Session expired. Please fill in your details again.')
+        window.history.replaceState({}, '', '/signup')
+      }
     }
     if (params.get('ig_error')) {
+      restoreDraft()
       setError('Instagram verification failed. Please try again.')
       setStep(4)
       window.history.replaceState({}, '', '/signup')
     }
   }, [])
 
-  // OTP: Send via MSG91
+  // ── OTP: Send via MSG91 ───────────────────────────────────────────
   const sendOtp = async () => {
     if (!OTP_ENABLED) { setOtpVerified(true); return }
     if (!phone || phone.length < 10) { setOtpError('Enter a valid phone number'); return }
@@ -174,7 +213,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     setOtpLoading(false)
   }
 
-  // OTP: Verify via MSG91
+  // ── OTP: Verify via MSG91 ─────────────────────────────────────────
   const verifyOtp = async () => {
     if (!OTP_ENABLED) { setOtpVerified(true); return }
     if (!otpValue || otpValue.length < 4) { setOtpError('Enter the OTP'); return }
@@ -191,6 +230,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     setOtpLoading(false)
   }
 
+  // ── Step validations ──────────────────────────────────────────────
   const handleStep1Next = () => {
     if (!name || !email || !password) { setError('Please fill all required fields'); return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
@@ -201,6 +241,13 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     setError(''); setStep(2)
   }
 
+  // ── Save draft + redirect to Instagram ───────────────────────────
+  const connectInstagram = () => {
+    saveDraft()
+    window.location.href = '/api/auth/instagram'
+  }
+
+  // ── Final submit ──────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!upiId) { setError('UPI ID is required for payouts'); return }
     if (!panNumber) { setError('PAN number is required'); return }
@@ -214,8 +261,9 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         id: data.user.id, display_name: name, phone: `${countryCode}${phone}`, city,
         role: 'creator', status: 'pending',
         primary_platform: primaryPlatform, primary_handle: primaryHandle, primary_followers: primaryFollowers,
-        secondary_platform: secondaryPlatform || null, secondary_handle: secondaryHandle || null, secondary_followers: secondaryFollowers || null,
-        engagement_rate: engagementRate || null, niches, content_language: contentLanguage, bio,
+        secondary_platform: secondaryPlatform || null, secondary_handle: secondaryHandle || null,
+        secondary_followers: secondaryFollowers || null, engagement_rate: engagementRate || null,
+        niches, content_language: contentLanguage, bio,
         portfolio_links: portfolioLinks.filter(l => l.trim() !== ''),
         referral_code: referral || null, source,
         instagram_handle: igHandle || null, instagram_verified: igConnected,
@@ -229,10 +277,11 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   if (submitted) return <PendingScreen title="Application received." sub="We'll review your profile and get back to you within 3–5 days. Keep creating." onHome={() => router.push('/')} />
 
   const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors"
-  const selectClass = "w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white/70 outline-none focus:border-[#B89A6E] transition-colors appearance-none"
+  const selectClass = "w-full px-4 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] transition-colors appearance-none"
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Step header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
         <button onClick={step > 1 ? () => { setError(''); setStep(s => s - 1) } : onBack}
           className="text-[11px] tracking-[0.08em] text-white/50 hover:text-white transition-colors">← Back</button>
@@ -250,10 +299,12 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         <p className="text-[10px] tracking-[0.18em] text-[#B89A6E]">FOR CREATORS</p>
       </div>
 
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <div className="w-full max-w-xs mx-auto">
           {error && <p className="text-[11px] text-red-400 text-center mb-4">{error}</p>}
 
+          {/* ── STEP 1: Basic Info ── */}
           {step === 1 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Basic info</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Let's start with who you are.</p>
@@ -265,9 +316,9 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
               <div>
                 <div className="flex gap-2">
                   <select value={countryCode} onChange={e => setCountryCode(e.target.value)}
-                    className="w-20 px-2 py-3 bg-white/5 border border-white/20 text-[12px] text-white/70 outline-none focus:border-[#B89A6E] appearance-none">
-                    <option value="+91">+91</option><option value="+1">+1</option><option value="+44">+44</option>
-                    <option value="+971">+971</option><option value="+65">+65</option>
+                    className="w-20 px-2 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] appearance-none">
+                    <option value="+91">+91</option><option value="+1">+1</option>
+                    <option value="+44">+44</option><option value="+971">+971</option><option value="+65">+65</option>
                   </select>
                   <input type="tel" placeholder="Phone number*" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/, ''))} maxLength={10}
                     className="flex-1 px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors" />
@@ -312,6 +363,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
             </div>
           </>}
 
+          {/* ── STEP 2: Platforms ── */}
           {step === 2 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Your platforms</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">It's about taste, not follower count.</p>
@@ -328,19 +380,17 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
               </select>
               <div className="border-t border-white/10 pt-3 mt-1">
                 <p className="text-[10px] tracking-[0.12em] text-[#B89A6E] mb-3">SECONDARY PLATFORM <span className="text-white/30 normal-case tracking-normal">(optional)</span></p>
-                <div className="flex flex-col gap-3">
-                  <select value={secondaryPlatform} onChange={e => setSecondaryPlatform(e.target.value)} className={selectClass}>
-                    <option value="">Select platform</option>
-                    <option>Instagram</option><option>YouTube</option><option>Pinterest</option><option>Blog</option><option>LinkedIn</option><option>Other</option>
+                <select value={secondaryPlatform} onChange={e => setSecondaryPlatform(e.target.value)} className={selectClass}>
+                  <option value="">Select platform</option>
+                  <option>Instagram</option><option>YouTube</option><option>Pinterest</option><option>Blog</option><option>LinkedIn</option><option>Other</option>
+                </select>
+                {secondaryPlatform && <div className="flex flex-col gap-3 mt-3">
+                  <input type="text" placeholder="Handle or profile URL" value={secondaryHandle} onChange={e => setSecondaryHandle(e.target.value)} className={inputClass} />
+                  <select value={secondaryFollowers} onChange={e => setSecondaryFollowers(e.target.value)} className={selectClass}>
+                    <option value="">Follower count</option>
+                    <option>Under 1,000</option><option>1,000–10,000</option><option>10,000–50,000</option><option>50,000–2,00,000</option><option>2,00,000+</option>
                   </select>
-                  {secondaryPlatform && <>
-                    <input type="text" placeholder="Handle or profile URL" value={secondaryHandle} onChange={e => setSecondaryHandle(e.target.value)} className={inputClass} />
-                    <select value={secondaryFollowers} onChange={e => setSecondaryFollowers(e.target.value)} className={selectClass}>
-                      <option value="">Follower count</option>
-                      <option>Under 1,000</option><option>1,000–10,000</option><option>10,000–50,000</option><option>50,000–2,00,000</option><option>2,00,000+</option>
-                    </select>
-                  </>}
-                </div>
+                </div>}
               </div>
               <select value={engagementRate} onChange={e => setEngagementRate(e.target.value)} className={selectClass}>
                 <option value="">Average engagement rate</option>
@@ -351,6 +401,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
             </div>
           </>}
 
+          {/* ── STEP 3: Content & Niche ── */}
           {step === 3 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Your content</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Tell us what makes your taste unique.</p>
@@ -370,8 +421,8 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
               <select value={contentLanguage} onChange={e => setContentLanguage(e.target.value)} className={selectClass}>
                 <option value="">Content language*</option>
                 <option>English</option><option>Hindi</option><option>Both English & Hindi</option>
-                <option>Tamil</option><option>Telugu</option><option>Kannada</option><option>Malayalam</option>
-                <option>Marathi</option><option>Bengali</option><option>Other</option>
+                <option>Tamil</option><option>Telugu</option><option>Kannada</option>
+                <option>Malayalam</option><option>Marathi</option><option>Bengali</option><option>Other</option>
               </select>
               <textarea placeholder="Describe your content style and aesthetic...*" value={bio} onChange={e => setBio(e.target.value)} rows={3}
                 className={`${inputClass} resize-none`} />
@@ -392,6 +443,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
             </div>
           </>}
 
+          {/* ── STEP 4: Instagram ── */}
           {step === 4 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Verify Instagram</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Confirm you own the account you're applying with.</p>
@@ -405,10 +457,10 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                   </div>
                 </div>
               ) : (
-                <a href="/api/auth/instagram"
-                  className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] text-center block hover:opacity-90 transition-opacity">
+                <button onClick={connectInstagram}
+                  className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] text-center hover:opacity-90 transition-opacity">
                   CONNECT INSTAGRAM
-                </a>
+                </button>
               )}
               <button onClick={() => igConnected ? (setError(''), setStep(5)) : setError('Please connect your Instagram to continue')}
                 disabled={!igConnected}
@@ -419,6 +471,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
             </div>
           </>}
 
+          {/* ── STEP 5: Payouts & Legal ── */}
           {step === 5 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Payouts & agreement</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Almost there. Set up how you'll get paid.</p>
@@ -488,8 +541,7 @@ function BrandForm({ onBack }: { onBack: () => void }) {
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault(); setLoading(true)
     const { error: insertError } = await supabase.from('brand_inquiries').insert({
       company_name: company, email, website, category, budget, message,
     })
@@ -500,7 +552,7 @@ function BrandForm({ onBack }: { onBack: () => void }) {
   if (submitted) return <PendingScreen title="We'll be in touch." sub="Our team will reach out within 24 hours to schedule your walkthrough." onHome={() => router.push('/')} />
 
   const inputClass = "w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors"
-  const selectClass = "w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white/70 outline-none focus:border-[#B89A6E] transition-colors appearance-none"
+  const selectClass = "w-full px-4 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] transition-colors appearance-none"
 
   return (
     <div className="flex flex-col flex-1">
