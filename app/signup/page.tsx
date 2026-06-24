@@ -6,21 +6,17 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 // ── CONFIG ────────────────────────────────────────────────────────
-// Set OTP_ENABLED = true when MSG91 creds are in Vercel env vars:
-// MSG91_AUTH_KEY, MSG91_TEMPLATE_ID, MSG91_SENDER_ID
 const OTP_ENABLED = false
 const SESSION_KEY = 'ck_creator_draft'
 // ─────────────────────────────────────────────────────────────────
 
 type Role = 'shopper' | 'creator' | 'brand' | null
 
-// ── Shared styles ─────────────────────────────────────────────────
 const input = "w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors"
 const select = "w-full px-4 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] transition-colors appearance-none"
 const btnPrimary = "w-full py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors mt-2 disabled:opacity-50"
 const label = "text-[10px] tracking-[0.12em] text-[#B89A6E]"
 
-// ── Checkbox component ────────────────────────────────────────────
 function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: React.ReactNode }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer">
@@ -34,7 +30,6 @@ function Checkbox({ checked, onChange, children }: { checked: boolean; onChange:
   )
 }
 
-// ── Form header shared by all role forms ──────────────────────────
 function FormHeader({ onBack, tag, children }: { onBack: () => void; tag: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
@@ -45,7 +40,6 @@ function FormHeader({ onBack, tag, children }: { onBack: () => void; tag: string
   )
 }
 
-// ── Pending / success screen ──────────────────────────────────────
 function PendingScreen({ title, sub, onHome }: { title: string; sub: string; onHome: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6 text-center py-16">
@@ -115,7 +109,7 @@ const LANGUAGES = ['English', 'Hindi', 'Both English & Hindi', 'Tamil', 'Telugu'
 function CreatorForm({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState(1)
 
-  // Step 1 — Basic info
+  // Step 1
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -124,14 +118,14 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   const [city, setCity] = useState('')
   const [ageConfirmed, setAgeConfirmed] = useState(false)
 
-  // OTP (MSG91 — wired up, disabled until OTP_ENABLED = true)
+  // OTP
   const [otpSent, setOtpSent] = useState(false)
   const [otpValue, setOtpValue] = useState('')
   const [otpVerified, setOtpVerified] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
   const [otpError, setOtpError] = useState('')
 
-  // Step 2 — Platforms
+  // Step 2
   const [primaryPlatform, setPrimaryPlatform] = useState('')
   const [primaryHandle, setPrimaryHandle] = useState('')
   const [primaryFollowers, setPrimaryFollowers] = useState('')
@@ -140,7 +134,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   const [secondaryFollowers, setSecondaryFollowers] = useState('')
   const [engagementRate, setEngagementRate] = useState('')
 
-  // Step 3 — Content
+  // Step 3
   const [niches, setNiches] = useState<string[]>([])
   const [contentLanguage, setContentLanguage] = useState('')
   const [bio, setBio] = useState('')
@@ -148,11 +142,11 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   const [source, setSource] = useState('')
   const [referral, setReferral] = useState('')
 
-  // Step 4 — Instagram
+  // Step 4
   const [igConnected, setIgConnected] = useState(false)
   const [igHandle, setIgHandle] = useState('')
 
-  // Step 5 — Payouts & Legal
+  // Step 5
   const [upiId, setUpiId] = useState('')
   const [panNumber, setPanNumber] = useState('')
   const [agreedTos, setAgreedTos] = useState(false)
@@ -167,16 +161,19 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
 
   const toggleNiche = (n: string) => setNiches(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n])
   const updateLink = (i: number, v: string) => { const l = [...portfolioLinks]; l[i] = v; setPortfolioLinks(l) }
-  const nextStep = () => { setError(''); setStep(s => s + 1) }
-  const prevStep = () => { setError(''); setStep(s => s - 1) }
+  const nextStep = () => { setError(''); setStep(s => s + 1); window.scrollTo(0, 0) }
+  const prevStep = () => { setError(''); setStep(s => s - 1); window.scrollTo(0, 0) }
 
-  // sessionStorage helpers — persist form data across Instagram OAuth redirect
-  const saveDraft = () => sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-    name, email, password, countryCode, phone, city, ageConfirmed,
-    primaryPlatform, primaryHandle, primaryFollowers,
-    secondaryPlatform, secondaryHandle, secondaryFollowers, engagementRate,
-    niches, contentLanguage, bio, portfolioLinks, source, referral,
-  }))
+  const saveDraft = () => {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        name, email, password, countryCode, phone, city, ageConfirmed,
+        primaryPlatform, primaryHandle, primaryFollowers,
+        secondaryPlatform, secondaryHandle, secondaryFollowers, engagementRate,
+        niches, contentLanguage, bio, portfolioLinks, source, referral,
+      }))
+    } catch {}
+  }
 
   const restoreDraft = (): boolean => {
     try {
@@ -197,7 +194,6 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     } catch { return false }
   }
 
-  // Handle Instagram OAuth return
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get('ig_success') === 'true') {
@@ -205,20 +201,19 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         setIgConnected(true)
         setIgHandle(p.get('ig_handle') ?? '')
         setStep(5)
-        sessionStorage.removeItem(SESSION_KEY)
+        // ✅ FIX: draft cleared only after successful submit, not here
       } else {
         setError('Session expired. Please fill in your details again.')
       }
       window.history.replaceState({}, '', '/signup')
     } else if (p.get('ig_error')) {
       restoreDraft()
-      setError('Instagram verification failed. Please try again.')
+      setError('Instagram verification failed. You can skip it below.')
       setStep(4)
       window.history.replaceState({}, '', '/signup')
     }
   }, [])
 
-  // OTP via MSG91
   const sendOtp = async () => {
     if (!OTP_ENABLED) { setOtpVerified(true); return }
     if (phone.length < 10) { setOtpError('Enter a valid phone number'); return }
@@ -261,10 +256,11 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(panNumber)) return setError('Enter a valid PAN (e.g. ABCDE1234F)')
     if (!agreedTos || !agreedAffiliate) return setError('Please agree to all terms to continue')
     setLoading(true); setError('')
-    const { data, error: err } = await supabase.auth.signUp({ email, password })
-    if (err) { setError(err.message); setLoading(false); return }
-    if (data.user) {
-      await supabase.from('profiles').insert({
+    try {
+      const { data, error: err } = await supabase.auth.signUp({ email, password })
+      if (err) throw err
+      if (!data.user) throw new Error('Signup failed — please try again.')
+      const { error: profileErr } = await supabase.from('profiles').insert({
         id: data.user.id, display_name: name, phone: `${countryCode}${phone}`, city,
         role: 'creator', status: 'pending',
         primary_platform: primaryPlatform, primary_handle: primaryHandle, primary_followers: primaryFollowers,
@@ -277,13 +273,19 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         upi_id: upiId, pan_number: panNumber,
         agreed_tos: agreedTos, agreed_affiliate: agreedAffiliate,
       })
+      if (profileErr) throw profileErr
+      // ✅ FIX: clear draft only after successful submit
+      try { sessionStorage.removeItem(SESSION_KEY) } catch {}
+      setSubmitted(true)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false); setSubmitted(true)
   }
 
   if (submitted) return <PendingScreen title="Application received." sub="We'll review your profile and get back to you within 3–5 days. Keep creating." onHome={() => router.push('/')} />
 
-  // Step indicator dots
   const StepDots = () => (
     <div className="flex items-center gap-1.5">
       {[1, 2, 3, 4, 5].map((s, i) => (
@@ -318,7 +320,6 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
               <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPassword(e.target.value)} minLength={6} className={input} />
               <input type="text" placeholder="City*" value={city} onChange={e => setCity(e.target.value)} className={input} />
 
-              {/* Phone + OTP */}
               <div>
                 <div className="flex gap-2">
                   <select value={countryCode} onChange={e => setCountryCode(e.target.value)}
@@ -330,7 +331,6 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                     className="flex-1 px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors" />
                 </div>
 
-                {/* OTP UI — hidden when OTP_ENABLED = false */}
                 {OTP_ENABLED && !otpVerified && (
                   <div className="mt-2">
                     {!otpSent
@@ -453,22 +453,36 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Verify Instagram</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Confirm you own the account you're applying with.</p>
             <div className="flex flex-col gap-4">
-              {igConnected
-                ? <div className="flex items-center gap-3 px-4 py-3 border border-[#B89A6E]/50 bg-[#B89A6E]/10">
+
+              {igConnected ? (
+                // ── Already connected ──
+                <>
+                  <div className="flex items-center gap-3 px-4 py-3 border border-[#B89A6E]/50 bg-[#B89A6E]/10">
                     <div className="w-8 h-8 rounded-full bg-[#B89A6E] flex items-center justify-center text-white text-sm">✓</div>
                     <div>
                       <p className="text-[12px] text-white font-medium">@{igHandle}</p>
                       <p className="text-[10px] text-[#B89A6E]">Instagram verified</p>
                     </div>
                   </div>
-                : <button onClick={connectInstagram}
-                    className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] hover:opacity-90 transition-opacity">
+                  <button onClick={nextStep} className={btnPrimary}>NEXT</button>
+                </>
+              ) : (
+                // ── ✅ FIX: connect OR skip — no longer blocked ──
+                <>
+                  <button onClick={connectInstagram}
+                    className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] hover:opacity-90 transition-opacity mt-2">
                     CONNECT INSTAGRAM
                   </button>
-              }
-              <button onClick={() => igConnected ? nextStep() : setError('Please connect your Instagram to continue')}
-                disabled={!igConnected} className={btnPrimary}>NEXT</button>
-              {!igConnected && <p className="text-[10px] text-white/30 text-center">Instagram verification is required to apply</p>}
+                  <button onClick={nextStep}
+                    className="w-full py-3 border border-white/20 text-white/40 text-[10px] tracking-[0.1em] hover:border-white/40 hover:text-white/60 transition-all">
+                    SKIP FOR NOW — VERIFY AFTER APPROVAL
+                  </button>
+                  <p className="text-[10px] text-white/25 text-center leading-relaxed">
+                    Instagram verification strengthens your application.<br />You can complete it after we approve you.
+                  </p>
+                </>
+              )}
+
             </div>
           </>}
 
@@ -594,7 +608,6 @@ export default function SignupPage() {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="relative w-full max-w-6xl bg-[#1C1814] shadow-2xl flex flex-col" style={{ height: 'min(780px, 94vh)' }}>
 
-          {/* Role selection */}
           {!role && <>
             <button onClick={() => router.push('/')}
               className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-xl">×</button>
@@ -628,6 +641,7 @@ export default function SignupPage() {
           {role === 'shopper' && <ShopperForm onBack={() => setRole(null)} />}
           {role === 'creator' && <CreatorForm onBack={() => setRole(null)} />}
           {role === 'brand'   && <BrandForm   onBack={() => setRole(null)} />}
+
         </div>
       </div>
     </>
