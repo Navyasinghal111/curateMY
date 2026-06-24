@@ -634,7 +634,7 @@ export default function SignupPage() {
         <div className="relative w-full max-w-6xl bg-[#1C1814] shadow-2xl flex flex-col" style={{ height:'min(780px,94vh)' }}>
 
           {/* X — go back to wherever the user came from */}
-          <button onClick={() => window.history.back()} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-xl">×</button>
+          <button onClick={(e) => { e.stopPropagation(); window.history.back() }} className="absolute top-6 right-6 z-50 w-12 h-12 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all text-2xl rounded-full" style={{fontSize:28, lineHeight:1}}>×</button>
 
           {!role && (
             <>
