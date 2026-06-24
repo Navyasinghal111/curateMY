@@ -5,17 +5,15 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-// ── CONFIG ────────────────────────────────────────────────────────
 const OTP_ENABLED = false
 const SESSION_KEY = 'ck_creator_draft'
-// ─────────────────────────────────────────────────────────────────
 
 type Role = 'shopper' | 'creator' | 'brand' | null
 
-const input = "w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors"
-const select = "w-full px-4 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] transition-colors appearance-none"
+const inp = "w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors"
+const sel = "w-full px-4 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] transition-colors appearance-none"
 const btnPrimary = "w-full py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors mt-2 disabled:opacity-50"
-const label = "text-[10px] tracking-[0.12em] text-[#B89A6E]"
+const lbl = "text-[10px] tracking-[0.12em] text-[#B89A6E]"
 
 function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: React.ReactNode }) {
   return (
@@ -87,9 +85,9 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
           <p className="text-[11px] text-white/50 text-center mb-8 font-light">Discover products curated by people you trust.</p>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
-            <input type="text" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required className={input} />
-            <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required className={input} />
-            <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className={input} />
+            <input type="text" placeholder="Full name" value={name} onChange={e => setName(e.target.value)} required className={inp} />
+            <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required className={inp} />
+            <input type="password" placeholder="Password (min 6 characters)" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className={inp} />
             <button type="submit" disabled={loading} className={btnPrimary}>{loading ? 'Creating...' : 'CREATE AN ACCOUNT'}</button>
           </form>
         </div>
@@ -118,7 +116,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   const [city, setCity] = useState('')
   const [ageConfirmed, setAgeConfirmed] = useState(false)
 
-  // OTP
+  // OTP scaffold
   const [otpSent, setOtpSent] = useState(false)
   const [otpValue, setOtpValue] = useState('')
   const [otpVerified, setOtpVerified] = useState(false)
@@ -201,7 +199,6 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         setIgConnected(true)
         setIgHandle(p.get('ig_handle') ?? '')
         setStep(5)
-        // ✅ FIX: draft cleared only after successful submit, not here
       } else {
         setError('Session expired. Please fill in your details again.')
       }
@@ -241,7 +238,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   const handleStep1Next = () => {
     if (!name || !email || !password) return setError('Please fill all required fields')
     if (password.length < 6) return setError('Password must be at least 6 characters')
-    if (!phone) return setError('Please enter your phone number')
+    if (!phone || phone.replace(/\D/g, '').length < 10) return setError('Phone number must be at least 10 digits')
     if (!city) return setError('Please enter your city')
     if (!ageConfirmed) return setError('You must confirm you are 18 or older')
     if (OTP_ENABLED && !otpVerified) return setError('Please verify your phone number')
@@ -274,7 +271,6 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         agreed_tos: agreedTos, agreed_affiliate: agreedAffiliate,
       })
       if (profileErr) throw profileErr
-      // ✅ FIX: clear draft only after successful submit
       try { sessionStorage.removeItem(SESSION_KEY) } catch {}
       setSubmitted(true)
     } catch (err: unknown) {
@@ -300,6 +296,22 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     </div>
   )
 
+  // Shared nav row — back + next
+  const NavRow = ({ onNext, nextLabel = 'NEXT', showBack = true }: { onNext: () => void; nextLabel?: string; showBack?: boolean }) => (
+    <div className="flex gap-2 mt-4">
+      {showBack && (
+        <button onClick={prevStep}
+          className="flex-1 py-3 border border-white/20 text-white/50 text-[11px] tracking-[0.08em] hover:border-white/50 hover:text-white/80 transition-colors">
+          ← BACK
+        </button>
+      )}
+      <button onClick={onNext}
+        className={`${showBack ? 'flex-[2]' : 'w-full'} py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors`}>
+        {nextLabel}
+      </button>
+    </div>
+  )
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <FormHeader onBack={step > 1 ? prevStep : onBack} tag="FOR CREATORS">
@@ -310,39 +322,36 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         <div className="w-full max-w-xs mx-auto">
           {error && <p className="text-[11px] text-red-400 text-center mb-4">{error}</p>}
 
-          {/* ── Step 1: Basic info ── */}
+          {/* ── STEP 1: Basic info ── */}
           {step === 1 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Basic info</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Let's start with who you are.</p>
             <div className="flex flex-col gap-3">
-              <input type="text" placeholder="Full name*" value={name} onChange={e => setName(e.target.value)} className={input} />
-              <input type="email" placeholder="Email address*" value={email} onChange={e => setEmail(e.target.value)} className={input} />
-              <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPassword(e.target.value)} minLength={6} className={input} />
-              <input type="text" placeholder="City*" value={city} onChange={e => setCity(e.target.value)} className={input} />
-
+              <input type="text" placeholder="Full name*" value={name} onChange={e => setName(e.target.value)} className={inp} />
+              <input type="email" placeholder="Email address*" value={email} onChange={e => setEmail(e.target.value)} className={inp} />
+              <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPassword(e.target.value)} minLength={6} className={inp} />
+              <input type="text" placeholder="City*" value={city} onChange={e => setCity(e.target.value)} className={inp} />
               <div>
                 <div className="flex gap-2">
                   <select value={countryCode} onChange={e => setCountryCode(e.target.value)}
                     className="w-20 px-2 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] appearance-none">
                     {['+91', '+1', '+44', '+971', '+65'].map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
-                  <input type="tel" placeholder="Phone number*" value={phone}
-                    onChange={e => setPhone(e.target.value.replace(/\D/, ''))} maxLength={10}
+                  <input type="tel" placeholder="Phone number* (min 10 digits)" value={phone}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} maxLength={10}
                     className="flex-1 px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors" />
                 </div>
-
+                {!OTP_ENABLED && phone.length >= 10 && <p className="text-[10px] text-white/30 mt-1">Phone verification coming soon.</p>}
                 {OTP_ENABLED && !otpVerified && (
                   <div className="mt-2">
                     {!otpSent
-                      ? <button onClick={sendOtp} disabled={otpLoading}
-                          className="w-full py-2 border border-white/30 text-white/70 text-[10px] tracking-[0.1em] hover:border-white/60 disabled:opacity-40">
+                      ? <button onClick={sendOtp} disabled={otpLoading} className="w-full py-2 border border-white/30 text-white/70 text-[10px] tracking-[0.1em] hover:border-white/60 disabled:opacity-40">
                           {otpLoading ? 'Sending...' : 'SEND OTP'}
                         </button>
                       : <div className="flex gap-2 mt-1">
                           <input type="text" placeholder="Enter OTP" value={otpValue} onChange={e => setOtpValue(e.target.value)} maxLength={6}
                             className="flex-1 px-3 py-2 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E]" />
-                          <button onClick={verifyOtp} disabled={otpLoading}
-                            className="px-4 py-2 bg-white text-[#1C1814] text-[10px] tracking-[0.08em] disabled:opacity-40">
+                          <button onClick={verifyOtp} disabled={otpLoading} className="px-4 py-2 bg-white text-[#1C1814] text-[10px] tracking-[0.08em] disabled:opacity-40">
                             {otpLoading ? '...' : 'VERIFY'}
                           </button>
                         </div>
@@ -351,65 +360,60 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                   </div>
                 )}
                 {OTP_ENABLED && otpVerified && <p className="text-[10px] text-[#B89A6E] mt-1">✓ Phone verified</p>}
-                {!OTP_ENABLED && phone.length >= 10 && <p className="text-[10px] text-white/30 mt-1">Phone verification coming soon.</p>}
               </div>
-
               <Checkbox checked={ageConfirmed} onChange={() => setAgeConfirmed(a => !a)}>
                 I confirm I am 18 years of age or older*
               </Checkbox>
-
-              <button onClick={handleStep1Next} className={btnPrimary}>NEXT</button>
+              <NavRow onNext={handleStep1Next} showBack={false} />
             </div>
           </>}
 
-          {/* ── Step 2: Platforms ── */}
+          {/* ── STEP 2: Platforms ── */}
           {step === 2 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Your platforms</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">It's about taste, not follower count.</p>
             <div className="flex flex-col gap-3">
-              <p className={label}>PRIMARY PLATFORM</p>
-              <select value={primaryPlatform} onChange={e => setPrimaryPlatform(e.target.value)} className={select}>
+              <p className={lbl}>PRIMARY PLATFORM</p>
+              <select value={primaryPlatform} onChange={e => setPrimaryPlatform(e.target.value)} className={sel}>
                 <option value="">Select platform*</option>
                 {PLATFORMS.map(p => <option key={p}>{p}</option>)}
               </select>
-              <input type="text" placeholder="Handle or profile URL*" value={primaryHandle} onChange={e => setPrimaryHandle(e.target.value)} className={input} />
-              <select value={primaryFollowers} onChange={e => setPrimaryFollowers(e.target.value)} className={select}>
-                <option value="">Follower count*</option>
-                {FOLLOWER_RANGES.map(r => <option key={r}>{r}</option>)}
+              <div className="flex gap-2">
+                <input type="text" placeholder="Handle or profile URL*" value={primaryHandle} onChange={e => setPrimaryHandle(e.target.value)} className={inp} />
+                <select value={primaryFollowers} onChange={e => setPrimaryFollowers(e.target.value)} className={sel}>
+                  <option value="">Followers*</option>
+                  {FOLLOWER_RANGES.map(r => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+              <select value={engagementRate} onChange={e => setEngagementRate(e.target.value)} className={sel}>
+                <option value="">Average engagement rate</option>
+                {['Under 1%', '1–3%', '3–6%', '6–10%', 'Above 10%'].map(r => <option key={r}>{r}</option>)}
               </select>
-
               <div className="border-t border-white/10 pt-3 mt-1">
-                <p className={`${label} mb-3`}>SECONDARY PLATFORM <span className="text-white/30 normal-case tracking-normal">(optional)</span></p>
-                <select value={secondaryPlatform} onChange={e => setSecondaryPlatform(e.target.value)} className={select}>
+                <p className={`${lbl} mb-3`}>SECONDARY PLATFORM <span className="text-white/30 normal-case tracking-normal">(optional)</span></p>
+                <select value={secondaryPlatform} onChange={e => setSecondaryPlatform(e.target.value)} className={sel}>
                   <option value="">Select platform</option>
                   {PLATFORMS.map(p => <option key={p}>{p}</option>)}
                 </select>
                 {secondaryPlatform && <div className="flex flex-col gap-3 mt-3">
-                  <input type="text" placeholder="Handle or profile URL" value={secondaryHandle} onChange={e => setSecondaryHandle(e.target.value)} className={input} />
-                  <select value={secondaryFollowers} onChange={e => setSecondaryFollowers(e.target.value)} className={select}>
+                  <input type="text" placeholder="Handle or profile URL" value={secondaryHandle} onChange={e => setSecondaryHandle(e.target.value)} className={inp} />
+                  <select value={secondaryFollowers} onChange={e => setSecondaryFollowers(e.target.value)} className={sel}>
                     <option value="">Follower count</option>
                     {FOLLOWER_RANGES.map(r => <option key={r}>{r}</option>)}
                   </select>
                 </div>}
               </div>
-
-              <select value={engagementRate} onChange={e => setEngagementRate(e.target.value)} className={select}>
-                <option value="">Average engagement rate</option>
-                {['Under 1%', '1–3%', '3–6%', '6–10%', 'Above 10%'].map(r => <option key={r}>{r}</option>)}
-              </select>
-
-              <button onClick={() => primaryPlatform && primaryHandle && primaryFollowers ? nextStep() : setError('Please fill all required platform fields')}
-                className={btnPrimary}>NEXT</button>
+              <NavRow onNext={() => primaryPlatform && primaryHandle && primaryFollowers ? nextStep() : setError('Please fill all required platform fields')} />
             </div>
           </>}
 
-          {/* ── Step 3: Content & Niche ── */}
+          {/* ── STEP 3: Content & Niche ── */}
           {step === 3 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Your content</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Tell us what makes your taste unique.</p>
             <div className="flex flex-col gap-3">
               <div>
-                <p className={`${label} mb-2`}>YOUR NICHE*</p>
+                <p className={`${lbl} mb-2`}>YOUR NICHE*</p>
                 <div className="flex flex-wrap gap-2">
                   {NICHES.map(n => (
                     <button key={n} type="button" onClick={() => toggleNiche(n)}
@@ -420,90 +424,113 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                   ))}
                 </div>
               </div>
-
-              <select value={contentLanguage} onChange={e => setContentLanguage(e.target.value)} className={select}>
+              <select value={contentLanguage} onChange={e => setContentLanguage(e.target.value)} className={sel}>
                 <option value="">Content language*</option>
                 {LANGUAGES.map(l => <option key={l}>{l}</option>)}
               </select>
-
               <textarea placeholder="Describe your content style and aesthetic...*" value={bio} onChange={e => setBio(e.target.value)} rows={3}
-                className={`${input} resize-none`} />
+                className={`${inp} resize-none`} />
 
-              <div>
-                <p className={`${label} mb-2`}>PORTFOLIO LINKS <span className="text-white/30 normal-case tracking-normal">(up to 3 posts)</span></p>
-                {portfolioLinks.map((lnk, i) => (
-                  <input key={i} type="url" placeholder={`Link ${i + 1}`} value={lnk} onChange={e => updateLink(i, e.target.value)} className={`${input} mb-2`} />
+              {/* ── Portfolio links — dimmed / optional ── */}
+              <div className="border-t border-white/10 pt-3 mt-1 opacity-40 pointer-events-none select-none">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className={lbl}>YOUR BEST POSTS / REELS</p>
+                  <span className="text-[9px] text-white/30 border border-white/15 px-2 py-0.5 rounded-full font-mono tracking-wide">optional — skip for now</span>
+                </div>
+                <p className="text-[10px] text-white/30 font-mono leading-relaxed mb-3">
+                  Share links to up to 3 of your best posts or reels — Instagram, YouTube, blog, anywhere. Pick content with strong engagement, not just high views.
+                </p>
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] text-white/20 font-mono w-5">0{i}</span>
+                    <input disabled placeholder={`Link to your ${i === 1 ? 'best' : i === 2 ? 'second' : 'third'} post or reel`}
+                      className={`${inp} flex-1`} />
+                  </div>
                 ))}
               </div>
 
-              <select value={source} onChange={e => setSource(e.target.value)} className={select}>
+              <select value={source} onChange={e => setSource(e.target.value)} className={sel}>
                 <option value="">How did you hear about us?</option>
                 {['Instagram', 'A friend or creator', 'Google', 'A brand I work with', 'Other'].map(s => <option key={s}>{s}</option>)}
               </select>
-
-              <input type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} className={input} />
-
-              <button onClick={() => niches.length && contentLanguage && bio ? nextStep() : setError('Please fill niche, language, and bio')}
-                className={btnPrimary}>NEXT</button>
+              <input type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} className={inp} />
+              <NavRow onNext={() => niches.length && contentLanguage && bio ? nextStep() : setError('Please fill niche, language, and bio')} />
             </div>
           </>}
 
-          {/* ── Step 4: Instagram verify ── */}
+          {/* ── STEP 4: Instagram verify ── */}
           {step === 4 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Verify Instagram</h2>
-            <p className="text-[11px] text-white/50 text-center mb-5 font-light">Confirm you own the account you're applying with.</p>
-            <div className="flex flex-col gap-4">
-
+            <p className="text-[11px] text-white/50 text-center mb-5 font-light">Prove you own the account you're applying with.</p>
+            <div className="flex flex-col gap-3">
               {igConnected ? (
-                // ── Already connected ──
-                <>
-                  <div className="flex items-center gap-3 px-4 py-3 border border-[#B89A6E]/50 bg-[#B89A6E]/10">
-                    <div className="w-8 h-8 rounded-full bg-[#B89A6E] flex items-center justify-center text-white text-sm">✓</div>
-                    <div>
-                      <p className="text-[12px] text-white font-medium">@{igHandle}</p>
-                      <p className="text-[10px] text-[#B89A6E]">Instagram verified</p>
-                    </div>
+                <div className="flex items-center gap-3 px-4 py-3 border border-[#B89A6E]/50 bg-[#B89A6E]/10">
+                  <div className="w-8 h-8 rounded-full bg-[#B89A6E] flex items-center justify-center text-white text-sm flex-shrink-0">✓</div>
+                  <div>
+                    <p className="text-[12px] text-white font-medium">@{igHandle}</p>
+                    <p className="text-[10px] text-[#B89A6E]">Instagram confirmed</p>
                   </div>
-                  <button onClick={nextStep} className={btnPrimary}>NEXT</button>
-                </>
+                </div>
               ) : (
-                // ── ✅ FIX: connect OR skip — no longer blocked ──
-                <>
-                  <button onClick={connectInstagram}
-                    className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] hover:opacity-90 transition-opacity mt-2">
-                    CONNECT INSTAGRAM
-                  </button>
-                  <button onClick={nextStep}
-                    className="w-full py-3 border border-white/20 text-white/40 text-[10px] tracking-[0.1em] hover:border-white/40 hover:text-white/60 transition-all">
-                    SKIP FOR NOW — VERIFY AFTER APPROVAL
-                  </button>
-                  <p className="text-[10px] text-white/25 text-center leading-relaxed">
-                    Instagram verification strengthens your application.<br />You can complete it after we approve you.
-                  </p>
-                </>
+                <button onClick={connectInstagram}
+                  className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] hover:opacity-90 transition-opacity">
+                  CONNECT INSTAGRAM
+                </button>
               )}
 
+              {/* How it works explainer */}
+              <div className="border border-white/10 bg-white/[0.03] p-4 mt-1">
+                <p className="text-[10px] tracking-[0.1em] text-[#B89A6E] font-mono mb-3">HOW THIS WORKS</p>
+                {[
+                  ['1.', 'You click Connect — Instagram asks if you allow CurateKin to read your username only.'],
+                  ['2.', 'You approve on Instagram\'s side. We never post or message on your behalf.'],
+                  ['3.', 'Instagram sends us your handle. We store only your username — nothing else.'],
+                  ['4.', 'On our end your application shows as Instagram verified — which strengthens it.'],
+                ].map(([num, text]) => (
+                  <div key={num} className="flex gap-3 mb-2 last:mb-0">
+                    <span className="text-[10px] text-[#B89A6E] font-mono flex-shrink-0">{num}</span>
+                    <span className="text-[11px] text-white/45 font-mono leading-relaxed">{text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Back + Next always visible, Skip as ghost */}
+              <div className="flex gap-2 mt-2">
+                <button onClick={prevStep}
+                  className="flex-1 py-3 border border-white/20 text-white/50 text-[11px] tracking-[0.08em] hover:border-white/50 hover:text-white/80 transition-colors">
+                  ← BACK
+                </button>
+                <button onClick={nextStep}
+                  className="flex-[2] py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors">
+                  {igConnected ? 'NEXT' : 'SKIP & CONTINUE →'}
+                </button>
+              </div>
+              {!igConnected && (
+                <p className="text-[10px] text-white/25 text-center font-mono leading-relaxed">
+                  You can verify from your creator dashboard after approval.
+                </p>
+              )}
             </div>
           </>}
 
-          {/* ── Step 5: Payouts & Legal ── */}
+          {/* ── STEP 5: Payouts & Legal ── */}
           {step === 5 && <>
             <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Payouts & agreement</h2>
             <p className="text-[11px] text-white/50 text-center mb-5 font-light">Almost there. Set up how you'll get paid.</p>
             <div className="flex flex-col gap-4">
               <div>
-                <p className={`${label} mb-2`}>UPI DETAILS</p>
-                <input type="text" placeholder="UPI ID (e.g. name@upi)*" value={upiId} onChange={e => setUpiId(e.target.value)} className={input} />
-                <p className="text-[10px] text-white/30 mt-1">Earnings above ₹100 transferred monthly to this UPI ID.</p>
+                <p className={`${lbl} mb-2`}>UPI ID</p>
+                <input type="text" placeholder="e.g. priya@okicici*" value={upiId} onChange={e => setUpiId(e.target.value)} className={inp} />
+                <p className="text-[10px] text-white/30 mt-1 font-mono">Your 80% commission is transferred here every month once your balance crosses ₹100.</p>
               </div>
               <div>
-                <p className={`${label} mb-2`}>PAN NUMBER</p>
-                <input type="text" placeholder="PAN (e.g. ABCDE1234F)*" value={panNumber}
-                  onChange={e => setPanNumber(e.target.value.toUpperCase())} maxLength={10} className={input} />
-                <p className="text-[10px] text-white/30 mt-1">Required by Indian law for payments above ₹50,000/year.</p>
+                <p className={`${lbl} mb-2`}>PAN NUMBER</p>
+                <input type="text" placeholder="e.g. ABCDE1234F*" value={panNumber}
+                  onChange={e => setPanNumber(e.target.value.toUpperCase())} maxLength={10} className={inp} />
+                <p className="text-[10px] text-white/30 mt-1 font-mono">Required for earnings above ₹50,000/year. Never shared with brands.</p>
               </div>
               <div className="border-t border-white/10 pt-3 flex flex-col gap-3">
-                <p className={label}>AGREEMENTS</p>
+                <p className={lbl}>AGREEMENTS</p>
                 <Checkbox checked={agreedTos} onChange={() => setAgreedTos(a => !a)}>
                   I have read and agree to the{' '}
                   <a href="/terms" target="_blank" className="text-[#B89A6E] underline hover:text-white">Terms & Conditions</a>
@@ -516,10 +543,16 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                   including the 80% commission structure and monthly payout schedule*
                 </Checkbox>
               </div>
-              <button onClick={handleSubmit} disabled={loading}
-                className="w-full py-3 bg-[#B89A6E] text-white text-[11px] tracking-[0.1em] hover:bg-[#A6895D] transition-colors disabled:opacity-50">
-                {loading ? 'Submitting...' : 'SUBMIT APPLICATION'}
-              </button>
+              <div className="flex gap-2 mt-2">
+                <button onClick={prevStep}
+                  className="flex-1 py-3 border border-white/20 text-white/50 text-[11px] tracking-[0.08em] hover:border-white/50 hover:text-white/80 transition-colors">
+                  ← BACK
+                </button>
+                <button onClick={handleSubmit} disabled={loading}
+                  className="flex-[2] py-3 bg-[#B89A6E] text-white text-[11px] tracking-[0.1em] hover:bg-[#A6895D] transition-colors disabled:opacity-50">
+                  {loading ? 'Submitting...' : 'SUBMIT APPLICATION →'}
+                </button>
+              </div>
             </div>
           </>}
 
@@ -563,18 +596,18 @@ function BrandForm({ onBack }: { onBack: () => void }) {
           <p className="text-[11px] text-white/50 text-center mb-6 font-light">No one pushes your product like the people who love it.</p>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
-            <input type="text" placeholder="Brand / company name*" value={company} onChange={e => setCompany(e.target.value)} required className={input} />
-            <input type="email" placeholder="Work email*" value={email} onChange={e => setEmail(e.target.value)} required className={input} />
-            <input type="url" placeholder="Website URL" value={website} onChange={e => setWebsite(e.target.value)} className={input} />
-            <select value={category} onChange={e => setCategory(e.target.value)} className={select}>
+            <input type="text" placeholder="Brand / company name*" value={company} onChange={e => setCompany(e.target.value)} required className={inp} />
+            <input type="email" placeholder="Work email*" value={email} onChange={e => setEmail(e.target.value)} required className={inp} />
+            <input type="url" placeholder="Website URL" value={website} onChange={e => setWebsite(e.target.value)} className={inp} />
+            <select value={category} onChange={e => setCategory(e.target.value)} className={sel}>
               <option value="">Category</option>
               {['Beauty', 'Skincare', 'Fashion', 'Home Decor', 'Wellness', 'Other'].map(c => <option key={c}>{c}</option>)}
             </select>
-            <select value={budget} onChange={e => setBudget(e.target.value)} className={select}>
+            <select value={budget} onChange={e => setBudget(e.target.value)} className={sel}>
               <option value="">Monthly budget</option>
               {['Under ₹50,000', '₹50,000–₹2,00,000', '₹2,00,000–₹10,00,000', '₹10,00,000+'].map(b => <option key={b}>{b}</option>)}
             </select>
-            <textarea placeholder="Tell us about your brand and goals..." value={message} onChange={e => setMessage(e.target.value)} rows={3} className={`${input} resize-none`} />
+            <textarea placeholder="Tell us about your brand and goals..." value={message} onChange={e => setMessage(e.target.value)} rows={3} className={`${inp} resize-none`} />
             <button type="submit" disabled={loading} className={btnPrimary}>{loading ? 'Sending...' : 'APPLY'}</button>
           </form>
         </div>
