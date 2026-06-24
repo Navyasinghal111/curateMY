@@ -619,7 +619,7 @@ const ROLE_CARDS = [
 export default function SignupPage() {
   const [role, setRole] = useState<Role>(null)
 
-  const goHome = () => { window.location.href = '/' }
+  const goHome = () => { window.history.length > 1 ? window.history.back() : window.location.href = '/' }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') goHome() }
@@ -633,10 +633,11 @@ export default function SignupPage() {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="relative w-full max-w-6xl bg-[#1C1814] shadow-2xl flex flex-col" style={{ height:'min(780px,94vh)' }}>
 
+          {/* X — go back to wherever the user came from */}
+          <button onClick={() => window.history.back()} className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-xl">×</button>
+
           {!role && (
             <>
-              <a href="/"
-                className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-xl">×</a>
               <div className="flex flex-col h-full">
                 <div className="flex-1 grid grid-cols-3">
                   {ROLE_CARDS.map(card => (
