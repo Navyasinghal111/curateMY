@@ -11,18 +11,21 @@ export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
   // Always allow these paths
-  if (
+ if (
     pathname.startsWith('/under-construction') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/terms') ||
     pathname.startsWith('/privacy') ||
     pathname.startsWith('/affiliate-policy') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/pending') ||
     pathname.startsWith('/_next/') ||
     pathname.includes('favicon')
   ) {
     return NextResponse.next()
   }
-
   const cookieOk = request.cookies.get(COOKIE_NAME)?.value === ACCESS_KEY
   const urlKey = searchParams.get('key')
 
