@@ -3,100 +3,105 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
   const supabase = createClient()
+  const router   = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  const signIn = async () => {
+    if (!email || !password) { setError('Please enter your email and password'); return }
+    setLoading(true); setError('')
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+    if (err) { setError(err.message); setLoading(false); return }
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
+    // Check profile status
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setError('Something went wrong'); setLoading(false); return }
 
-    if (loginError) {
-      setError(loginError.message)
-      setLoading(false)
-      return
-    }
+    const { data: profile } = await supabase.from('profiles').select('status, role').eq('id', user.id).single()
 
+    if (!profile) { router.push('/dashboard'); return }
+    if (profile.status === 'pending') { router.push('/pending'); return }
+    if (profile.status === 'approved') { router.push('/dashboard'); return }
     router.push('/dashboard')
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFCFA] flex flex-col">
+    <>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #FAFAF8; font-family: 'DM Sans', system-ui, sans-serif; }
+      `}</style>
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-7 h-14 border-b border-[#DDD5C8]">
-        <Link href="/" className="font-serif text-[20px] tracking-[0.14em] text-[#1C1814]">
-          curatekin<span className="text-[#B89A6E]">.</span>
-        </Link>
-        <Link href="/signup" className="text-[11px] tracking-[0.08em] text-[#7A736B] hover:text-[#1C1814] transition-colors">
-          Create account
-        </Link>
-      </nav>
+      <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#FAFAF8', padding:24 }}>
 
-      {/* Form */}
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="w-full max-w-sm">
-          <p className="text-[10px] tracking-[0.2em] text-[#B89A6E] mb-3 text-center">WELCOME BACK</p>
-          <h1 className="font-serif text-[32px] font-light text-[#1C1814] text-center mb-2">
-            Log in
-          </h1>
-          <p className="text-[12px] text-[#7A736B] text-center mb-8 font-light">
-            Good to have you back.
-          </p>
+        {/* Logo */}
+        <a href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#141210', textDecoration:'none', marginBottom:48 }}>
+          Curate<em style={{ fontStyle:'italic', color:'#B07D4A' }}>Kin</em>
+        </a>
 
-          <form onSubmit={handleLogin} className="flex flex-col gap-3">
-            {error && (
-              <p className="text-[11px] text-red-500 text-center bg-red-50 py-2 px-3 rounded-sm">
-                {error}
-              </p>
-            )}
+        {/* Card */}
+        <div style={{ width:'100%', maxWidth:400, background:'#fff', border:'0.5px solid rgba(20,18,16,0.1)', padding:'40px 36px' }}>
+          <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#141210', marginBottom:6 }}>Welcome back</h1>
+          <p style={{ fontSize:13, color:'#8C867E', marginBottom:32 }}>Sign in to your creator account</p>
+
+          {error && (
+            <div style={{ background:'rgba(192,57,43,0.06)', border:'0.5px solid rgba(192,57,43,0.2)', padding:'10px 14px', marginBottom:20, fontSize:12, color:'#c0392b', borderRadius:4 }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ marginBottom:18 }}>
+            <label style={{ display:'block', fontSize:11, letterSpacing:'0.1em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Email</label>
             <input
               type="email"
-              placeholder="Email address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-[#DDD5C8] rounded-sm text-[12px] font-light text-[#1C1814] bg-[#FDFCFA] outline-none focus:border-[#B89A6E] transition-colors placeholder:text-[#B0A89E]"
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && signIn()}
+              placeholder="you@example.com"
+              style={{ width:'100%', padding:'12px 14px', border:'0.5px solid rgba(20,18,16,0.2)', fontSize:13, outline:'none', fontFamily:'inherit', color:'#141210', background:'#fff', borderRadius:4 }}
             />
+          </div>
+
+          <div style={{ marginBottom:28 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', color:'#8C867E', textTransform:'uppercase' }}>Password</label>
+              <a href="/forgot-password" style={{ fontSize:11, color:'#B07D4A', textDecoration:'none' }}>Forgot password?</a>
+            </div>
             <input
               type="password"
-              placeholder="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-[#DDD5C8] rounded-sm text-[12px] font-light text-[#1C1814] bg-[#FDFCFA] outline-none focus:border-[#B89A6E] transition-colors placeholder:text-[#B0A89E]"
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && signIn()}
+              placeholder="••••••••"
+              style={{ width:'100%', padding:'12px 14px', border:'0.5px solid rgba(20,18,16,0.2)', fontSize:13, outline:'none', fontFamily:'inherit', color:'#141210', background:'#fff', borderRadius:4 }}
             />
-            <div className="flex justify-end">
-              <Link href="/forgot-password" className="text-[11px] text-[#7A736B] hover:text-[#1C1814] transition-colors">
-                Forgot password?
-              </Link>
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-[#1C1814] text-[#F0EBE2] text-[11px] tracking-[0.1em] rounded-sm hover:bg-[#3D3730] transition-colors mt-1 disabled:opacity-50"
-            >
-              {loading ? 'Logging in...' : 'Log in'}
-            </button>
-          </form>
+          </div>
 
-          <p className="text-[12px] text-[#7A736B] text-center mt-6">
+          <button
+            onClick={signIn}
+            disabled={loading}
+            style={{ width:'100%', padding:'13px', background:'#141210', color:'#fff', border:'none', fontSize:13, cursor:'pointer', fontFamily:'inherit', letterSpacing:'0.06em', opacity: loading ? 0.6 : 1, borderRadius:4 }}
+          >
+            {loading ? 'Signing in…' : 'SIGN IN'}
+          </button>
+
+          <p style={{ fontSize:12, color:'#8C867E', textAlign:'center', marginTop:24 }}>
             Don't have an account?{' '}
-            <Link href="/signup" className="text-[#1C1814] underline hover:text-[#B89A6E] transition-colors">
-              Sign up
-            </Link>
+            <a href="/signup" style={{ color:'#B07D4A', textDecoration:'none', fontWeight:500 }}>Apply as a creator</a>
           </p>
         </div>
+
+        {/* Back to site */}
+        <a href="/" style={{ fontSize:12, color:'#C4BEB6', textDecoration:'none', marginTop:24, letterSpacing:'0.04em' }}>
+          ← Back to CurateKin
+        </a>
       </div>
-    </div>
+    </>
   )
 }
