@@ -13,6 +13,14 @@ const NAV = [
   { label: 'Settings',    href: '/dashboard/settings',   icon: '⊙' },
 ]
 
+// Preview profile — shown when not logged in
+const PREVIEW_PROFILE = {
+  display_name: 'Navya Singhal',
+  username: 'navya',
+  instagram_handle: 'navya',
+  status: 'approved',
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -23,10 +31,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      if (!user) {
+        // Not logged in — load preview profile so editor can see the dashboard
+        setProfile(PREVIEW_PROFILE)
+        setLoading(false)
+        return
+      }
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-     // if (!data) { router.push('/login'); return }
-     // if (data.status !== 'approved') { router.push('/pending'); return }
+      if (!data) {
+        setProfile(PREVIEW_PROFILE)
+        setLoading(false)
+        return
+      }
+      if (data.status !== 'approved') { router.push('/pending'); return }
       setProfile(data)
       setLoading(false)
     }
