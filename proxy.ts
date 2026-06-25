@@ -11,7 +11,7 @@ export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
   // Always allow these paths
- if (
+if (
     pathname.startsWith('/under-construction') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/terms') ||
@@ -21,6 +21,7 @@ export function proxy(request: NextRequest) {
     pathname.startsWith('/signup') ||
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/pending') ||
+    pathname.startsWith('/admin') ||
     pathname.startsWith('/_next/') ||
     pathname.includes('favicon')
   ) {
