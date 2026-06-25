@@ -10,11 +10,18 @@ export function proxy(request: NextRequest) {
 
   const { pathname, searchParams } = request.nextUrl
 
-  if (pathname.startsWith('/under-construction')) return NextResponse.next()
-  if (pathname.startsWith('/api/')) return NextResponse.next()
-  if (pathname.startsWith('/terms')) return NextResponse.next()
-  if (pathname.startsWith('/privacy')) return NextResponse.next()
-  if (pathname.startsWith('/affiliate-policy')) return NextResponse.next()
+  // Always allow these paths
+  if (
+    pathname.startsWith('/under-construction') ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/terms') ||
+    pathname.startsWith('/privacy') ||
+    pathname.startsWith('/affiliate-policy') ||
+    pathname.startsWith('/_next/') ||
+    pathname.includes('favicon')
+  ) {
+    return NextResponse.next()
+  }
 
   const cookieOk = request.cookies.get(COOKIE_NAME)?.value === ACCESS_KEY
   const urlKey = searchParams.get('key')
@@ -23,7 +30,10 @@ export function proxy(request: NextRequest) {
     const response = NextResponse.next()
     response.cookies.set(COOKIE_NAME, ACCESS_KEY, {
       maxAge: 60 * 60 * 24 * 365,
-      httpOnly: true, secure: true, sameSite: 'lax', path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
     })
     return response
   }
@@ -34,5 +44,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
