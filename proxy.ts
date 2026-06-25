@@ -11,7 +11,7 @@ export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
   // Always allow these paths
-if (
+  if (
     pathname.startsWith('/under-construction') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/terms') ||
@@ -27,13 +27,14 @@ if (
   ) {
     return NextResponse.next()
   }
+
   const cookieOk = request.cookies.get(COOKIE_NAME)?.value === ACCESS_KEY
   const urlKey = searchParams.get('key')
 
   if (urlKey === ACCESS_KEY) {
     const response = NextResponse.next()
+    // Session cookie — expires when browser closes, no maxAge
     response.cookies.set(COOKIE_NAME, ACCESS_KEY, {
-      maxAge: 60 * 60 * 24 * 365,
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
