@@ -382,6 +382,12 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                 I confirm I am 18 years of age or older*
               </Checkbox>
               <Nav onNext={step1Next} showBack={false} />
+              {/* hidden preview shortcut — only visible on hover */}
+              <a href="/dashboard"
+                style={{ display:'block', textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.12)', letterSpacing:'0.08em', marginTop:4, textDecoration:'none', transition:'color 0.2s' }}
+                onMouseEnter={e => (e.currentTarget.style.color='rgba(255,255,255,0.45)')}
+                onMouseLeave={e => (e.currentTarget.style.color='rgba(255,255,255,0.12)')}
+              >preview dashboard →</a>
             </div>
           </>}
 
