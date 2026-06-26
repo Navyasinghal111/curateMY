@@ -368,14 +368,14 @@ export default function ProductsPage() {
 
       <div style={{ background:'#fff', border:'0.5px solid rgba(20,18,16,0.07)', borderRadius:16, overflow:'hidden' }}>
 
-        {/* Inner nav */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 32px', borderBottom:'0.5px solid rgba(20,18,16,0.07)' }}>
-          <span style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:400, color:'#141210' }}>Atelier</span>
+        {/* Inner nav — dark like reference */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 28px', background:'#141210', borderBottom:'none' }}>
+          <span style={{ fontFamily:'Cormorant Garamond, serif', fontSize:24, fontWeight:300, color:'#fff' }}>Atelier</span>
           <div style={{ display:'flex', alignItems:'stretch', gap:0 }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search your closet"
-              style={{ padding:'9px 16px', border:'0.5px solid rgba(20,18,16,0.15)', borderRight:'none', background:'#FAFAF8', fontSize:12, outline:'none', color:'#141210', width:220, fontFamily:'inherit' }} />
+              style={{ padding:'10px 16px', border:'1px solid rgba(255,255,255,0.15)', borderRight:'none', background:'rgba(255,255,255,0.05)', fontSize:12, outline:'none', color:'#fff', width:240, fontFamily:'inherit' }} />
             <button onClick={() => setModal(true)}
-              style={{ padding:'9px 20px', background:'#8B1A1A', color:'#fff', border:'none', fontSize:11, letterSpacing:'0.1em', cursor:'pointer', fontWeight:600, fontFamily:'inherit', whiteSpace:'nowrap' }}>
+              style={{ padding:'10px 22px', background:'#fff', color:'#141210', border:'none', fontSize:11, letterSpacing:'0.1em', cursor:'pointer', fontWeight:600, fontFamily:'inherit', whiteSpace:'nowrap' }}>
               + ADD PIECE
             </button>
           </div>
@@ -383,7 +383,7 @@ export default function ProductsPage() {
 
         {/* Category tabs */}
         <div className="tab-row">
-          <div style={{ display:'inline-flex', padding:'0 32px' }}>
+          <div style={{ display:'inline-flex', padding:'0 24px' }}>
             {CATS.map(c => {
               const isWl = c === 'WISHLIST'
               return (
@@ -396,29 +396,29 @@ export default function ProductsPage() {
         </div>
 
         {/* Hero */}
-        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', padding:'40px 32px 24px', borderBottom:'0.5px solid rgba(20,18,16,0.07)' }}>
+        <div style={{ padding:'20px 28px', borderBottom:'0.5px solid rgba(20,18,16,0.07)', display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
           <div>
-            <p style={{ fontSize:10, letterSpacing:'0.18em', color:'#8B1A1A', marginBottom:12, fontWeight:600 }}>YOUR WARDROBE, CURATED</p>
-            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:'clamp(56px,7vw,88px)', fontWeight:400, lineHeight:0.9, color:'#141210', letterSpacing:'-0.03em' }}>
+            <p style={{ fontSize:9, letterSpacing:'0.18em', color:'#8B1A1A', marginBottom:6, fontWeight:600 }}>YOUR WARDROBE, CURATED</p>
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:42, fontWeight:400, lineHeight:1, color:'#141210', letterSpacing:'-0.02em' }}>
               The Collection
             </h2>
           </div>
-          <div style={{ display:'flex', gap:48, alignItems:'flex-end', paddingBottom:6 }}>
+          <div style={{ display:'flex', gap:32, alignItems:'flex-end', paddingBottom:4 }}>
             {[
               { n: products.length, l: 'PIECES' },
               { n: `₹${Math.round(totalVal).toLocaleString('en-IN')}`, l: 'CLOSET VALUE' },
               { n: products.filter(p => p.wishlisted).length, l: 'WISHLISTED' },
             ].map(s => (
               <div key={s.l} style={{ textAlign:'right' }}>
-                <span style={{ display:'block', fontFamily:'Cormorant Garamond, serif', fontSize:34, fontWeight:400, color:'#141210', lineHeight:1 }}>{s.n}</span>
-                <span style={{ display:'block', fontSize:9, letterSpacing:'0.15em', color:'#8C867E', marginTop:5 }}>{s.l}</span>
+                <span style={{ display:'block', fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:400, color:'#141210', lineHeight:1 }}>{s.n}</span>
+                <span style={{ display:'block', fontSize:8, letterSpacing:'0.14em', color:'#8C867E', marginTop:4, textTransform:'uppercase' }}>{s.l}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Grid */}
-        <div style={{ padding:'28px 32px 40px' }}>
+        <div style={{ padding:'20px 24px 32px' }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign:'center', padding:'60px 20px' }}>
               <div style={{ fontFamily:'Cormorant Garamond, serif', fontSize:56, fontStyle:'italic', color:'rgba(20,18,16,0.07)', marginBottom:14 }}>Pk</div>
@@ -438,7 +438,7 @@ export default function ProductsPage() {
           ) : (
             <div className="grid">
               {filtered.map(p => (
-                <div key={p.id} className="card">
+                <div key={p.id} className="card" onClick={() => p.product_url && window.open(p.product_url, '_blank')} style={{ cursor: p.product_url ? 'pointer' : 'default' }}>
                   <div className="cimg">
                     {p.image_url 
                       ? <img src={p.image_url} alt={p.title} 
