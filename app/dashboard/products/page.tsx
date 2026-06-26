@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 
 const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
+const PRODUCT_CATS = ['Apparel','Coats & Outerwear','Footwear','Bags & Purses','Jewelry & Watches','Makeup','Skincare','Haircare']
 
 type Product = {
   id: string
@@ -13,102 +14,222 @@ type Product = {
   image_url: string
   product_url: string
   category: string
+  notes?: string
   wishlisted?: boolean
 }
 
-// ── Add Piece Modal ───────────────────────────────────────────────
-function AddModal({ onClose, onAdd }: { onClose: ()=>void; onAdd: (p:Product)=>void }) {
-  const [url, setUrl]      = useState('')
-  const [preview, setPrev] = useState<any>(null)
-  const [cat, setCat]      = useState('SKINCARE')
-  const [loading, setLoad] = useState(false)
-  const [saving, setSave]  = useState(false)
-  const [error, setError]  = useState('')
+// ── Add to Closet Modal ───────────────────────────────────────────
+function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product) => void }) {
+  const [imageUrl,  setImageUrl]  = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const [name,     setName]     = useState('')
+  const [brand,    setBrand]    = useState('')
+  const [price,    setPrice]    = useState('')
+  const [category, setCategory] = useState('Apparel')
+  const [shopLink, setShopLink] = useState('')
+  const [notes,    setNotes]    = useState('')
+  const [saving,   setSaving]   = useState(false)
+  const [error,    setError]    = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
-  const ref = useRef<HTMLInputElement>(null)
-  useEffect(() => { ref.current?.focus() }, [])
 
-  const fetchPreview = async () => {
-    if (!url.trim()) return
-    setLoad(true); setError(''); setPrev(null)
-    try {
-      const res = await fetch('/api/product/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() })
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not fetch product')
-      setPrev(d)
-    } catch (e: any) { setError(e.message) }
-    setLoad(false)
+  // When image URL is pasted, preview it
+  useEffect(() => {
+    if (imageUrl.trim()) setImagePreview(imageUrl.trim())
+  }, [imageUrl])
+
+  // When file is selected, preview it
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   const save = async () => {
-    if (!preview) return
-    setSave(true)
+    if (!name.trim()) { setError('Please enter a product name'); return }
+    setSaving(true); setError('')
+
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setError('Not signed in — log in to save products'); setSave(false); return }
-    const { data, error: err } = await supabase.from('storefront_products').insert({
-      creator_id: user.id, title: preview.title, brand: preview.brand || '',
-      price: preview.price || '', image_url: preview.image || '',
-      product_url: preview.url || url, category: cat, active: true,
-    }).select().single()
-    if (err) { setError(err.message); setSave(false); return }
-    onAdd(data); onClose()
+
+    let finalImageUrl = imageUrl.trim()
+
+    // If file uploaded, upload to Supabase Storage
+    if (imageFile && user) {
+      const ext = imageFile.name.split('.').pop()
+      const path = `${user.id}/${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage
+        .from('product-images')
+        .upload(path, imageFile, { upsert: true })
+      if (!uploadErr) {
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path)
+        finalImageUrl = urlData.publicUrl
+      }
+    }
+
+    // Format price with ₹
+    const formattedPrice = price ? (price.startsWith('₹') ? price : `₹${price}`) : ''
+
+    // Map category to match our DB format
+    const dbCategory = category.toUpperCase().replace(/ & /g, ' & ')
+
+    if (user) {
+      const { data, error: dbErr } = await supabase
+        .from('storefront_products')
+        .insert({
+          creator_id:  user.id,
+          title:       name.trim(),
+          brand:       brand.trim(),
+          price:       formattedPrice,
+          image_url:   finalImageUrl,
+          product_url: shopLink.trim(),
+          category:    dbCategory,
+          description: notes.trim(),
+          active:      true,
+        })
+        .select()
+        .single()
+
+      if (dbErr) { setError(dbErr.message); setSaving(false); return }
+      onAdd(data)
+    } else {
+      // Preview mode — create fake product
+      onAdd({
+        id:          String(Date.now()),
+        title:       name.trim(),
+        brand:       brand.trim(),
+        price:       formattedPrice,
+        image_url:   finalImageUrl,
+        product_url: shopLink.trim(),
+        category:    dbCategory,
+        notes:       notes.trim(),
+      })
+    }
+    onClose()
   }
 
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()}
-      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200, padding:16 }}>
-      <div style={{ background:'#fff', width:'100%', maxWidth:520, maxHeight:'90vh', display:'flex', flexDirection:'column' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'22px 26px 0' }}>
-          <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:24, fontWeight:400, color:'#141210' }}>Add a piece</h2>
-          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:26, color:'#aaa', cursor:'pointer' }}>×</button>
+      style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200, padding:16 }}>
+
+      <div style={{ background:'#FAFAF8', width:'100%', maxWidth:680, maxHeight:'92vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'28px 32px 20px', borderBottom:'1px solid #E8E4DE' }}>
+          <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:400, color:'#1a1a1a' }}>Add to closet</h2>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:22, color:'#aaa', cursor:'pointer', lineHeight:1 }}>×</button>
         </div>
-        <div style={{ padding:'14px 26px 0', overflowY:'auto', flex:1 }}>
-          <p style={{ fontSize:12, color:'#8C867E', marginBottom:14, lineHeight:1.6 }}>
-            Paste any product link — Nykaa, Amazon, Myntra, and more.
-          </p>
-          <div style={{ display:'flex', marginBottom:12 }}>
-            <input ref={ref} value={url}
-              onChange={e => { setUrl(e.target.value); setPrev(null); setError('') }}
-              onKeyDown={e => e.key === 'Enter' && fetchPreview()}
-              placeholder="https://www.nykaa.com/product/..."
-              style={{ flex:1, padding:'11px 14px', border:'1px solid #ddd', borderRight:'none', fontSize:13, outline:'none', fontFamily:'inherit', color:'#141210' }} />
-            <button onClick={fetchPreview} disabled={loading || !url.trim()}
-              style={{ padding:'11px 20px', background:'#141210', color:'#fff', border:'none', fontSize:12, cursor:'pointer', opacity: loading || !url.trim() ? 0.5 : 1, fontFamily:'inherit' }}>
-              {loading ? '...' : 'Preview'}
-            </button>
+
+        {/* Body */}
+        <div style={{ display:'flex', gap:28, padding:'24px 32px', overflowY:'auto', flex:1 }}>
+
+          {/* Left — image upload */}
+          <div style={{ width:220, flexShrink:0 }}>
+            <div
+              onClick={() => fileRef.current?.click()}
+              style={{ width:'100%', aspectRatio:'3/4', border:'1px dashed #C8C4BC', background:'#F0EDE8', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', position:'relative' }}>
+              {imagePreview
+                ? <img src={imagePreview} alt="preview" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
+                : <>
+                    <span style={{ fontSize:24, color:'#C8C4BC', marginBottom:8 }}>+</span>
+                    <span style={{ fontSize:11, color:'#C8C4BC', letterSpacing:'0.06em' }}>Add a photo</span>
+                  </>
+              }
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display:'none' }} />
           </div>
-          {error && <p style={{ fontSize:12, color:'#c0392b', marginBottom:10 }}>{error}</p>}
-          {preview && (
-            <div style={{ border:'1px solid #eee', display:'flex', gap:14, padding:14, background:'#FAFAF8' }}>
-              <div style={{ width:88, height:108, background:'#F4F2EE', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-                {preview.image
-                  ? <img src={preview.image} alt={preview.title} style={{ width:'100%', height:'100%', objectFit:'contain', padding:6 }} />
-                  : <span style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontStyle:'italic', color:'#C4BEB6' }}>{preview.brand?.[0] ?? '?'}</span>
-                }
+
+          {/* Right — fields */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:16 }}>
+
+            {/* Image URL */}
+            <div>
+              <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Or paste an image link</label>
+              <input
+                value={imageUrl}
+                onChange={e => setImageUrl(e.target.value)}
+                placeholder="https://.../photo.jpg"
+                style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }}
+              />
+              <p style={{ fontSize:10, color:'#B0A898', marginTop:4, lineHeight:1.5 }}>
+                Right-click any photo online → "Copy image address", then paste here (Ctrl/Cmd+V).
+              </p>
+            </div>
+
+            {/* Name */}
+            <div>
+              <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Name</label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Silk Slip Dress"
+                style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }}
+              />
+            </div>
+
+            {/* Brand */}
+            <div>
+              <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Brand / Maison</label>
+              <input
+                value={brand}
+                onChange={e => setBrand(e.target.value)}
+                placeholder="Atelier Noir"
+                style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }}
+              />
+            </div>
+
+            {/* Price + Category */}
+            <div style={{ display:'flex', gap:12 }}>
+              <div style={{ flex:1 }}>
+                <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Price (₹)</label>
+                <input
+                  value={price}
+                  onChange={e => setPrice(e.target.value.replace(/[^0-9.]/g, ''))}
+                  placeholder="2499"
+                  style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }}
+                />
               </div>
               <div style={{ flex:1 }}>
-                <p style={{ fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'#C4BEB6', marginBottom:3 }}>{preview.brand}</p>
-                <p style={{ fontSize:13, fontWeight:500, color:'#141210', marginBottom:5, lineHeight:1.3 }}>{preview.title}</p>
-                {preview.price && <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:16, color:'#141210', marginBottom:10 }}>{preview.price}</p>}
-                <label style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.1em', color:'#8C867E', display:'block', marginBottom:4 }}>Category</label>
-                <select value={cat} onChange={e => setCat(e.target.value)}
-                  style={{ width:'100%', padding:'7px 10px', border:'1px solid #ddd', fontSize:12, fontFamily:'inherit', background:'#fff', color:'#141210' }}>
-                  {CATS.filter(c => c !== 'ALL' && c !== 'WISHLIST').map(c => <option key={c}>{c}</option>)}
+                <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Category</label>
+                <select value={category} onChange={e => setCategory(e.target.value)}
+                  style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff', appearance:'auto' }}>
+                  {PRODUCT_CATS.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
             </div>
-          )}
-        </div>
-        <div style={{ display:'flex', gap:8, justifyContent:'flex-end', padding:'14px 26px 22px', borderTop:'1px solid #eee', marginTop:14 }}>
-          <button onClick={onClose} style={{ padding:'10px 20px', background:'none', border:'1px solid #ddd', fontSize:12, cursor:'pointer', color:'#8C867E', fontFamily:'inherit' }}>Cancel</button>
-          <button onClick={save} disabled={!preview || saving}
-            style={{ padding:'10px 24px', background:'#B07D4A', color:'#fff', border:'none', fontSize:12, cursor:'pointer', fontFamily:'inherit', opacity: !preview || saving ? 0.4 : 1 }}>
-            {saving ? 'Adding...' : 'Add to collection'}
-          </button>
+
+            {/* Shop link */}
+            <div>
+              <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Shop link (optional)</label>
+              <input
+                value={shopLink}
+                onChange={e => setShopLink(e.target.value)}
+                placeholder="https://... where to buy"
+                style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }}
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Pairs with the slip dress — size up..."
+                rows={3}
+                style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff', resize:'vertical' }}
+              />
+            </div>
+
+            {error && <p style={{ fontSize:12, color:'#c0392b' }}>{error}</p>}
+
+            {/* Submit */}
+            <button onClick={save} disabled={saving}
+              style={{ width:'100%', padding:'14px', background:'#8B1A1A', color:'#fff', border:'none', fontSize:12, letterSpacing:'0.1em', cursor:'pointer', fontFamily:'inherit', opacity: saving ? 0.6 : 1, marginTop:4 }}>
+              {saving ? 'ADDING...' : 'ADD PIECE'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -127,11 +248,7 @@ export default function ProductsPage() {
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        // PREVIEW MODE — not logged in, show empty collection
-        setLoading(false)
-        return
-      }
+      if (!user) { setLoading(false); return }
       const { data } = await supabase
         .from('storefront_products')
         .select('*')
@@ -155,20 +272,22 @@ export default function ProductsPage() {
     return cok && sok
   })
 
-  const totalVal = products.reduce((s, p) => s + parseFloat(p.price.replace(/[^0-9.]/g, '') || '0'), 0)
+  const totalVal = products.reduce((s, p) => s + parseFloat(p.price?.replace(/[^0-9.]/g, '') || '0'), 0)
 
   const toggleWish = async (id: string) => {
     const p = products.find(x => x.id === id)
     if (!p) return
     const next = !p.wishlisted
     setProducts(prev => prev.map(x => x.id === id ? { ...x, wishlisted: next } : x))
-    await supabase.from('storefront_products').update({ wishlisted: next }).eq('id', id)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) await supabase.from('storefront_products').update({ wishlisted: next }).eq('id', id)
   }
 
   const remove = async (id: string) => {
     if (!confirm('Remove this product?')) return
-    await supabase.from('storefront_products').update({ active: false }).eq('id', id)
     setProducts(prev => prev.filter(x => x.id !== id))
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) await supabase.from('storefront_products').update({ active: false }).eq('id', id)
   }
 
   if (loading) return (
@@ -180,32 +299,30 @@ export default function ProductsPage() {
   return (
     <>
       <style>{`
-        .tab-row { overflow-x:auto; white-space:nowrap; border-top:0.5px solid rgba(20,18,16,0.1); border-bottom:0.5px solid rgba(20,18,16,0.1); background:#fff; }
-        .tab-row::-webkit-scrollbar { display:none; }
-        .tab { display:inline-flex; align-items:center; gap:5px; padding:13px 18px; background:none; border:none; border-bottom:2px solid transparent; font-size:11px; font-weight:500; letter-spacing:0.09em; color:#5a5550; cursor:pointer; white-space:nowrap; font-family:inherit; }
-        .tab:hover { color:#141210; }
-        .tab.on { color:#141210; border-bottom-color:#B07D4A; font-weight:600; }
-        .tab.wl { color:#B07D4A; }
-        .tab-n { font-size:10px; font-weight:400; color:#C4BEB6; }
-        .tab.wl .tab-n { color:#B07D4A; opacity:0.6; }
-        .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; }
-        .card { background:#fff; border:0.5px solid rgba(20,18,16,0.07); overflow:hidden; transition:box-shadow 0.2s; }
-        .card:hover { box-shadow:0 8px 28px rgba(20,18,16,0.1); }
-        .cimg { aspect-ratio:3/4; background:#F4F2EE; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-        .cimg img { width:100%; height:100%; object-fit:contain; padding:12px; }
-        .cph { font-family:'Cormorant Garamond',serif; font-size:60px; font-style:italic; color:rgba(20,18,16,0.1); }
-        .cheart { position:absolute; top:10px; right:10px; width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.95); border:0.5px solid rgba(20,18,16,0.12); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; color:#C4BEB6; z-index:2; transition:all 0.15s; }
-        .cheart:hover,.cheart.on { color:#B07D4A; }
-        .crem { position:absolute; top:10px; left:10px; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.9); border:0.5px solid rgba(20,18,16,0.12); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px; color:#C4BEB6; z-index:2; opacity:0; transition:opacity 0.15s; }
-        .card:hover .crem { opacity:1; }
-        .crem:hover { color:#c0392b; }
-        .cbody { padding:12px 14px 16px; }
-        .cbrand { font-size:9px; letter-spacing:0.13em; text-transform:uppercase; color:#C4BEB6; margin-bottom:4px; }
-        .ctitle { font-size:13px; font-weight:500; color:#141210; line-height:1.4; margin-bottom:6px; }
-        .cprice { font-family:'Cormorant Garamond',serif; font-size:17px; color:#141210; }
+        .tab-row{overflow-x:auto;white-space:nowrap;border-top:0.5px solid rgba(20,18,16,0.1);border-bottom:0.5px solid rgba(20,18,16,0.1);background:#fff}
+        .tab-row::-webkit-scrollbar{display:none}
+        .tab{display:inline-flex;align-items:center;gap:5px;padding:13px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:500;letter-spacing:0.09em;color:#5a5550;cursor:pointer;white-space:nowrap;font-family:inherit}
+        .tab:hover{color:#141210}
+        .tab.on{color:#141210;border-bottom-color:#B07D4A;font-weight:600}
+        .tab.wl{color:#B07D4A}
+        .tab-n{font-size:10px;font-weight:400;color:#C4BEB6}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+        .card{background:#fff;border:0.5px solid rgba(20,18,16,0.07);overflow:hidden;transition:box-shadow 0.2s}
+        .card:hover{box-shadow:0 8px 28px rgba(20,18,16,0.1)}
+        .cimg{aspect-ratio:3/4;background:#F4F2EE;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .cimg img{width:100%;height:100%;object-fit:contain;padding:12px}
+        .cph{font-family:'Cormorant Garamond',serif;font-size:60px;font-style:italic;color:rgba(20,18,16,0.1)}
+        .cheart{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.95);border:0.5px solid rgba(20,18,16,0.12);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:#C4BEB6;z-index:2;transition:all 0.15s}
+        .cheart:hover,.cheart.on{color:#B07D4A}
+        .crem{position:absolute;top:10px;left:10px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.9);border:0.5px solid rgba(20,18,16,0.12);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#C4BEB6;z-index:2;opacity:0;transition:opacity 0.15s}
+        .card:hover .crem{opacity:1}
+        .crem:hover{color:#c0392b}
+        .cbody{padding:12px 14px 16px}
+        .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#C4BEB6;margin-bottom:4px}
+        .ctitle{font-size:13px;font-weight:500;color:#141210;line-height:1.4;margin-bottom:6px}
+        .cprice{font-family:'Cormorant Garamond',serif;font-size:17px;color:#141210}
       `}</style>
 
-      {/* Atelier card */}
       <div style={{ background:'#fff', border:'0.5px solid rgba(20,18,16,0.07)', borderRadius:16, overflow:'hidden' }}>
 
         {/* Inner nav */}
