@@ -20,6 +20,31 @@ type Product = {
 
 // ── Add to Closet Modal ───────────────────────────────────────────
 function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product) => void }) {
+  const [productUrl, setProductUrl] = useState('')
+  const [scraping,   setScraping]   = useState(false)
+  const [scraped,    setScraped]    = useState(false)
+  const [scrapeErr,  setScrapeErr]  = useState('')
+
+  const scrapeUrl = async () => {
+    if (!productUrl.trim()) return
+    setScraping(true); setScrapeErr(''); setScraped(false)
+    try {
+      const res = await fetch('/api/product/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: productUrl.trim() }),
+      })
+      const d = await res.json()
+      if (!res.ok) { setScrapeErr(d.error ?? 'Could not fetch product'); setScraping(false); return }
+      if (d.title)  setName(d.title)
+      if (d.brand)  setBrand(d.brand)
+      if (d.price)  setPrice(d.price.replace(/[₹$£€]/g, ''))
+      if (d.image)  { setImageUrl(d.image); setImagePreview(d.image) }
+      if (d.url)    setShopLink(d.url)
+      setScraped(true)
+    } catch { setScrapeErr('Something went wrong. Fill in the details manually.') }
+    setScraping(false)
+  }
   const [imageUrl,  setImageUrl]  = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
@@ -120,6 +145,23 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
           <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:400, color:'#1a1a1a' }}>Add to closet</h2>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:22, color:'#aaa', cursor:'pointer', lineHeight:1 }}>×</button>
         </div>
+
+        {/* URL paste bar */}
+        <div style={{ padding:'16px 32px', borderBottom:'1px solid #E8E4DE', background:'#FAFAF8', display:'flex', gap:0 }}>
+          <input
+            value={productUrl}
+            onChange={e => { setProductUrl(e.target.value); setScraped(false); setScrapeErr('') }}
+            onKeyDown={e => e.key === 'Enter' && scrapeUrl()}
+            placeholder="Paste product URL — Nykaa, Amazon, Myntra, Ajio…"
+            style={{ flex:1, padding:'10px 14px', border:'1px solid #E0DCD6', borderRight:'none', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }}
+          />
+          <button onClick={scrapeUrl} disabled={scraping || !productUrl.trim()}
+            style={{ padding:'10px 20px', background:'#1a1a1a', color:'#fff', border:'none', fontSize:12, cursor:'pointer', fontFamily:'inherit', opacity: scraping || !productUrl.trim() ? 0.5 : 1, whiteSpace:'nowrap' }}>
+            {scraping ? 'Fetching…' : 'Auto-fill ↓'}
+          </button>
+        </div>
+        {scrapeErr && <p style={{ padding:'8px 32px 0', fontSize:11, color:'#c0392b' }}>{scrapeErr}</p>}
+        {scraped && <p style={{ padding:'8px 32px 0', fontSize:11, color:'#2ecc71' }}>✓ Product details filled in — review and confirm below</p>}
 
         {/* Body */}
         <div style={{ display:'flex', gap:28, padding:'24px 32px', overflowY:'auto', flex:1 }}>
@@ -397,7 +439,12 @@ export default function ProductsPage() {
               {filtered.map(p => (
                 <div key={p.id} className="card">
                   <div className="cimg">
-                    {p.image_url ? <img src={p.image_url} alt={p.title} /> : <div className="cph">{p.title[0]}</div>}
+                    {p.image_url 
+                      ? <img src={p.image_url} alt={p.title} 
+                          onError={e => { (e.target as HTMLImageElement).style.display='none'; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('style') }} 
+                        /> 
+                      : null}
+                    <div className="cph" style={{ display: p.image_url ? 'none' : 'flex' }}>{p.title[0]}</div>
                     <button className={`cheart${p.wishlisted ? ' on' : ''}`} onClick={() => toggleWish(p.id)}>{p.wishlisted ? '♥' : '♡'}</button>
                     <button className="crem" onClick={() => remove(p.id)} title="Remove">×</button>
                   </div>
