@@ -28,6 +28,7 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
   const scrapeUrl = async () => {
     if (!productUrl.trim()) return
     setScraping(true); setScrapeErr(''); setScraped(false)
+    setName(''); setBrand(''); setPrice(''); setImageUrl(''); setImagePreview(''); setShopLink('')
     try {
       const res = await fetch('/api/product/preview', {
         method: 'POST',
