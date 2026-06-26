@@ -130,7 +130,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               VIEW STOREFRONT ↗
             </a>
           </div>
-          <div style={{ padding:'40px' }}>
+          <div style={{ padding:'28px 32px', maxWidth:'1400px', width:'100%' }}>
             {children}
           </div>
         </main>
