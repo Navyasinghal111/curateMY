@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
-const ADMIN_EMAILS = ['navysirius05@gmail.com'] // add your email here
+const ADMIN_EMAILS = ['navysirius05@gmail.com', 'soloarc14@gmail.com'] // add your email here
 
 type Creator = {
   id: string
