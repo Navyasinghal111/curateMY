@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
-const ADMIN_EMAILS = ['navysirius05@gmail.com', 'soloarc14@gmail.com'] // add your email here
+const ADMIN_EMAILS = ['navysirius05@gmail.com'] // add your email here
 
 type Creator = {
   id: string
@@ -35,18 +35,9 @@ export default function AdminPage() {
   const [actionLoading, setAction]  = useState(false)
   const [toast, setToast]           = useState('')
   const supabase = createClient()
-  const router = useRouter()
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !ADMIN_EMAILS.includes(user.email ?? '')) {
-        router.push('/')
-        return
-      }
-      loadCreators()
-    }
-    init()
+    loadCreators()
   }, [])
 
   const loadCreators = async () => {
