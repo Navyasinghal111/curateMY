@@ -131,7 +131,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                   <p className="ctitle">{p.title}</p>
                   <p className="cprice">{p.price}</p>
                 </div>
-                <a href={p.url} target="_blank" rel="noopener noreferrer" className="cbuy">
+                <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer" className="cbuy">
                   SHOP NOW
                 </a>
               </div>
