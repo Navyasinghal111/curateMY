@@ -28,7 +28,8 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
   const scrapeUrl = async () => {
     if (!productUrl.trim()) return
     setScraping(true); setScrapeErr(''); setScraped(false)
-    setName(''); setBrand(''); setPrice(''); setImageUrl(''); setImagePreview(''); setShopLink('')
+    setName(''); setBrand(''); setPrice(''); setImageUrl(''); setImagePreview('')
+    setShopLink(productUrl.trim()) // always set shop link to the pasted URL
     try {
       const res = await fetch('/api/product/preview', {
         method: 'POST',
@@ -242,16 +243,15 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
               </div>
             </div>
 
-            {/* Shop link */}
-            <div>
-              <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Shop link (optional)</label>
-              <input
-                value={shopLink}
-                onChange={e => setShopLink(e.target.value)}
-                placeholder="https://... where to buy"
-                style={{ width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }}
-              />
-            </div>
+            {/* Shop link — auto set from URL, shown as read-only */}
+            {shopLink && (
+              <div>
+                <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Shop link</label>
+                <div style={{ padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:12, color:'#8C867E', background:'#FAFAF8', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {shopLink}
+                </div>
+              </div>
+            )}
 
             {/* Notes */}
             <div>
