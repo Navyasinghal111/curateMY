@@ -190,9 +190,9 @@ export default function CreatorSignupPage() {
             Curate<em style={{ fontStyle:'italic', color:'#B07D4A' }}>Kin</em>
           </Link>
           <div style={{ display:'flex', gap:20, alignItems:'center' }}>
-            <Link href="/signup" style={{ fontSize:13, color:'#9B9B9B', textDecoration:'none' }}>← Back</Link>
-            <Link href="/login" style={{ fontSize:13, color:'#6B6B6B', textDecoration:'none' }}>
-              Already have an account? <span style={{ color:'#0A0A0A', textDecoration:'underline' }}>Log in</span>
+            <Link href="/signup" style={{ fontSize:14, color:'rgba(255,255,255,0.6)', textDecoration:'none' }}>← Back</Link>
+            <Link href="/login" style={{ fontSize:14, color:'rgba(255,255,255,0.6)', textDecoration:'none' }}>
+              Already have an account? <span style={{ color:'#fff', textDecoration:'underline' }}>Log in</span>
             </Link>
           </div>
         </nav>
