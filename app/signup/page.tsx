@@ -5,17 +5,14 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-// ── CONFIG ────────────────────────────────────────────────────────
 const OTP_ENABLED = false
 const SESSION_KEY = 'ck_creator_draft'
-// ─────────────────────────────────────────────────────────────────
 
 type Role = 'shopper' | 'creator' | 'brand' | null
 
-const inp = 'w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors'
-const sel = 'w-full px-4 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] transition-colors appearance-none'
-const lbl = 'text-[10px] tracking-[0.12em] text-[#B89A6E]'
-const GOLD = '#B89A6E'
+const inp = 'w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-white/60 transition-colors'
+const sel = 'w-full px-4 py-3 bg-[#111] border border-white/20 text-[12px] text-white outline-none focus:border-white/60 transition-colors appearance-none'
+const lbl = 'text-[10px] tracking-[0.12em] text-white/40'
 
 const NICHES    = ['Beauty','Skincare','Fashion','Home Decor','Wellness','Jewellery','Food & Lifestyle','Travel','Fitness']
 const PLATFORMS = ['Instagram','YouTube','Pinterest','Blog','LinkedIn','Other']
@@ -24,14 +21,20 @@ const LANGUAGES = ['English','Hindi','Both English & Hindi','Tamil','Telugu','Ka
 const ENG_RATES = ['Under 1%','1–3%','3–6%','6–10%','Above 10%']
 const SOURCES   = ['Instagram','A friend or creator','Google','A brand I work with','Other']
 
+const ROLE_CARDS = [
+  { role: 'shopper' as Role, image:'/card-shopper.jpg', title:'Shopper', sub:'A destination for shopping, not scrolling.', btn:'CREATE AN ACCOUNT' },
+  { role: 'creator' as Role, image:'/card-creator.jpg', title:'Creator', sub:'Where great taste leads to great opportunities.', btn:'APPLY' },
+  { role: 'brand'   as Role, image:'/card-brand.jpg',   title:'Brand',   sub:'No one pushes your product like the people who love them.', btn:'APPLY' },
+]
+
 function PendingScreen({ title, sub, onHome }: { title: string; sub: string; onHome: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center flex-1 px-6 text-center py-16">
-      <div className="w-12 h-12 border border-[#B89A6E] flex items-center justify-center mb-6 text-[#B89A6E] text-lg">✓</div>
-      <p className="text-[10px] tracking-[0.2em] text-[#B89A6E] mb-3">STATUS — RECEIVED</p>
-      <h1 className="font-[family-name:var(--font-cormorant)] text-[28px] font-light text-white mb-4">{title}</h1>
-      <p className="text-[12px] text-white/60 font-light leading-relaxed max-w-xs mb-8">{sub}</p>
-      <button onClick={onHome} className="px-8 py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors">
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:'64px 24px', textAlign:'center' }}>
+      <div style={{ width:44, height:44, border:'1px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, fontSize:18, color:'#fff' }}>✓</div>
+      <p style={{ fontSize:10, letterSpacing:'0.2em', color:'rgba(255,255,255,0.4)', marginBottom:12, textTransform:'uppercase' }}>Status — Received</p>
+      <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#fff', marginBottom:16 }}>{title}</h1>
+      <p style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:300, lineHeight:1.7, maxWidth:280, marginBottom:32 }}>{sub}</p>
+      <button onClick={onHome} style={{ padding:'11px 32px', background:'#fff', color:'#000', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
         BACK TO CURATEKIN
       </button>
     </div>
@@ -40,34 +43,28 @@ function PendingScreen({ title, sub, onHome }: { title: string; sub: string; onH
 
 function RoleHeader({ onBack, tag, children }: { onBack: () => void; tag: string; children?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 flex-shrink-0">
-      <button onClick={onBack} className="text-[11px] tracking-[0.08em] text-white/50 hover:text-white transition-colors">← Back</button>
-      {children ?? <div className="w-10" />}
-      <p className="text-[10px] tracking-[0.18em] text-[#B89A6E]">{tag}</p>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 24px', borderBottom:'0.5px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
+      <button onClick={onBack} style={{ fontSize:11, letterSpacing:'0.08em', color:'rgba(255,255,255,0.4)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit' }}>← Back</button>
+      {children ?? <div style={{ width:40 }} />}
+      <p style={{ fontSize:10, letterSpacing:'0.18em', color:'rgba(255,255,255,0.35)', textTransform:'uppercase' }}>{tag}</p>
     </div>
   )
 }
 
 function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: React.ReactNode }) {
   return (
-    <label className="flex items-start gap-3 cursor-pointer">
-      <div onClick={onChange} className={`w-4 h-4 border flex-shrink-0 mt-0.5 flex items-center justify-center transition-all cursor-pointer ${checked ? 'bg-[#B89A6E] border-[#B89A6E]' : 'border-white/30'}`}>
-        {checked && <span className="text-white text-[9px]">✓</span>}
+    <label style={{ display:'flex', alignItems:'flex-start', gap:12, cursor:'pointer' }}>
+      <div onClick={onChange} style={{ width:16, height:16, border:`1px solid ${checked ? '#fff' : 'rgba(255,255,255,0.25)'}`, flexShrink:0, marginTop:2, display:'flex', alignItems:'center', justifyContent:'center', background: checked ? '#fff' : 'transparent', cursor:'pointer', transition:'all 0.15s' }}>
+        {checked && <span style={{ fontSize:9, color:'#000', fontWeight:700 }}>✓</span>}
       </div>
-      <span className="text-[11px] text-white/60 leading-relaxed">{children}</span>
+      <span style={{ fontSize:11, color:'rgba(255,255,255,0.5)', lineHeight:1.6 }}>{children}</span>
     </label>
   )
 }
 
-function draftSave(data: object) {
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(data)) } catch {}
-}
-function draftLoad<T>(): T | null {
-  try { const r = sessionStorage.getItem(SESSION_KEY); return r ? JSON.parse(r) : null } catch { return null }
-}
-function draftClear() {
-  try { sessionStorage.removeItem(SESSION_KEY) } catch {}
-}
+function draftSave(data: object) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(data)) } catch {} }
+function draftLoad<T>(): T | null { try { const r = sessionStorage.getItem(SESSION_KEY); return r ? JSON.parse(r) : null } catch { return null } }
+function draftClear() { try { sessionStorage.removeItem(SESSION_KEY) } catch {} }
 
 function ShopperForm({ onBack }: { onBack: () => void }) {
   const [name, setName]       = useState('')
@@ -91,18 +88,18 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
   if (done) return <PendingScreen title="You're on the list." sub="We're setting up your account. Check back soon to start discovering." onHome={() => router.push('/')} />
 
   return (
-    <div className="flex flex-col flex-1">
-      <RoleHeader onBack={onBack} tag="FOR SHOPPERS" />
-      <div className="flex-1 flex items-center justify-center px-8 py-8">
-        <div className="w-full max-w-xs">
-          <h2 className="font-[family-name:var(--font-cormorant)] text-[30px] font-light text-white text-center mb-2">Create your account</h2>
-          <p className="text-[11px] text-white/50 text-center mb-8 font-light">Discover products curated by people you trust.</p>
-          <form onSubmit={submit} className="flex flex-col gap-3">
-            {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
+    <div style={{ display:'flex', flexDirection:'column', flex:1 }}>
+      <RoleHeader onBack={onBack} tag="For Shoppers" />
+      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 20px', overflowY:'auto' }}>
+        <div style={{ width:'100%', maxWidth:320 }}>
+          <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:30, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Create your account</h2>
+          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:32, fontWeight:300 }}>Discover products curated by people you trust.</p>
+          <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center' }}>{error}</p>}
             <input type="text"     placeholder="Full name"              value={name}     onChange={e => setName(e.target.value)}  required className={inp} />
             <input type="email"    placeholder="Email address"          value={email}    onChange={e => setEmail(e.target.value)} required className={inp} />
             <input type="password" placeholder="Password (min 6 chars)" value={password} onChange={e => setPass(e.target.value)}  required minLength={6} className={inp} />
-            <button type="submit" disabled={loading} className="w-full py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors mt-2 disabled:opacity-50">
+            <button type="submit" disabled={loading} style={{ width:'100%', padding:'12px', background:'#fff', color:'#000', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit', marginTop:8, opacity: loading ? 0.5 : 1 }}>
               {loading ? 'CREATING...' : 'CREATE AN ACCOUNT'}
             </button>
           </form>
@@ -113,55 +110,45 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
 }
 
 function CreatorForm({ onBack }: { onBack: () => void }) {
-  const [step, setStep] = useState(1)
-  const [name, setName]               = useState('')
-  const [email, setEmail]             = useState('')
-  const [password, setPass]           = useState('')
-  const [countryCode, setCountryCode] = useState('+91')
-  const [phone, setPhone]             = useState('')
-  const [city, setCity]               = useState('')
-  const [ageOk, setAgeOk]             = useState(false)
-  const [primaryPlatform,   setPrimaryPlatform]   = useState('')
-  const [primaryHandle,     setPrimaryHandle]     = useState('')
-  const [primaryFollowers,  setPrimaryFollowers]  = useState('')
-  const [secondaryPlatform, setSecondaryPlatform] = useState('')
-  const [secondaryHandle,   setSecondaryHandle]   = useState('')
-  const [secondaryFollowers,setSecondaryFollowers]= useState('')
-  const [engagementRate,    setEngagementRate]    = useState('')
-  const [niches,      setNiches]      = useState<string[]>([])
-  const [language,    setLanguage]    = useState('')
-  const [bio,         setBio]         = useState('')
-  const [source,      setSource]      = useState('')
-  const [referral,    setReferral]    = useState('')
-  const [igConnected, setIgConnected] = useState(false)
-  const [igHandle,    setIgHandle]    = useState('')
-  const [upiId,          setUpiId]          = useState('')
-  const [panNumber,      setPanNumber]      = useState('')
-  const [agreedTos,      setAgreedTos]      = useState(false)
-  const [agreedAffiliate,setAgreedAffiliate]= useState(false)
-  const [otpSent,     setOtpSent]     = useState(false)
-  const [otpValue,    setOtpValue]    = useState('')
-  const [otpVerified, setOtpVerified] = useState(false)
-  const [otpLoading,  setOtpLoading]  = useState(false)
-  const [otpError,    setOtpError]    = useState('')
-  const [error,   setError]   = useState('')
-  const [loading, setLoading] = useState(false)
-  const [done,    setDone]    = useState(false)
+  const [step, setStep]                                 = useState(1)
+  const [name, setName]                                 = useState('')
+  const [email, setEmail]                               = useState('')
+  const [password, setPass]                             = useState('')
+  const [countryCode, setCountryCode]                   = useState('+91')
+  const [phone, setPhone]                               = useState('')
+  const [city, setCity]                                 = useState('')
+  const [ageOk, setAgeOk]                               = useState(false)
+  const [primaryPlatform, setPrimaryPlatform]           = useState('')
+  const [primaryHandle, setPrimaryHandle]               = useState('')
+  const [primaryFollowers, setPrimaryFollowers]         = useState('')
+  const [secondaryPlatform, setSecondaryPlatform]       = useState('')
+  const [secondaryHandle, setSecondaryHandle]           = useState('')
+  const [secondaryFollowers, setSecondaryFollowers]     = useState('')
+  const [engagementRate, setEngagementRate]             = useState('')
+  const [niches, setNiches]                             = useState<string[]>([])
+  const [language, setLanguage]                         = useState('')
+  const [bio, setBio]                                   = useState('')
+  const [source, setSource]                             = useState('')
+  const [referral, setReferral]                         = useState('')
+  const [igConnected, setIgConnected]                   = useState(false)
+  const [igHandle, setIgHandle]                         = useState('')
+  const [upiId, setUpiId]                               = useState('')
+  const [panNumber, setPanNumber]                       = useState('')
+  const [agreedTos, setAgreedTos]                       = useState(false)
+  const [agreedAffiliate, setAgreedAffiliate]           = useState(false)
+  const [error, setError]                               = useState('')
+  const [loading, setLoading]                           = useState(false)
+  const [done, setDone]                                 = useState(false)
 
   const supabase = createClient()
   const router   = useRouter()
 
-  const go = (n: number) => { setError(''); setStep(n); window.scrollTo(0, 0) }
+  const go   = (n: number) => { setError(''); setStep(n); window.scrollTo(0,0) }
   const next = () => go(step + 1)
   const prev = () => go(step - 1)
   const toggleNiche = (n: string) => setNiches(p => p.includes(n) ? p.filter(x => x !== n) : [...p, n])
 
-  const draftData = () => ({
-    name, email, password, countryCode, phone, city, ageOk,
-    primaryPlatform, primaryHandle, primaryFollowers,
-    secondaryPlatform, secondaryHandle, secondaryFollowers, engagementRate,
-    niches, language, bio, source, referral,
-  })
+  const draftData = () => ({ name, email, password, countryCode, phone, city, ageOk, primaryPlatform, primaryHandle, primaryFollowers, secondaryPlatform, secondaryHandle, secondaryFollowers, engagementRate, niches, language, bio, source, referral })
 
   const restoreDraft = () => {
     const d = draftLoad<ReturnType<typeof draftData>>()
@@ -169,12 +156,10 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     setName(d.name ?? ''); setEmail(d.email ?? ''); setPass(d.password ?? '')
     setCountryCode(d.countryCode ?? '+91'); setPhone(d.phone ?? ''); setCity(d.city ?? '')
     setAgeOk(d.ageOk ?? false)
-    setPrimaryPlatform(d.primaryPlatform ?? ''); setPrimaryHandle(d.primaryHandle ?? '')
-    setPrimaryFollowers(d.primaryFollowers ?? '')
-    setSecondaryPlatform(d.secondaryPlatform ?? ''); setSecondaryHandle(d.secondaryHandle ?? '')
-    setSecondaryFollowers(d.secondaryFollowers ?? ''); setEngagementRate(d.engagementRate ?? '')
-    setNiches(d.niches ?? []); setLanguage(d.language ?? ''); setBio(d.bio ?? '')
-    setSource(d.source ?? ''); setReferral(d.referral ?? '')
+    setPrimaryPlatform(d.primaryPlatform ?? ''); setPrimaryHandle(d.primaryHandle ?? ''); setPrimaryFollowers(d.primaryFollowers ?? '')
+    setSecondaryPlatform(d.secondaryPlatform ?? ''); setSecondaryHandle(d.secondaryHandle ?? ''); setSecondaryFollowers(d.secondaryFollowers ?? '')
+    setEngagementRate(d.engagementRate ?? ''); setNiches(d.niches ?? []); setLanguage(d.language ?? '')
+    setBio(d.bio ?? ''); setSource(d.source ?? ''); setReferral(d.referral ?? '')
     return true
   }
 
@@ -190,66 +175,20 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     }
   }, [])
 
-  const sendOtp = async () => {
-    if (!OTP_ENABLED) { setOtpVerified(true); return }
-    if (phone.replace(/\D/g,'').length < 10) { setOtpError('Enter a valid phone number'); return }
-    setOtpLoading(true); setOtpError('')
-    try {
-      const res = await fetch('/api/auth/send-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone: `${countryCode}${phone}` }) })
-      const d = await res.json()
-      d.success ? setOtpSent(true) : setOtpError(d.error ?? 'Failed to send OTP')
-    } catch { setOtpError('Network error. Try again.') }
-    setOtpLoading(false)
-  }
-
-  const verifyOtp = async () => {
-    if (!OTP_ENABLED) { setOtpVerified(true); return }
-    if (otpValue.length < 4) { setOtpError('Enter the OTP'); return }
-    setOtpLoading(true); setOtpError('')
-    try {
-      const res = await fetch('/api/auth/verify-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ phone:`${countryCode}${phone}`, otp:otpValue }) })
-      const d = await res.json()
-      d.success ? setOtpVerified(true) : setOtpError(d.error ?? 'Invalid OTP')
-    } catch { setOtpError('Network error. Try again.') }
-    setOtpLoading(false)
-  }
-
-  const step1Next = () => {
-    if (!name || !email || !password) return setError('Please fill all required fields')
-    if (password.length < 6)          return setError('Password must be at least 6 characters')
-    if (phone.replace(/\D/g,'').length < 10) return setError('Phone number must be at least 10 digits')
-    if (!city)                        return setError('Please enter your city')
-    if (!ageOk)                       return setError('You must confirm you are 18 or older')
-    next()
-  }
-
-  const step2Next = () => {
-    if (!primaryPlatform || !primaryHandle || !primaryFollowers) return setError('Please fill all required platform fields')
-    next()
-  }
-
-  const step3Next = () => {
-    if (!niches.length || !language || !bio) return setError('Please fill niche, language, and bio')
-    next()
-  }
-
   const connectInstagram = () => { draftSave(draftData()); window.location.href = '/api/auth/instagram' }
 
-  // ── SUBMIT — with optional step 5 fields for testing ──
   const submit = async (skipPayouts = false) => {
     if (!skipPayouts) {
-      if (!upiId)      return setError('UPI ID is required for payouts')
-      if (!panNumber)  return setError('PAN number is required')
+      if (!upiId)     return setError('UPI ID is required for payouts')
+      if (!panNumber) return setError('PAN number is required')
       if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(panNumber)) return setError('Enter a valid PAN (e.g. ABCDE1234F)')
       if (!agreedTos || !agreedAffiliate) return setError('Please agree to all terms to continue')
     }
-
     setLoading(true); setError('')
     try {
       const { data, error: authErr } = await supabase.auth.signUp({ email, password })
       if (authErr) throw authErr
       if (!data.user) throw new Error('Signup failed — please try again.')
-
       const { error: profileErr } = await supabase.from('profiles').insert({
         id: data.user.id, display_name: name, phone: `${countryCode}${phone}`, city,
         role: 'creator', status: 'pending',
@@ -264,98 +203,106 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
         agreed_affiliate: skipPayouts ? false : agreedAffiliate,
       })
       if (profileErr) throw profileErr
-
-      draftClear()
-      setDone(true)
+      draftClear(); setDone(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   if (done) return <PendingScreen title="Application received." sub="We'll review your profile and get back to you within 3–5 days. Keep creating." onHome={() => router.push('/')} />
 
   const Dots = () => (
-    <div className="flex items-center gap-1.5">
+    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
       {[1,2,3,4,5].map((s,i) => (
-        <div key={s} className="flex items-center gap-1.5">
-          <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] border transition-all
-            ${step > s ? `bg-[${GOLD}] border-[${GOLD}] text-white` : step === s ? 'bg-white border-white text-[#1C1814]' : 'border-white/30 text-white/30'}`}>
+        <div key={s} style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{
+            width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:9, border:'1px solid',
+            background: step > s ? '#fff' : step === s ? '#fff' : 'transparent',
+            borderColor: step > s ? '#fff' : step === s ? '#fff' : 'rgba(255,255,255,0.2)',
+            color: step > s ? '#000' : step === s ? '#000' : 'rgba(255,255,255,0.3)',
+            transition:'all 0.15s'
+          }}>
             {step > s ? '✓' : s}
           </div>
-          {i < 4 && <div className={`w-4 h-px ${step > s ? `bg-[${GOLD}]` : 'bg-white/20'}`} />}
+          {i < 4 && <div style={{ width:16, height:0.5, background: step > s ? '#fff' : 'rgba(255,255,255,0.15)' }} />}
         </div>
       ))}
     </div>
   )
 
-  const Nav = ({ onNext, label = 'NEXT', isSubmit = false, showBack = true }: { onNext: () => void; label?: string; isSubmit?: boolean; showBack?: boolean }) => (
-    <div className="flex gap-2 mt-4">
+  const Nav = ({ onNext, label='NEXT', isSubmit=false, showBack=true }: { onNext:()=>void; label?:string; isSubmit?:boolean; showBack?:boolean }) => (
+    <div style={{ display:'flex', gap:8, marginTop:16 }}>
       {showBack && (
-        <button onClick={prev} className="flex-1 py-3 border border-white/20 text-white/50 text-[11px] tracking-[0.08em] hover:border-white/50 hover:text-white/80 transition-colors">
+        <button onClick={prev} style={{ flex:1, padding:'11px', border:'0.5px solid rgba(255,255,255,0.2)', background:'transparent', color:'rgba(255,255,255,0.4)', fontSize:11, letterSpacing:'0.08em', cursor:'pointer', fontFamily:'inherit' }}>
           ← BACK
         </button>
       )}
-      <button onClick={onNext} disabled={isSubmit && loading}
-        className={`${showBack ? 'flex-[2]' : 'w-full'} py-3 ${isSubmit ? `bg-[${GOLD}] hover:bg-[#A6895D]` : 'bg-white hover:bg-white/90'} ${isSubmit ? 'text-white' : 'text-[#1C1814]'} text-[11px] tracking-[0.1em] transition-colors disabled:opacity-50`}>
+      <button onClick={onNext} disabled={isSubmit && loading} style={{
+        flex: showBack ? 2 : 1, padding:'11px',
+        background: isSubmit ? '#fff' : '#fff',
+        color: '#000',
+        fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit',
+        opacity: (isSubmit && loading) ? 0.5 : 1
+      }}>
         {isSubmit && loading ? 'SUBMITTING...' : label}
       </button>
     </div>
   )
 
+  const formStyle: React.CSSProperties = { display:'flex', flexDirection:'column', gap:12 }
+  const sectionLabel = (text: string) => <p style={{ fontSize:10, letterSpacing:'0.12em', color:'rgba(255,255,255,0.35)', textTransform:'uppercase', marginBottom:4 }}>{text}</p>
+
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      <RoleHeader onBack={step > 1 ? prev : onBack} tag="FOR CREATORS">
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
+      <RoleHeader onBack={step > 1 ? prev : onBack} tag="For Creators">
         <Dots />
       </RoleHeader>
-
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        <div className="w-full max-w-xs mx-auto">
-          {error && <p className="text-[11px] text-red-400 text-center mb-4">{error}</p>}
+      <div style={{ flex:1, overflowY:'auto', padding:'24px 20px' }}>
+        <div style={{ width:'100%', maxWidth:320, margin:'0 auto' }}>
+          {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center', marginBottom:16 }}>{error}</p>}
 
           {step === 1 && <>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Basic info</h2>
-            <p className="text-[11px] text-white/50 text-center mb-5 font-light">Let's start with who you are.</p>
-            <div className="flex flex-col gap-3">
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Basic info</h2>
+            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Let's start with who you are.</p>
+            <div style={formStyle}>
               <input type="text"     placeholder="Full name*"                    value={name}     onChange={e => setName(e.target.value)}  className={inp} />
               <input type="email"    placeholder="Email address*"               value={email}    onChange={e => setEmail(e.target.value)} className={inp} />
               <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPass(e.target.value)}  minLength={6} className={inp} />
               <input type="text"     placeholder="City*"                        value={city}     onChange={e => setCity(e.target.value)}  className={inp} />
-              <div>
-                <div className="flex gap-2">
-                  <select value={countryCode} onChange={e => setCountryCode(e.target.value)}
-                    className="w-20 px-2 py-3 bg-[#2a2320] border border-white/20 text-[12px] text-white outline-none focus:border-[#B89A6E] appearance-none">
-                    {['+91','+1','+44','+971','+65'].map(c => <option key={c}>{c}</option>)}
-                  </select>
-                  <input type="tel" placeholder="Phone number* (min 10 digits)" value={phone}
-                    onChange={e => setPhone(e.target.value.replace(/\D/g,''))} maxLength={10}
-                    className="flex-1 px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-[#B89A6E] transition-colors" />
-                </div>
+              <div style={{ display:'flex', gap:8 }}>
+                <select value={countryCode} onChange={e => setCountryCode(e.target.value)} style={{ width:72, padding:'10px 8px', background:'#111', border:'0.5px solid rgba(255,255,255,0.2)', color:'#fff', fontSize:12, outline:'none', appearance:'none', flexShrink:0 }}>
+                  {['+91','+1','+44','+971','+65'].map(c => <option key={c}>{c}</option>)}
+                </select>
+                <input type="tel" placeholder="Phone number* (10 digits)" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))} maxLength={10} className={inp} style={{ flex:1 }} />
               </div>
               <Checkbox checked={ageOk} onChange={() => setAgeOk(a => !a)}>
                 I confirm I am 18 years of age or older*
               </Checkbox>
-              <Nav onNext={step1Next} showBack={false} />
-              {/* ⚡ Preview shortcut */}
-              <a href="/dashboard"
-                style={{ display:'block', textAlign:'center', fontSize:11, color:'rgba(255,255,255,0.35)', letterSpacing:'0.08em', marginTop:12, textDecoration:'none', padding:'8px', border:'1px dashed rgba(255,255,255,0.2)', borderRadius:2 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color='rgba(255,255,255,0.7)'; (e.currentTarget as HTMLAnchorElement).style.borderColor='rgba(255,255,255,0.4)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color='rgba(255,255,255,0.35)'; (e.currentTarget as HTMLAnchorElement).style.borderColor='rgba(255,255,255,0.2)' }}
-              >⚡ Preview dashboard (editor only)</a>
+              <Nav onNext={() => {
+                if (!name || !email || !password) return setError('Please fill all required fields')
+                if (password.length < 6) return setError('Password must be at least 6 characters')
+                if (phone.replace(/\D/g,'').length < 10) return setError('Phone number must be at least 10 digits')
+                if (!city) return setError('Please enter your city')
+                if (!ageOk) return setError('You must confirm you are 18 or older')
+                next()
+              }} showBack={false} />
+              <a href="/dashboard" style={{ display:'block', textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.2)', letterSpacing:'0.08em', marginTop:8, textDecoration:'none', padding:'8px', border:'1px dashed rgba(255,255,255,0.1)' }}>
+                ⚡ Preview dashboard (editor only)
+              </a>
             </div>
           </>}
 
           {step === 2 && <>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Your platforms</h2>
-            <p className="text-[11px] text-white/50 text-center mb-5 font-light">It's about taste, not follower count.</p>
-            <div className="flex flex-col gap-3">
-              <p className={lbl}>PRIMARY PLATFORM</p>
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Your platforms</h2>
+            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>It's about taste, not follower count.</p>
+            <div style={formStyle}>
+              {sectionLabel('Primary Platform')}
               <select value={primaryPlatform} onChange={e => setPrimaryPlatform(e.target.value)} className={sel}>
                 <option value="">Select platform*</option>
                 {PLATFORMS.map(p => <option key={p}>{p}</option>)}
               </select>
-              <div className="flex gap-2">
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 <input type="text" placeholder="Handle or profile URL*" value={primaryHandle} onChange={e => setPrimaryHandle(e.target.value)} className={inp} />
                 <select value={primaryFollowers} onChange={e => setPrimaryFollowers(e.target.value)} className={sel}>
                   <option value="">Followers*</option>
@@ -366,14 +313,14 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                 <option value="">Average engagement rate</option>
                 {ENG_RATES.map(r => <option key={r}>{r}</option>)}
               </select>
-              <div className="border-t border-white/10 pt-3">
-                <p className={`${lbl} mb-3`}>SECONDARY PLATFORM <span className="text-white/30 normal-case tracking-normal">(optional)</span></p>
+              <div style={{ borderTop:'0.5px solid rgba(255,255,255,0.08)', paddingTop:12 }}>
+                {sectionLabel('Secondary Platform (optional)')}
                 <select value={secondaryPlatform} onChange={e => setSecondaryPlatform(e.target.value)} className={sel}>
                   <option value="">Select platform</option>
                   {PLATFORMS.map(p => <option key={p}>{p}</option>)}
                 </select>
                 {secondaryPlatform && (
-                  <div className="flex flex-col gap-3 mt-3">
+                  <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:8 }}>
                     <input type="text" placeholder="Handle or profile URL" value={secondaryHandle} onChange={e => setSecondaryHandle(e.target.value)} className={inp} />
                     <select value={secondaryFollowers} onChange={e => setSecondaryFollowers(e.target.value)} className={sel}>
                       <option value="">Follower count</option>
@@ -382,22 +329,28 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                   </div>
                 )}
               </div>
-              <Nav onNext={step2Next} />
+              <Nav onNext={() => {
+                if (!primaryPlatform || !primaryHandle || !primaryFollowers) return setError('Please fill all required platform fields')
+                next()
+              }} />
             </div>
           </>}
 
           {step === 3 && <>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Your content</h2>
-            <p className="text-[11px] text-white/50 text-center mb-5 font-light">Tell us what makes your taste unique.</p>
-            <div className="flex flex-col gap-3">
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Your content</h2>
+            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Tell us what makes your taste unique.</p>
+            <div style={formStyle}>
               <div>
-                <p className={`${lbl} mb-2`}>YOUR NICHE*</p>
-                <div className="flex flex-wrap gap-2">
+                {sectionLabel('Your niche*')}
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
                   {NICHES.map(n => (
-                    <button key={n} type="button" onClick={() => toggleNiche(n)}
-                      className={`text-[10px] tracking-[0.06em] px-3 py-1.5 border transition-all ${niches.includes(n) ? 'bg-white text-[#1C1814] border-white' : 'border-white/20 text-white/60 hover:border-white/50'}`}>
-                      {n}
-                    </button>
+                    <button key={n} type="button" onClick={() => toggleNiche(n)} style={{
+                      fontSize:10, letterSpacing:'0.06em', padding:'6px 12px',
+                      border:`0.5px solid ${niches.includes(n) ? '#fff' : 'rgba(255,255,255,0.2)'}`,
+                      background: niches.includes(n) ? '#fff' : 'transparent',
+                      color: niches.includes(n) ? '#000' : 'rgba(255,255,255,0.5)',
+                      cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s'
+                    }}>{n}</button>
                   ))}
                 </div>
               </div>
@@ -405,81 +358,70 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                 <option value="">Content language*</option>
                 {LANGUAGES.map(l => <option key={l}>{l}</option>)}
               </select>
-              <textarea placeholder="Describe your content style and aesthetic...*" value={bio} onChange={e => setBio(e.target.value)} rows={3} className={`${inp} resize-none`} />
-              <div className="border-t border-white/10 pt-3 opacity-40 pointer-events-none select-none">
-                <div className="flex items-center gap-2 mb-2">
-                  <p className={lbl}>YOUR BEST POSTS / REELS</p>
-                  <span className="text-[9px] text-white/30 border border-white/15 px-2 py-0.5 rounded-full font-mono tracking-wide">optional — skip for now</span>
-                </div>
-                {['best','second','third'].map((ord, i) => (
-                  <div key={i} className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] text-white/20 font-mono w-5">0{i+1}</span>
-                    <input disabled placeholder={`Link to your ${ord} post or reel`} className={`${inp} flex-1`} />
-                  </div>
-                ))}
-              </div>
+              <textarea placeholder="Describe your content style and aesthetic...*" value={bio} onChange={e => setBio(e.target.value)} rows={3} className={inp} style={{ resize:'none' }} />
               <select value={source} onChange={e => setSource(e.target.value)} className={sel}>
                 <option value="">How did you hear about us?</option>
                 {SOURCES.map(s => <option key={s}>{s}</option>)}
               </select>
               <input type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} className={inp} />
-              <Nav onNext={step3Next} />
+              <Nav onNext={() => {
+                if (!niches.length || !language || !bio) return setError('Please fill niche, language, and bio')
+                next()
+              }} />
             </div>
           </>}
 
           {step === 4 && <>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Verify Instagram</h2>
-            <p className="text-[11px] text-white/50 text-center mb-5 font-light">Prove you own the account you're applying with.</p>
-            <div className="flex flex-col gap-3">
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Verify Instagram</h2>
+            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Prove you own the account you're applying with.</p>
+            <div style={formStyle}>
               {igConnected
-                ? <div className="flex items-center gap-3 px-4 py-3 border border-[#B89A6E]/50 bg-[#B89A6E]/10">
-                    <div className="w-8 h-8 rounded-full bg-[#B89A6E] flex items-center justify-center text-white text-sm flex-shrink-0">✓</div>
+                ? <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', border:'0.5px solid rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.05)' }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', color:'#000', fontSize:14, flexShrink:0 }}>✓</div>
                     <div>
-                      <p className="text-[12px] text-white font-medium">@{igHandle}</p>
-                      <p className="text-[10px] text-[#B89A6E]">Instagram confirmed</p>
+                      <p style={{ fontSize:12, color:'#fff', fontWeight:500 }}>@{igHandle}</p>
+                      <p style={{ fontSize:10, color:'rgba(255,255,255,0.4)' }}>Instagram confirmed</p>
                     </div>
                   </div>
-                : <button onClick={connectInstagram}
-                    className="w-full py-3 bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] text-white text-[11px] tracking-[0.1em] hover:opacity-90 transition-opacity">
+                : <button onClick={connectInstagram} style={{ width:'100%', padding:'12px', background:'linear-gradient(to right, #833ab4, #fd1d1d, #fcb045)', color:'#fff', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
                     CONNECT INSTAGRAM
                   </button>
               }
               <Nav onNext={next} label={igConnected ? 'NEXT' : 'SKIP & CONTINUE →'} />
-              {!igConnected && <p className="text-[10px] text-white/25 text-center font-mono">You can verify from your creator dashboard after approval.</p>}
+              {!igConnected && <p style={{ fontSize:10, color:'rgba(255,255,255,0.2)', textAlign:'center' }}>You can verify from your dashboard after approval.</p>}
             </div>
           </>}
 
           {step === 5 && <>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-[26px] font-light text-white text-center mb-1">Payouts & agreement</h2>
-            <p className="text-[11px] text-white/50 text-center mb-5 font-light">Almost there. Set up how you'll get paid.</p>
-            <div className="flex flex-col gap-4">
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Payouts & agreement</h2>
+            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Almost there. Set up how you'll get paid.</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
               <div>
-                <p className={`${lbl} mb-2`}>UPI ID</p>
-                <input type="text" placeholder="e.g. priya@okicici*" value={upiId} onChange={e => setUpiId(e.target.value)} className={inp} />
-                <p className="text-[10px] text-white/30 mt-1 font-mono">Your 80% commission is transferred here monthly once your balance crosses ₹100.</p>
+                {sectionLabel('UPI ID')}
+                <input type="text" placeholder="e.g. priya@okicici*" value={upiId} onChange={e => setUpiId(e.target.value)} className={inp} style={{ marginTop:6 }} />
+                <p style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:6, fontFamily:'monospace' }}>Your 80% commission is transferred here monthly once balance crosses ₹100.</p>
               </div>
               <div>
-                <p className={`${lbl} mb-2`}>PAN NUMBER</p>
-                <input type="text" placeholder="e.g. ABCDE1234F*" value={panNumber}
-                  onChange={e => setPanNumber(e.target.value.toUpperCase())} maxLength={10} className={inp} />
-                <p className="text-[10px] text-white/30 mt-1 font-mono">Required for earnings above ₹50,000/year. Never shared with brands.</p>
+                {sectionLabel('PAN Number')}
+                <input type="text" placeholder="e.g. ABCDE1234F*" value={panNumber} onChange={e => setPanNumber(e.target.value.toUpperCase())} maxLength={10} className={inp} style={{ marginTop:6 }} />
+                <p style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:6, fontFamily:'monospace' }}>Required for earnings above ₹50,000/year. Never shared with brands.</p>
               </div>
-              <div className="border-t border-white/10 pt-3 flex flex-col gap-3">
-                <p className={lbl}>AGREEMENTS</p>
+              <div style={{ borderTop:'0.5px solid rgba(255,255,255,0.08)', paddingTop:16, display:'flex', flexDirection:'column', gap:12 }}>
+                {sectionLabel('Agreements')}
                 <Checkbox checked={agreedTos} onChange={() => setAgreedTos(a => !a)}>
-                  I have read and agree to the{' '}
-                  <a href="/terms"   target="_blank" className="text-[#B89A6E] underline hover:text-white">Terms & Conditions</a>{'  and '}<a href="/privacy" target="_blank" className="text-[#B89A6E] underline hover:text-white">Privacy Policy</a>*
+                  I agree to the{' '}
+                  <a href="/terms" target="_blank" style={{ color:'rgba(255,255,255,0.7)', textDecoration:'underline' }}>Terms & Conditions</a>
+                  {' '}and{' '}
+                  <a href="/privacy" target="_blank" style={{ color:'rgba(255,255,255,0.7)', textDecoration:'underline' }}>Privacy Policy</a>*
                 </Checkbox>
                 <Checkbox checked={agreedAffiliate} onChange={() => setAgreedAffiliate(a => !a)}>
                   I agree to the{' '}
-                  <a href="/affiliate-policy" target="_blank" className="text-[#B89A6E] underline hover:text-white">Affiliate & Commission Policy</a>,
+                  <a href="/affiliate-policy" target="_blank" style={{ color:'rgba(255,255,255,0.7)', textDecoration:'underline' }}>Affiliate & Commission Policy</a>,
                   including the 80% commission structure and monthly payout schedule*
                 </Checkbox>
               </div>
               <Nav onNext={() => submit(false)} label="SUBMIT APPLICATION →" isSubmit />
-              {/* ── Testing shortcut — skip payouts ── */}
-              <button onClick={() => submit(true)}
-                style={{ background:'none', border:'1px dashed rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.25)', fontSize:10, letterSpacing:'0.08em', padding:'8px', cursor:'pointer', fontFamily:'inherit', marginTop:4 }}>
+              <button onClick={() => submit(true)} style={{ background:'none', border:'1px dashed rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.2)', fontSize:10, letterSpacing:'0.08em', padding:'8px', cursor:'pointer', fontFamily:'inherit' }}>
                 ⚡ Skip payouts & submit (testing only)
               </button>
             </div>
@@ -514,14 +456,14 @@ function BrandForm({ onBack }: { onBack: () => void }) {
   if (done) return <PendingScreen title="We'll be in touch." sub="Our team will reach out within 24 hours to schedule your walkthrough." onHome={() => router.push('/')} />
 
   return (
-    <div className="flex flex-col flex-1">
-      <RoleHeader onBack={onBack} tag="FOR BRANDS" />
-      <div className="flex-1 flex items-center justify-center px-8 py-6 overflow-y-auto">
-        <div className="w-full max-w-xs">
-          <h2 className="font-[family-name:var(--font-cormorant)] text-[28px] font-light text-white text-center mb-2">Partner with Curatekin</h2>
-          <p className="text-[11px] text-white/50 text-center mb-6 font-light">No one pushes your product like the people who love it.</p>
-          <form onSubmit={submit} className="flex flex-col gap-3">
-            {error && <p className="text-[11px] text-red-400 text-center">{error}</p>}
+    <div style={{ display:'flex', flexDirection:'column', flex:1 }}>
+      <RoleHeader onBack={onBack} tag="For Brands" />
+      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 20px', overflowY:'auto' }}>
+        <div style={{ width:'100%', maxWidth:320 }}>
+          <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Partner with CurateKin</h2>
+          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:28, fontWeight:300 }}>No one pushes your product like the people who love it.</p>
+          <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center' }}>{error}</p>}
             <input type="text"  placeholder="Brand / company name*" value={company}  onChange={e => setCompany(e.target.value)}  required className={inp} />
             <input type="email" placeholder="Work email*"           value={email}    onChange={e => setEmail(e.target.value)}    required className={inp} />
             <input type="url"   placeholder="Website URL"           value={website}  onChange={e => setWebsite(e.target.value)}          className={inp} />
@@ -533,8 +475,8 @@ function BrandForm({ onBack }: { onBack: () => void }) {
               <option value="">Monthly budget</option>
               {['Under ₹50,000','₹50,000–₹2,00,000','₹2,00,000–₹10,00,000','₹10,00,000+'].map(b => <option key={b}>{b}</option>)}
             </select>
-            <textarea placeholder="Tell us about your brand and goals..." value={message} onChange={e => setMessage(e.target.value)} rows={3} className={`${inp} resize-none`} />
-            <button type="submit" disabled={loading} className="w-full py-3 bg-white text-[#1C1814] text-[11px] tracking-[0.1em] hover:bg-white/90 transition-colors mt-2 disabled:opacity-50">
+            <textarea placeholder="Tell us about your brand and goals..." value={message} onChange={e => setMessage(e.target.value)} rows={3} className={inp} style={{ resize:'none' }} />
+            <button type="submit" disabled={loading} style={{ width:'100%', padding:'12px', background:'#fff', color:'#000', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit', marginTop:8, opacity: loading ? 0.5 : 1 }}>
               {loading ? 'SENDING...' : 'APPLY'}
             </button>
           </form>
@@ -544,12 +486,7 @@ function BrandForm({ onBack }: { onBack: () => void }) {
   )
 }
 
-const ROLE_CARDS = [
-  { role: 'shopper' as Role, image:'/card-shopper.jpg', title:'Shopper', sub:'A destination for shopping, not scrolling.', btn:'CREATE AN ACCOUNT' },
-  { role: 'creator' as Role, image:'/card-creator.jpg', title:'Creator', sub:'Where great taste leads to great opportunities.', btn:'APPLY' },
-  { role: 'brand'   as Role, image:'/card-brand.jpg',   title:'Brand',   sub:'No one pushes your product like the people who love them.', btn:'APPLY' },
-]
-export default function SignupPage() {  
+export default function SignupPage() {
   const [role, setRole] = useState<Role>(null)
 
   const goHome = () => { window.history.length > 1 ? window.history.back() : window.location.href = '/' }
@@ -562,60 +499,52 @@ export default function SignupPage() {
 
   return (
     <>
-      <div className="fixed inset-0 bg-[#1C1814]/80 backdrop-blur-sm z-40" onClick={() => { if (!role) goHome() }} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-6xl bg-[#1C1814] shadow-2xl flex flex-col" style={{ height:'min(780px,94vh)' }}>
+      <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)', zIndex:40 }} onClick={() => { if (!role) goHome() }} />
+      <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:'12px' }}>
+        <div style={{ position:'relative', width:'100%', maxWidth:1100, background:'#000', boxShadow:'0 32px 80px rgba(0,0,0,0.6)', display:'flex', flexDirection:'column', height:'min(760px,95vh)' }}>
 
-          <button onClick={(e) => { e.stopPropagation(); window.history.back() }} className="absolute top-6 right-6 z-50 w-12 h-12 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all text-2xl rounded-full" style={{fontSize:28, lineHeight:1}}>×</button>
+          {/* Close button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); window.history.back() }}
+            style={{ position:'absolute', top:16, right:16, zIndex:60, width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,0.08)', border:'none', color:'rgba(255,255,255,0.6)', fontSize:22, cursor:'pointer', borderRadius:'50%', lineHeight:1 }}>
+            ×
+          </button>
 
           {!role && (
-            <div className="flex flex-col h-full">
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 overflow-y-auto sm:overflow-hidden">
+            <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+              {/* Role cards */}
+              <div style={{ flex:1, display:'grid', gridTemplateColumns:'repeat(3,1fr)', overflow:'hidden' }}
+                className="max-sm:grid-cols-1 max-sm:overflow-y-auto">
                 {ROLE_CARDS.map(card => (
-                  <button key={card.role} onClick={() => setRole(card.role)}
-                    className="relative overflow-hidden group text-left flex flex-col justify-between min-h-[220px] sm:min-h-0">
+                  <button
+                    key={card.role}
+                    onClick={() => setRole(card.role)}
+                    style={{ position:'relative', overflow:'hidden', textAlign:'left', display:'flex', flexDirection:'column', minHeight:220, border:'none', padding:0, cursor:'pointer' }}
+                    onMouseEnter={e => { const bg = e.currentTarget.querySelector('.card-bg') as HTMLElement; if (bg) bg.style.transform='scale(1.05)' }}
+                    onMouseLeave={e => { const bg = e.currentTarget.querySelector('.card-bg') as HTMLElement; if (bg) bg.style.transform='scale(1)' }}>
                     {/* Photo */}
-                    <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                      style={{ backgroundImage:`url(${card.image})` }} />
-                    {/* Overlay — lighter than before */}
-                    <div className="absolute inset-0" style={{ background:'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.1) 100%)' }} />
-                    {/* Content — pinned to bottom */}
-                    <div className="relative z-10 flex flex-col justify-end h-full p-6 sm:p-8">
-                      <h3 style={{
-                        fontFamily:'Cormorant Garamond, serif',
-                        fontSize:'clamp(36px, 4vw, 56px)',
-                        fontWeight:300,
-                        color:'#fff',
-                        lineHeight:1.05,
-                        marginBottom:10,
-                        letterSpacing:'-0.01em'
-                      }}>{card.title}</h3>
-                      <p style={{
-                        fontSize:12,
-                        color:'rgba(255,255,255,0.65)',
-                        fontWeight:300,
-                        lineHeight:1.6,
-                        marginBottom:24,
-                        maxWidth:240
-                      }}>{card.sub}</p>
+                    <div className="card-bg" style={{
+                      position:'absolute', inset:0,
+                      backgroundImage:`url(${card.image})`,
+                      backgroundSize:'cover', backgroundPosition:'center',
+                      transition:'transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)'
+                    }} />
+                    {/* Gradient overlay */}
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.1) 100%)' }} />
+                    {/* Content pinned to bottom */}
+                    <div style={{ position:'relative', zIndex:2, display:'flex', flexDirection:'column', justifyContent:'flex-end', flex:1, padding:28 }}>
+                      <h3 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontWeight:300, color:'#fff', lineHeight:1, marginBottom:10, letterSpacing:'-0.01em' }}>
+                        {card.title}
+                      </h3>
+                      <p style={{ fontSize:12, color:'rgba(255,255,255,0.55)', fontWeight:300, lineHeight:1.6, marginBottom:24, minHeight:36 }}>
+                        {card.sub}
+                      </p>
                       <span style={{
-                        display:'inline-block',
-                        padding:'10px 20px',
-                        border:'1px solid rgba(255,255,255,0.6)',
-                        fontSize:10,
-                        letterSpacing:'0.12em',
-                        color:'#fff',
-                        fontFamily:'inherit',
-                        alignSelf:'flex-start',
-                        transition:'all 0.2s'
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLSpanElement).style.background='#fff'
-                        ;(e.currentTarget as HTMLSpanElement).style.color='#000'
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLSpanElement).style.background='transparent'
-                        ;(e.currentTarget as HTMLSpanElement).style.color='#fff'
+                        display:'inline-block', padding:'10px 22px',
+                        border:'1px solid rgba(255,255,255,0.5)',
+                        fontSize:10, letterSpacing:'0.12em', color:'#fff',
+                        fontFamily:'DM Sans, sans-serif', alignSelf:'flex-start',
+                        transition:'background 0.2s, color 0.2s'
                       }}>
                         {card.btn}
                       </span>
@@ -623,10 +552,11 @@ export default function SignupPage() {
                   </button>
                 ))}
               </div>
-              <div className="border-t border-white/10 py-4 text-center flex-shrink-0" style={{background:'#1C1814'}}>
-                <p className="text-[11px] text-white/40">
+              {/* Bottom bar */}
+              <div style={{ borderTop:'0.5px solid rgba(255,255,255,0.08)', padding:'14px', textAlign:'center', flexShrink:0, background:'#000' }}>
+                <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>
                   Already have an account?{' '}
-                  <Link href="/login" className="text-white/70 underline hover:text-white transition-colors">Log in</Link>
+                  <Link href="/login" style={{ color:'rgba(255,255,255,0.6)', textDecoration:'underline' }}>Log in</Link>
                 </p>
               </div>
             </div>
