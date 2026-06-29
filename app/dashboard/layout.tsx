@@ -5,11 +5,14 @@ import { createClient } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 
 const NAV = [
-  { label: 'My Shop',           href: '/dashboard' },
-  { label: 'My Products',       href: '/dashboard/products' },
-  { label: 'Earnings',          href: '/dashboard/earnings' },
-  { label: 'Analytics',         href: '/dashboard/analytics' },
-  { label: 'Settings',          href: '/dashboard/settings' },
+  { label: 'Storefront',      href: '/dashboard' },
+  { label: 'My Shop',         href: '/dashboard/products' },
+  { label: 'Links',           href: '/dashboard/links' },
+  { label: 'Gifting & Codes', href: '/dashboard/gifting' },
+  { label: 'Opportunities',   href: '/dashboard/opportunities' },
+  { label: 'Earnings',        href: '/dashboard/earnings' },
+  { label: 'Chat',            href: '/dashboard/chat' },
+  { label: 'Latest',          href: '/dashboard/latest' },
 ]
 
 const PREVIEW_PROFILE = {
@@ -20,8 +23,8 @@ const PREVIEW_PROFILE = {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile]   = useState<any>(null)
-  const [loading, setLoading]   = useState(true)
+  const [profile,  setProfile]  = useState<any>(null)
+  const [loading,  setLoading]  = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const supabase = createClient()
   const router   = useRouter()
@@ -58,19 +61,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #fff; font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-        .nav-tab { display:flex; align-items:center; padding:0 16px; height:100%; font-size:13px; font-weight:400; color:rgba(255,255,255,0.55); text-decoration:none; border-bottom:2px solid transparent; transition:all 0.15s; white-space:nowrap; }
-        .nav-tab:hover { color:rgba(255,255,255,0.9); }
-        .nav-tab.active { color:#fff; border-bottom-color:#fff; font-weight:500; }
+        body { background: #F8F6F2; font-family: 'DM Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+        .nav-tab { display:flex; align-items:center; padding:0 20px; height:100%; font-size:14px; font-weight:400; color:rgba(255,255,255,0.45); text-decoration:none; transition:color 0.15s; white-space:nowrap; }
+        .nav-tab:hover { color:rgba(255,255,255,0.8); }
+        .nav-tab.active { color:#fff; font-weight:600; }
+        .dropdown-item { display:block; padding:9px 16px; font-size:13px; color:#0A0A0A; text-decoration:none; transition:background 0.1s; }
+        .dropdown-item:hover { background:#F5F5F5; }
       `}</style>
 
-      <div style={{ minHeight:'100vh', background:'#fff' }}>
+      <div style={{ minHeight:'100vh' }}>
 
-        {/* Top nav — dark like ShopMy */}
-        <nav style={{ background:'#1A1A1A', height:56, display:'flex', alignItems:'stretch', position:'sticky', top:0, zIndex:100, borderBottom:'0.5px solid rgba(255,255,255,0.06)' }}>
+        {/* Single nav bar — everything in one */}
+        <nav style={{ background:'#0A0A0A', height:52, display:'flex', alignItems:'stretch', position:'sticky', top:0, zIndex:100 }}>
 
           {/* Logo */}
-          <div style={{ display:'flex', alignItems:'center', padding:'0 24px', borderRight:'0.5px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', padding:'0 28px', borderRight:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
             <a href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:22, fontWeight:300, color:'#fff', textDecoration:'none' }}>
               Curate<em style={{ fontStyle:'italic', color:'#C99A6A' }}>Kin</em>
             </a>
@@ -78,41 +83,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Nav tabs */}
           <div style={{ display:'flex', alignItems:'stretch', flex:1, overflowX:'auto' }}>
-            {NAV.map(item => (
-              <a key={item.href} href={item.href}
-                className={`nav-tab${pathname === item.href ? ' active' : ''}`}>
-                {item.label}
-              </a>
-            ))}
+            <style>{`.nav-tabs::-webkit-scrollbar{display:none}`}</style>
+            <div className="nav-tabs" style={{ display:'flex', alignItems:'stretch' }}>
+              {NAV.map(item => (
+                <a key={item.href} href={item.href}
+                  className={`nav-tab${pathname === item.href ? ' active' : ''}`}>
+                  {item.label}
+                </a>
+              ))}
+            </div>
           </div>
 
-          {/* Right side */}
-          <div style={{ display:'flex', alignItems:'center', gap:12, padding:'0 20px', borderLeft:'0.5px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
+          {/* Right — search + add piece + avatar */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 16px', borderLeft:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
             <a href={`/${profile?.username}`} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize:11, color:'rgba(255,255,255,0.5)', textDecoration:'none', letterSpacing:'0.08em', border:'0.5px solid rgba(255,255,255,0.2)', padding:'6px 14px', borderRadius:4, transition:'all 0.15s', whiteSpace:'nowrap' }}>
+              style={{ fontSize:11, color:'rgba(255,255,255,0.5)', textDecoration:'none', letterSpacing:'0.08em', border:'0.5px solid rgba(255,255,255,0.2)', padding:'6px 14px', whiteSpace:'nowrap', transition:'all 0.15s' }}>
               VIEW STOREFRONT ↗
             </a>
+
+            {/* Avatar + dropdown */}
             <div style={{ position:'relative' }}>
-              <button onClick={() => setMenuOpen(m => !m)} style={{ width:32, height:32, borderRadius:'50%', background:'#B07D4A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:600, color:'#fff', border:'none', cursor:'pointer' }}>
+              <button
+                onClick={() => setMenuOpen(m => !m)}
+                style={{ width:32, height:32, borderRadius:'50%', background:'#B07D4A', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:600, color:'#fff', border:'none', cursor:'pointer', flexShrink:0 }}>
                 {initials}
               </button>
               {menuOpen && (
-                <div style={{ position:'absolute', top:40, right:0, background:'#fff', border:'0.5px solid #E5E5E5', borderRadius:8, padding:'8px 0', minWidth:160, boxShadow:'0 8px 24px rgba(0,0,0,0.12)', zIndex:200 }}>
-                  <div style={{ padding:'8px 16px 10px', borderBottom:'0.5px solid #F0F0F0' }}>
-                    <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A' }}>{profile?.display_name}</p>
-                    <p style={{ fontSize:11, color:'#9B9B9B' }}>Creator</p>
+                <>
+                  <div onClick={() => setMenuOpen(false)} style={{ position:'fixed', inset:0, zIndex:150 }} />
+                  <div style={{ position:'absolute', top:40, right:0, background:'#fff', border:'0.5px solid #E5E5E5', borderRadius:8, padding:'8px 0', minWidth:180, boxShadow:'0 8px 24px rgba(0,0,0,0.12)', zIndex:200 }}>
+                    <div style={{ padding:'10px 16px 12px', borderBottom:'0.5px solid #F0F0F0', marginBottom:4 }}>
+                      <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A' }}>{profile?.display_name}</p>
+                      <p style={{ fontSize:11, color:'#B07D4A', letterSpacing:'0.06em' }}>CREATOR</p>
+                    </div>
+                    <a href="/dashboard/settings" className="dropdown-item">Settings</a>
+                    <a href={`/${profile?.username}`} target="_blank" className="dropdown-item">View storefront</a>
+                    <div style={{ borderTop:'0.5px solid #F0F0F0', marginTop:4, paddingTop:4 }}>
+                      <button onClick={signOut} style={{ display:'block', width:'100%', padding:'9px 16px', fontSize:13, color:'#E53E3E', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:'inherit' }}>
+                        Sign out
+                      </button>
+                    </div>
                   </div>
-                  <a href="/dashboard/settings" style={{ display:'block', padding:'8px 16px', fontSize:13, color:'#0A0A0A', textDecoration:'none' }}>Settings</a>
-                  <a href={`/${profile?.username}`} target="_blank" style={{ display:'block', padding:'8px 16px', fontSize:13, color:'#0A0A0A', textDecoration:'none' }}>View storefront</a>
-                  <button onClick={signOut} style={{ display:'block', width:'100%', padding:'8px 16px', fontSize:13, color:'#E53E3E', background:'none', border:'none', cursor:'pointer', textAlign:'left', fontFamily:'inherit' }}>Sign out</button>
-                </div>
+                </>
               )}
             </div>
           </div>
         </nav>
 
         {/* Page content */}
-        <main style={{ background:'#fff', minHeight:'calc(100vh - 56px)' }}>
+        <main style={{ minHeight:'calc(100vh - 52px)' }}>
           {children}
         </main>
 
