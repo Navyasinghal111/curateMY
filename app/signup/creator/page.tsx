@@ -211,7 +211,9 @@ export default function CreatorSignupPage() {
 
           {step === 1 && (
             <div>
-            <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontWeight:300, color:'#0A0A0A', textAlign:'center', lineHeight:1.1, marginBottom:16 }}>Apply to be a<br/>CurateKin Creator</h1>
+            <h1 style={{ fontFamily:"'Fanwood Text', Georgia, serif", fontSize:52, fontWeight:400, color:'#0A0A0A', textAlign:'center', lineHeight:1.1, marginBottom:16 }}>
+              Apply to be a<br/>Curate<em style={{ fontStyle:'italic', color:'#B07D4A' }}>Kin</em> Creator
+            </h1>
             <p style={{ fontSize:14, color:'#6B6B6B', textAlign:'center', lineHeight:1.7, marginBottom:48 }}>Share your most loved and trusted products and monetise them.</p>
               <div style={fs}>
                 <input type="text"     placeholder="Full name*"                    value={name}     onChange={e => setName(e.target.value)}  style={winp} />
