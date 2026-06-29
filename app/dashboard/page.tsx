@@ -4,6 +4,16 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
 const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
+const NAV = [
+  { label: 'Storefront',      href: '/dashboard' },
+  { label: 'My Shop',         href: '/dashboard/products' },
+  { label: 'Links',           href: '/dashboard/links' },
+  { label: 'Gifting & Codes', href: '/dashboard/gifting' },
+  { label: 'Opportunities',   href: '/dashboard/opportunities' },
+  { label: 'Earnings',        href: '/dashboard/earnings' },
+  { label: 'Chat',            href: '/dashboard/chat' },
+  { label: 'Latest',          href: '/dashboard/latest' },
+]
 
 type Product = {
   id: string; title: string; brand: string; price: string;
@@ -62,6 +72,9 @@ export default function DashboardHome() {
         .cat-tab.on { color:#0A0A0A; border-bottom-color:#0A0A0A; }
         .cat-tab.wishlist { color:#C53030; }
         .cat-tab.wishlist.on { border-bottom-color:#C53030; }
+        .nav-tab { display:flex; align-items:center; padding:0 18px; height:100%; font-size:14px; font-weight:400; color:rgba(255,255,255,0.45); text-decoration:none; transition:all 0.15s; white-space:nowrap; border-bottom:2px solid transparent; }
+        .nav-tab:hover { color:rgba(255,255,255,0.8); }
+        .nav-tab.active { color:#fff; font-weight:600; border-bottom:none; }
         .prod-card { background:#fff; border:0.5px solid #EBEBEB; overflow:hidden; cursor:pointer; transition:box-shadow 0.2s; position:relative; }
         .prod-card:hover { box-shadow:0 8px 32px rgba(0,0,0,0.08); }
         .prod-card:hover .heart-btn { opacity:1; }
@@ -74,9 +87,9 @@ export default function DashboardHome() {
 
       {/* Sub-header — dark, "Atelier" style */}
       <div style={{ background:'#0A0A0A', padding:'20px 40px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'0.5px solid rgba(255,255,255,0.06)' }}>
-        <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:36, fontWeight:300, color:'#fff', fontStyle:'italic', letterSpacing:'-0.01em' }}>
-          Atelier
-        </h1>
+        <a href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:24, fontWeight:300, color:'#fff', textDecoration:'none' }}>
+          Curate<em style={{ fontStyle:'italic', color:'#C99A6A' }}>Kin</em>
+        </a>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <input
             className="search-input"
@@ -87,6 +100,18 @@ export default function DashboardHome() {
           <a href="/dashboard/products" className="add-btn">+ ADD PIECE</a>
         </div>
       </div>
+
+      <nav style={{ background:'#1A1A1A', height:52, display:'flex', alignItems:'center', gap:6, padding:'0 40px', overflowX:'auto' }}>
+        {NAV.map(item => (
+          <a
+            key={item.href}
+            href={item.href}
+            className={`nav-tab${item.href === '/dashboard' ? ' active' : ''}`}
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
 
       {/* Category tabs */}
       <div style={{ borderBottom:'0.5px solid #EBEBEB', background:'#fff', overflowX:'auto', display:'flex', padding:'0 40px' }}>
