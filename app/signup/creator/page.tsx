@@ -134,7 +134,7 @@ export default function CreatorSignupPage() {
 
   if (done) return (
     <div style={{ minHeight:'100vh', background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'DM Sans, sans-serif' }}>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Fanwood+Text:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <div style={{ width:48, height:48, border:'1.5px solid #0A0A0A', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, fontSize:20 }}>✓</div>
       <p style={{ fontSize:10, letterSpacing:'0.18em', color:'#9B9B9B', marginBottom:12, textTransform:'uppercase' }}>Application received</p>
       <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:40, fontWeight:300, color:'#0A0A0A', marginBottom:14, textAlign:'center', lineHeight:1.1 }}>You're on your way.</h1>
@@ -182,11 +182,11 @@ export default function CreatorSignupPage() {
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Fanwood+Text:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <div style={{ minHeight:'100vh', background:'#fff', fontFamily:'DM Sans, sans-serif' }}>
 
         <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 48px', height:64, borderBottom:'0.5px solid #EBEBEB', position:'sticky', top:0, background:'#fff', zIndex:10 }}>
-          <Link href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:22, fontWeight:400, color:'#0A0A0A', textDecoration:'none', letterSpacing:'-0.01em' }}>
+          <Link href="/" style={{ fontFamily:'Fanwood Text, serif', fontSize:22, fontWeight:400, color:'#0A0A0A', textDecoration:'none', letterSpacing:'-0.01em' }}>
             curatekin
           </Link>
           <div style={{ display:'flex', gap:28, alignItems:'center' }}>
