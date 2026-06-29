@@ -100,7 +100,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               placeholder="Search your closet"
               style={{ background:'rgba(255,255,255,0.08)', border:'0.5px solid rgba(255,255,255,0.15)', color:'#fff', padding:'7px 14px', fontSize:12, outline:'none', fontFamily:'inherit', width:200 }}
             />
-            <a href="/dashboard/products"
+            <a href="/dashboard/products?add=true"
               style={{ background:'#fff', color:'#0A0A0A', padding:'7px 16px', fontSize:12, fontWeight:500, textDecoration:'none', whiteSpace:'nowrap', letterSpacing:'0.04em' }}>
               + ADD PIECE
             </a>
