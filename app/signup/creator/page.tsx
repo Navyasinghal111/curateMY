@@ -208,9 +208,8 @@ export default function CreatorSignupPage() {
 
           {step === 1 && (
             <div>
-              <p style={{ fontSize:11, letterSpacing:'0.14em', color:'#9B9B9B', textTransform:'uppercase', textAlign:'center', marginBottom:10 }}>Apply to be a</p>
-              <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontWeight:300, color:'#0A0A0A', textAlign:'center', lineHeight:1.1, marginBottom:12 }}>CurateKin Creator</h1>
-              <p style={{ fontSize:14, color:'#6B6B6B', textAlign:'center', lineHeight:1.7, marginBottom:48 }}>Share products you love, build your storefront, and earn 80% commission on every sale.</p>
+            <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontWeight:300, color:'#0A0A0A', textAlign:'center', lineHeight:1.1, marginBottom:16 }}>Apply to be a<br/>CurateKin Creator</h1>
+            <p style={{ fontSize:14, color:'#6B6B6B', textAlign:'center', lineHeight:1.7, marginBottom:48 }}>Share your most loved and trusted products and monetise them.</p>
               <div style={fs}>
                 <input type="text"     placeholder="Full name*"                    value={name}     onChange={e => setName(e.target.value)}  style={winp} />
                 <input type="email"    placeholder="Email address*"               value={email}    onChange={e => setEmail(e.target.value)} style={winp} />
