@@ -225,14 +225,21 @@ export default function CreatorSignupPage() {
                   <input type="tel" placeholder="Phone number* (10 digits)" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))} maxLength={10} style={{ ...winp, flex:1 }} />
                 </div>
                 <WCheck checked={ageOk} onChange={() => setAgeOk(a => !a)}>I confirm I am 18 years of age or older*</WCheck>
-                <Nav onNext={() => {
-                  if (!name || !email || !password) return setError('Please fill all required fields')
-                  if (password.length < 6) return setError('Password must be at least 6 characters')
-                  if (phone.replace(/\D/g,'').length < 10) return setError('Phone number must be at least 10 digits')
-                  if (!city) return setError('Please enter your city')
-                  if (!ageOk) return setError('You must confirm you are 18 or older')
-                  next()
-                }} showBack={false} nextLabel="NEXT" />
+                <div style={{ display:'flex', gap:12, marginTop:20 }}>
+                  <button onClick={() => router.push('/')} style={{ flex:1, padding:'14px', border:'1px solid #E5E5E5', background:'#fff', color:'#6B6B6B', fontSize:12, letterSpacing:'0.1em', cursor:'pointer', fontFamily:'inherit', borderRadius:8 }}>
+                    GO TO HOME
+                  </button>
+                  <button onClick={() => {
+                    if (!name || !email || !password) return setError('Please fill all required fields')
+                    if (password.length < 6) return setError('Password must be at least 6 characters')
+                    if (phone.replace(/\D/g,'').length < 10) return setError('Phone number must be at least 10 digits')
+                    if (!city) return setError('Please enter your city')
+                    if (!ageOk) return setError('You must confirm you are 18 or older')
+                    next()
+                  }} style={{ flex:2, padding:'14px', background:'#0A0A0A', color:'#fff', fontSize:12, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit', borderRadius:8 }}>
+                    NEXT
+                  </button>
+                </div>
                 <p style={{ textAlign:'center', fontSize:12, color:'#9B9B9B', marginTop:4 }}>
                   Are you a brand? <Link href="/signup" style={{ color:'#0A0A0A', textDecoration:'underline' }}>Apply here</Link>
                 </p>
