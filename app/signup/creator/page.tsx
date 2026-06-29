@@ -186,7 +186,7 @@ export default function CreatorSignupPage() {
       <div style={{ minHeight:'100vh', background:'#fff', fontFamily:'DM Sans, sans-serif' }}>
 
         <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 48px', height:64, borderBottom:'0.5px solid #EBEBEB', position:'sticky', top:0, background:'#fff', zIndex:10 }}>
-          <Link href="/" style={{ fontFamily:'Fanwood Text, serif', fontSize:22, fontWeight:400, color:'#0A0A0A', textDecoration:'none', letterSpacing:'-0.01em' }}>
+          <Link href="/" style={{ fontFamily:"'Fanwood Text', serif", fontSize:22, fontWeight:400, color:'#0A0A0A', textDecoration:'none', letterSpacing:'-0.01em' }}>
             curatekin
           </Link>
           <div style={{ display:'flex', gap:28, alignItems:'center' }}>
