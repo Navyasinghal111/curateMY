@@ -150,22 +150,23 @@ export default function Home() {
         /* ── Curator grid — asymmetric masonry ── */
         .curator-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          grid-template-rows: 360px 280px;
+          grid-template-columns: 2fr 1fr 1fr;
+          grid-template-rows: 420px 280px;
           gap: 3px;
+          width: 100%;
         }
         .curator-card {
           position: relative; overflow: hidden; cursor: pointer;
-          text-decoration: none; display: block;
+          text-decoration: none; display: block; min-width: 0;
         }
         .curator-card.large {
-          grid-column: 1 / 3;
+          grid-column: 1;
           grid-row: 1 / 3;
         }
-        .curator-card.small-1 { grid-column: 3; grid-row: 1; }
-        .curator-card.small-2 { grid-column: 4; grid-row: 1; }
-        .curator-card.small-3 { grid-column: 3; grid-row: 2; }
-        .curator-card.small-4 { grid-column: 4; grid-row: 2; }
+        .curator-card.small-1 { grid-column: 2; grid-row: 1; }
+        .curator-card.small-2 { grid-column: 3; grid-row: 1; }
+        .curator-card.small-3 { grid-column: 2; grid-row: 2; }
+        .curator-card.small-4 { grid-column: 3; grid-row: 2; }
         .curator-bg {
           position: absolute; inset: 0;
           transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
@@ -177,25 +178,26 @@ export default function Home() {
         }
         .curator-info {
           position: absolute; bottom: 0; left: 0; right: 0;
-          padding: 20px 22px;
+          padding: 16px 16px;
         }
         .curator-badge {
-          display: inline-block; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+          display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
           color: var(--gold2); border: 0.5px solid rgba(176,125,74,0.4);
-          padding: 3px 8px; margin-bottom: 8px;
+          padding: 3px 8px; margin-bottom: 6px;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
         }
         .curator-name {
           font-family: var(--serif); font-weight: 300; color: #fff;
-          line-height: 1.1;
+          line-height: 1.1; word-break: break-word;
         }
-        .curator-card.large .curator-name { font-size: 32px; }
-        .curator-card:not(.large) .curator-name { font-size: 18px; }
+        .curator-card.large .curator-name { font-size: 36px; }
+        .curator-card:not(.large) .curator-name { font-size: 20px; }
         .curator-eyebrow {
-          font-family: var(--serif); font-style: italic; font-size: 12px;
-          color: rgba(255,255,255,0.5); margin-bottom: 4px;
+          font-family: var(--serif); font-style: italic; font-size: 11px;
+          color: rgba(255,255,255,0.45); margin-bottom: 3px;
         }
         .curator-role {
-          font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px;
+          font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; line-height: 1.4;
         }
         .curator-card.large .curator-role { font-size: 13px; }
 
@@ -269,11 +271,11 @@ export default function Home() {
             grid-template-columns: 1fr 1fr;
             grid-template-rows: 300px 220px 220px;
           }
-          .curator-card.large { grid-column: 1 / 3; grid-row: 1; }
-          .curator-card.small-1 { grid-column: 1; grid-row: 2; }
-          .curator-card.small-2 { grid-column: 2; grid-row: 2; }
-          .curator-card.small-3 { grid-column: 1; grid-row: 3; }
-          .curator-card.small-4 { grid-column: 2; grid-row: 3; }
+          .curator-card.large  { grid-column: 1 / 3; grid-row: 1; }
+          .curator-card.small-1{ grid-column: 1; grid-row: 2; }
+          .curator-card.small-2{ grid-column: 2; grid-row: 2; }
+          .curator-card.small-3{ grid-column: 1; grid-row: 3; }
+          .curator-card.small-4{ grid-column: 2; grid-row: 3; }
           .hiw-cols { grid-template-columns: 1fr; gap: 48px; }
           .join-grid { grid-template-columns: 1fr; }
           .join-col { padding: 64px 32px; }
@@ -286,9 +288,10 @@ export default function Home() {
           h1 { font-size: 44px; }
           .curator-grid {
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 240px 180px 180px;
+            grid-template-rows: 200px 160px 160px;
           }
           .curator-card.large .curator-name { font-size: 24px; }
+          .curator-card:not(.large) .curator-name { font-size: 16px; }
           .display-heading { font-size: 40px; }
           .section { padding: 60px 20px; }
           .ft { grid-template-columns: 1fr; }
