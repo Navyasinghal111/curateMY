@@ -3,131 +3,178 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
-export default function DashboardPage() {
-  const [profile, setProfile] = useState<any>(null)
+const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
+
+type Product = {
+  id: string; title: string; brand: string; price: string;
+  image_url: string; product_url: string; category: string
+}
+
+export default function DashboardHome() {
+  const [profile,  setProfile]  = useState<any>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [tab,      setTab]      = useState('ALL')
+  const [search,   setSearch]   = useState('')
+  const [loading,  setLoading]  = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setProfile({ display_name:'Navya Singhal', username:'navya' }); return }
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      setProfile(data)
+      if (!user) {
+        setProfile({ display_name:'Navya Singhal', username:'navya' })
+        setLoading(false); return
+      }
+      const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      setProfile(p)
+      const { data: prods } = await supabase
+        .from('storefront_products')
+        .select('id,title,brand,price,image_url,product_url,category')
+        .eq('creator_id', user.id)
+        .eq('active', true)
+        .order('created_at', { ascending: false })
+      setProducts(prods ?? [])
+      setLoading(false)
     }
     load()
   }, [])
 
-  const stats = [
-    { label:'TOTAL EARNINGS', value:'₹0',  sub:'All time' },
-    { label:'LINK CLICKS',    value:'0',   sub:'This month' },
-    { label:'PRODUCTS ADDED', value:'0',   sub:'In your storefront' },
-    { label:'ORDERS',         value:'0',   sub:'This month' },
-  ]
+  const filtered = products.filter(p => {
+    const catOk  = tab === 'ALL' || p.category === tab
+    const srchOk = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase())
+    return catOk && srchOk
+  })
 
-  const checklist = [
-    { label:'Complete your profile',     done: true },
-    { label:'Add your first product',    done: false },
-    { label:'Share your storefront',     done: false },
-    { label:'Make your first sale',      done: false },
-  ]
+  const count = (t: string) => t === 'ALL' ? products.length : products.filter(p => p.category === t).length
+
+  const totalValue = products.reduce((sum, p) => {
+    const num = parseFloat(p.price?.replace(/[^0-9.]/g,'') ?? '0')
+    return sum + (isNaN(num) ? 0 : num)
+  }, 0)
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <style>{`
-        .stat-card { background:#fff; border:0.5px solid #EBEBEB; border-radius:12px; padding:24px; transition:box-shadow 0.2s; }
-        .stat-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.06); }
+        *, *::before, *::after { box-sizing: border-box; }
+        .cat-tab { background:none; border:none; border-bottom:2px solid transparent; padding:14px 16px; font-size:11px; font-weight:500; letter-spacing:0.08em; color:#9B9B9B; cursor:pointer; white-space:nowrap; font-family:inherit; transition:all 0.15s; }
+        .cat-tab:hover { color:#0A0A0A; }
+        .cat-tab.on { color:#0A0A0A; border-bottom-color:#0A0A0A; }
+        .cat-tab.wishlist { color:#C53030; }
+        .cat-tab.wishlist.on { border-bottom-color:#C53030; }
+        .prod-card { background:#fff; border:0.5px solid #EBEBEB; overflow:hidden; cursor:pointer; transition:box-shadow 0.2s; position:relative; }
+        .prod-card:hover { box-shadow:0 8px 32px rgba(0,0,0,0.08); }
+        .prod-card:hover .heart-btn { opacity:1; }
+        .heart-btn { position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%; background:#fff; border:0.5px solid #EBEBEB; display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; opacity:0; transition:opacity 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+        .search-input { background:#1A1A1A; border:0.5px solid rgba(255,255,255,0.15); color:#fff; padding:10px 16px; font-size:13px; outline:none; font-family:inherit; width:280px; }
+        .search-input::placeholder { color:rgba(255,255,255,0.35); }
+        .add-btn { background:#fff; color:#0A0A0A; border:none; padding:10px 24px; font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; letter-spacing:0.04em; white-space:nowrap; }
+        .add-btn:hover { background:#F0F0F0; }
       `}</style>
 
-      <div style={{ maxWidth:1200, margin:'0 auto', padding:'40px 32px' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom:40 }}>
-          <p style={{ fontSize:11, letterSpacing:'0.14em', color:'#B07D4A', marginBottom:8, textTransform:'uppercase' }}>Welcome back</p>
-          <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:40, fontWeight:300, color:'#0A0A0A', marginBottom:6 }}>
-            {profile?.display_name ?? '…'}
-          </h1>
-          <p style={{ fontSize:13, color:'#9B9B9B' }}>
-            Your storefront:{' '}
-            <a href={`/${profile?.username}`} style={{ color:'#B07D4A', textDecoration:'none' }}>
-              curatekin.com/{profile?.username ?? '…'}
-            </a>
-          </p>
+      {/* Sub-header — dark, "Atelier" style */}
+      <div style={{ background:'#0A0A0A', padding:'20px 40px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'0.5px solid rgba(255,255,255,0.06)' }}>
+        <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:36, fontWeight:300, color:'#fff', fontStyle:'italic', letterSpacing:'-0.01em' }}>
+          Atelier
+        </h1>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <input
+            className="search-input"
+            placeholder="Search your closet"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <a href="/dashboard/products" className="add-btn">+ ADD PIECE</a>
         </div>
+      </div>
 
-        {/* Stats */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:40 }}>
-          {stats.map(s => (
-            <div key={s.label} className="stat-card">
-              <p style={{ fontSize:10, letterSpacing:'0.12em', color:'#9B9B9B', textTransform:'uppercase', marginBottom:12 }}>{s.label}</p>
-              <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:40, fontWeight:300, color:'#0A0A0A', lineHeight:1 }}>{s.value}</p>
-              <p style={{ fontSize:11, color:'#C4C4C4', marginTop:6 }}>{s.sub}</p>
+      {/* Category tabs */}
+      <div style={{ borderBottom:'0.5px solid #EBEBEB', background:'#fff', overflowX:'auto', display:'flex', padding:'0 40px' }}>
+        {CATS.map(c => (
+          <button
+            key={c}
+            onClick={() => setTab(c)}
+            className={`cat-tab${tab === c ? ' on' : ''}${c === 'WISHLIST' ? ' wishlist' : ''}`}>
+            {c === 'WISHLIST' && <span style={{ marginRight:4 }}>♥</span>}
+            {c} <span style={{ fontSize:10, opacity:0.6, marginLeft:4 }}>{count(c)}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Content area */}
+      <div style={{ background:'#F8F6F2', minHeight:'calc(100vh - 180px)', padding:'40px' }}>
+
+        {/* Collection header */}
+        <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:40 }}>
+          <div>
+            <p style={{ fontSize:10, letterSpacing:'0.16em', color:'#B07D4A', textTransform:'uppercase', marginBottom:8 }}>
+              YOUR WARDROBE, CURATED
+            </p>
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:clamp(48), fontWeight:300, color:'#0A0A0A', lineHeight:1 }}>
+              The Collection
+            </h2>
+          </div>
+          <div style={{ display:'flex', gap:48, textAlign:'right' }}>
+            <div>
+              <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', lineHeight:1 }}>{products.length}</p>
+              <p style={{ fontSize:10, letterSpacing:'0.1em', color:'#9B9B9B', marginTop:4, textTransform:'uppercase' }}>Pieces</p>
             </div>
-          ))}
-        </div>
-
-        {/* Two column */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
-
-          {/* Products */}
-          <div style={{ background:'#fff', border:'0.5px solid #EBEBEB', borderRadius:12, padding:'28px' }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
-              <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:22, fontWeight:300, color:'#0A0A0A' }}>My Products</h2>
-              <a href="/dashboard/products" style={{ fontSize:12, color:'#B07D4A', textDecoration:'none' }}>Add product →</a>
+            <div>
+              <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', lineHeight:1 }}>
+                ₹{totalValue.toLocaleString('en-IN')}
+              </p>
+              <p style={{ fontSize:10, letterSpacing:'0.1em', color:'#9B9B9B', marginTop:4, textTransform:'uppercase' }}>Closet Value</p>
             </div>
-            <div style={{ borderTop:'0.5px solid #F0F0F0', paddingTop:32, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'48px 0' }}>
-              <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontStyle:'italic', color:'rgba(0,0,0,0.06)', marginBottom:14 }}>Pk</p>
-              <p style={{ fontSize:13, color:'#C4C4C4', textAlign:'center', maxWidth:200, lineHeight:1.6 }}>No products yet. Start adding products you love.</p>
-              <a href="/dashboard/products" style={{ marginTop:20, padding:'10px 24px', background:'#0A0A0A', color:'#fff', fontSize:12, borderRadius:4, textDecoration:'none', display:'inline-block', letterSpacing:'0.06em' }}>
-                Add your first product
-              </a>
+            <div>
+              <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', lineHeight:1 }}>0</p>
+              <p style={{ fontSize:10, letterSpacing:'0.1em', color:'#9B9B9B', marginTop:4, textTransform:'uppercase' }}>Wishlisted</p>
             </div>
           </div>
+        </div>
 
-          {/* Right column */}
-          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-
-            {/* Storefront link */}
-            <div style={{ background:'#fff', border:'0.5px solid #EBEBEB', borderRadius:12, padding:'24px' }}>
-              <h3 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:18, fontWeight:300, color:'#0A0A0A', marginBottom:6 }}>Your Storefront</h3>
-              <p style={{ fontSize:12, color:'#9B9B9B', marginBottom:16 }}>Share this link with your followers.</p>
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', background:'#F8F8F8', borderRadius:6, border:'0.5px solid #EBEBEB' }}>
-                <span style={{ fontSize:12, color:'#9B9B9B', flex:1 }}>curatekin.com/{profile?.username}</span>
-                <button onClick={() => navigator.clipboard.writeText(`curatekin.com/${profile?.username}`)}
-                  style={{ fontSize:11, color:'#B07D4A', background:'none', border:'none', cursor:'pointer', letterSpacing:'0.06em', fontWeight:500 }}>
-                  COPY
-                </button>
-              </div>
-            </div>
-
-            {/* Earnings */}
-            <div style={{ background:'#0A0A0A', borderRadius:12, padding:'24px' }}>
-              <h3 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:18, fontWeight:300, color:'#fff', marginBottom:6 }}>Earnings</h3>
-              <p style={{ fontSize:12, color:'rgba(255,255,255,0.35)', marginBottom:20 }}>You earn 80% commission on every sale.</p>
-              <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:44, fontWeight:300, color:'#fff' }}>₹0</p>
-              <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', marginTop:4 }}>Total earned</p>
-              <a href="/dashboard/earnings" style={{ display:'inline-block', marginTop:20, padding:'9px 20px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.6)', fontSize:12, borderRadius:4, textDecoration:'none', letterSpacing:'0.04em' }}>
-                View earnings →
+        {/* Product grid */}
+        {filtered.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'80px 20px' }}>
+            <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontStyle:'italic', color:'rgba(0,0,0,0.12)', marginBottom:16 }}>
+              {products.length === 0 ? 'Your closet is empty.' : 'Nothing in this category.'}
+            </p>
+            <p style={{ fontSize:13, color:'#9B9B9B', marginBottom:24 }}>
+              {products.length === 0 ? 'Start curating products you love.' : 'Try a different category.'}
+            </p>
+            {products.length === 0 && (
+              <a href="/dashboard/products" style={{ display:'inline-block', padding:'12px 28px', background:'#0A0A0A', color:'#fff', fontSize:12, letterSpacing:'0.08em', textDecoration:'none' }}>
+                + ADD YOUR FIRST PIECE
               </a>
-            </div>
-
-            {/* Checklist */}
-            <div style={{ background:'#FAFAF8', border:'0.5px solid #EBEBEB', borderRadius:12, padding:'24px' }}>
-              <h3 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:18, fontWeight:300, color:'#0A0A0A', marginBottom:16 }}>Get started</h3>
-              {checklist.map(item => (
-                <div key={item.label} style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
-                  <div style={{ width:18, height:18, borderRadius:'50%', background: item.done ? '#B07D4A' : 'transparent', border:`1.5px solid ${item.done ? '#B07D4A' : '#D4D4D4'}`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    {item.done && <span style={{ fontSize:9, color:'#fff', fontWeight:700 }}>✓</span>}
-                  </div>
-                  <span style={{ fontSize:13, color: item.done ? '#C4C4C4' : '#0A0A0A', textDecoration: item.done ? 'line-through' : 'none' }}>{item.label}</span>
+            )}
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16 }}>
+            {filtered.map(p => (
+              <div key={p.id} className="prod-card">
+                <button className="heart-btn">♡</button>
+                <div style={{ aspectRatio:'1/1', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                  {p.image_url
+                    ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    : <span style={{ fontFamily:'Cormorant Garamond, serif', fontSize:40, fontStyle:'italic', color:'rgba(0,0,0,0.1)' }}>{p.title?.[0]}</span>
+                  }
                 </div>
-              ))}
-            </div>
-
+                <div style={{ padding:'12px 14px 14px' }}>
+                  <p style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#9B9B9B', marginBottom:4 }}>{p.brand}</p>
+                  <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:6 }}>{p.title}</p>
+                  <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:16, color:'#0A0A0A' }}>{p.price}</p>
+                </div>
+                <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer"
+                  style={{ display:'block', margin:'0 14px 14px', padding:'8px', background:'#0A0A0A', color:'#fff', fontSize:10, letterSpacing:'0.1em', textAlign:'center', textDecoration:'none' }}>
+                  SHOP NOW
+                </a>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
 
       </div>
     </>
   )
 }
+
+function clamp(max: number): number { return max }
