@@ -193,12 +193,12 @@ export default function DashboardHome() {
         .cat-tab.on{color:#0A0A0A;border-bottom-color:#0A0A0A}
         .cat-tab.wl{color:#C53030}
         .cat-tab.wl.on{border-bottom-color:#C53030}
-        .pcard{background:#fff;border:0.5px solid #E8E4DC;overflow:hidden;transition:box-shadow 0.2s;position:relative}
+        .pcard{background:#fff;border:0.5px solid #E8E4DC;overflow:visible;transition:box-shadow 0.2s;position:relative}
         .pcard:hover{box-shadow:0 8px 28px rgba(0,0,0,0.09)}
         .tdot{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:#fff;border:0.5px solid #E5E5E5;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08);z-index:10;font-size:14px;color:#666;letter-spacing:1px}
         .pcard:hover .tdot{opacity:1}
         .tdot:hover{background:#F5F5F5}
-        .dmenu{position:absolute;top:40px;right:8px;background:#fff;border:0.5px solid #E5E5E5;border-radius:8px;padding:4px 0;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:50}
+        .dmenu{position:absolute;top:40px;right:8px;background:#fff;border:0.5px solid #E5E5E5;border-radius:8px;padding:4px 0;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200}
         .ditem{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;color:#0A0A0A;cursor:pointer;background:none;border:none;width:100%;text-align:left;font-family:inherit}
         .ditem:hover{background:#F5F5F5}
         .ditem.red{color:#E53E3E}
