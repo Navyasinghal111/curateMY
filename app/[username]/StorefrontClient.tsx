@@ -20,7 +20,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
   const [menuOpen, setMenuOpen] = useState(false)
 
   const filtered = initialProducts.filter(p => {
-    const catOk  = tab === 'ALL' || p.category === tab
+    const catOk  = tab === 'ALL' || p.category?.toUpperCase() === tab.toUpperCase()
     const srchOk = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase())
     return catOk && srchOk
   })

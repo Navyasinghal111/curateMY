@@ -310,7 +310,7 @@ export default function ProductsPage() {
     products.filter(p => p.category === t).length
 
   const filtered = products.filter(p => {
-    const cok = tab === 'ALL' || (tab === 'WISHLIST' ? p.wishlisted : p.category === tab)
+    const cok = tab === 'ALL' || (tab === 'WISHLIST' ? p.wishlisted : p.category?.toUpperCase() === tab.toUpperCase())
     const sok = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase())
     return cok && sok
   })
