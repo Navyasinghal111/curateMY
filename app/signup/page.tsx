@@ -545,12 +545,11 @@ function BrandForm({ onBack }: { onBack: () => void }) {
 }
 
 const ROLE_CARDS = [
-  { role: 'shopper' as Role, image:'/card-shopper.jpg', title:'For Shoppers', sub:'A destination for shopping, from trusted brands and quality.',  btn:'CREATE AN ACCOUNT' },
-  { role: 'creator' as Role, image:'/card-creator.jpg', title:'For Creators', sub:'Curate your great taste. Build your storefront and earn.',       btn:'APPLY' },
-  { role: 'brand'   as Role, image:'/card-brand.jpg',   title:'For Brands',   sub:'No one pushes your product like the people who love them.',     btn:'APPLY' },
+  { role: 'shopper' as Role, image:'/card-shopper.jpg', title:'Shopper', sub:'A destination for shopping, not scrolling.', btn:'CREATE AN ACCOUNT' },
+  { role: 'creator' as Role, image:'/card-creator.jpg', title:'Creator', sub:'Where great taste leads to great opportunities.', btn:'APPLY' },
+  { role: 'brand'   as Role, image:'/card-brand.jpg',   title:'Brand',   sub:'No one pushes your product like the people who love them.', btn:'APPLY' },
 ]
-
-export default function SignupPage() {
+export default function SignupPage() {  
   const [role, setRole] = useState<Role>(null)
 
   const goHome = () => { window.history.length > 1 ? window.history.back() : window.location.href = '/' }
@@ -571,26 +570,62 @@ export default function SignupPage() {
 
           {!role && (
             <div className="flex flex-col h-full">
-              <div className="flex-1 grid grid-cols-3">
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 overflow-y-auto sm:overflow-hidden">
                 {ROLE_CARDS.map(card => (
                   <button key={card.role} onClick={() => setRole(card.role)}
-                    className="relative overflow-hidden group text-left flex flex-col justify-between">
+                    className="relative overflow-hidden group text-left flex flex-col justify-between min-h-[220px] sm:min-h-0">
+                    {/* Photo */}
                     <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                       style={{ backgroundImage:`url(${card.image})` }} />
-                    <div className="absolute inset-0 bg-black/50 group-hover:bg-black/40 transition-colors duration-300" />
-                    <div className="relative z-10 flex flex-col justify-end h-full p-6">
-                      <h3 className="font-[family-name:var(--font-cormorant)] text-[28px] font-light text-white mb-2">{card.title}</h3>
-                      <p className="text-[11px] text-white/60 font-light mb-6 leading-relaxed">{card.sub}</p>
-                      <span className="inline-block px-5 py-2.5 border border-white/60 text-[10px] tracking-[0.12em] text-white group-hover:bg-white group-hover:text-[#1C1814] transition-all">
+                    {/* Overlay — lighter than before */}
+                    <div className="absolute inset-0" style={{ background:'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.1) 100%)' }} />
+                    {/* Content — pinned to bottom */}
+                    <div className="relative z-10 flex flex-col justify-end h-full p-6 sm:p-8">
+                      <h3 style={{
+                        fontFamily:'Cormorant Garamond, serif',
+                        fontSize:'clamp(36px, 4vw, 56px)',
+                        fontWeight:300,
+                        color:'#fff',
+                        lineHeight:1.05,
+                        marginBottom:10,
+                        letterSpacing:'-0.01em'
+                      }}>{card.title}</h3>
+                      <p style={{
+                        fontSize:12,
+                        color:'rgba(255,255,255,0.65)',
+                        fontWeight:300,
+                        lineHeight:1.6,
+                        marginBottom:24,
+                        maxWidth:240
+                      }}>{card.sub}</p>
+                      <span style={{
+                        display:'inline-block',
+                        padding:'10px 20px',
+                        border:'1px solid rgba(255,255,255,0.6)',
+                        fontSize:10,
+                        letterSpacing:'0.12em',
+                        color:'#fff',
+                        fontFamily:'inherit',
+                        alignSelf:'flex-start',
+                        transition:'all 0.2s'
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLSpanElement).style.background='#fff'
+                        ;(e.currentTarget as HTMLSpanElement).style.color='#000'
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLSpanElement).style.background='transparent'
+                        ;(e.currentTarget as HTMLSpanElement).style.color='#fff'
+                      }}>
                         {card.btn}
                       </span>
                     </div>
                   </button>
                 ))}
               </div>
-              <div className="border-t border-white/10 py-4 text-center">
+              <div className="border-t border-white/10 py-4 text-center flex-shrink-0" style={{background:'#1C1814'}}>
                 <p className="text-[11px] text-white/40">
-                  Already have an account?{'  '}
+                  Already have an account?{' '}
                   <Link href="/login" className="text-white/70 underline hover:text-white transition-colors">Log in</Link>
                 </p>
               </div>
