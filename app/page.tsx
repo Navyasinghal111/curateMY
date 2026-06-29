@@ -3,217 +3,298 @@
 import Link from 'next/link'
 
 // ── Data ─────────────────────────────────────────────────────────
-const SKINCARE_PRODUCTS = [
-  { glyph:'Sk', tone:'c1', tag:'Serum',        brand:'Minimalist',       name:'10% Niacinamide',    price:'₹599'   },
-  { glyph:'Sp', tone:'c2', tag:'SPF',           brand:'Dot & Key',        name:'UV Shield SPF 50',   price:'₹849'   },
-  { glyph:'Cr', tone:'c3', tag:'Moisturiser',   brand:'Forest Essentials',name:'Daily Repair Creme', price:'₹1,200' },
-  { glyph:'To', tone:'c4', tag:'Toner',         brand:'Plum',             name:'Glycolic Toner',     price:'₹449'   },
-  { glyph:'Ey', tone:'c5', tag:'Eye Cream',     brand:'Kama Ayurveda',    name:'Radiant Eye Butter', price:'₹2,100' },
-  { glyph:'Cl', tone:'c6', tag:'Cleanser',      brand:'Cetaphil',         name:'Gentle Skin Cleanser',price:'₹380'  },
-]
-
 const CURATORS = [
-  { mono:'Ps', tone:'t1', badge:'Dermatologist', name:'Dr. Priya Sharma', role:'Dermatologist · Mumbai',         products:'84',  followers:'12.4K' },
-  { mono:'Ak', tone:'t2', badge:'Fashion Editor', name:'Azra Khan',       role:'Fashion Editor · Delhi',          products:'127', followers:'38K'   },
-  { mono:'Rk', tone:'t3', badge:'Wellness Coach', name:'Rohan Kapoor',    role:'Wellness & Nutrition · Bangalore',products:'56',  followers:'9.7K'  },
-  { mono:'Mi', tone:'t4', badge:'Stylist',         name:'Mira Iyer',       role:'Celebrity Stylist · Mumbai',      products:'203', followers:'61K'   },
+  { initials:'PS', name:'Dr. Priya Sharma', role:'Dermatologist · Mumbai',          badge:'Verified Doctor',   products:'84',  followers:'12.4K', size:'large'  },
+  { initials:'AK', name:'Azra Khan',        role:'Fashion Editor · Delhi',           badge:'Fashion Editor',    products:'127', followers:'38K',   size:'small'  },
+  { initials:'MI', name:'Mira Iyer',        role:'Celebrity Stylist · Mumbai',       badge:'Celebrity Stylist', products:'203', followers:'61K',   size:'small'  },
+  { initials:'RK', name:'Rohan Kapoor',     role:'Wellness Coach · Bangalore',       badge:'Wellness',          products:'56',  followers:'9.7K',  size:'small'  },
+  { initials:'SB', name:'Sanya Bahl',       role:'Skincare Creator · Hyderabad',     badge:'Skincare',          products:'91',  followers:'22K',   size:'small'  },
 ]
-
-const MARQUEE_ITEMS = ['Skincare','Fashion','Wellness','Dermatologist Picks','Home & Living','Beauty','Nutrition','Fitness','Tech & Gadgets']
 
 const CREATOR_STEPS = [
-  { n:'01', t:'Apply & get verified',    b:'Anyone with a trusted point of view — creator, doctor, stylist, celebrity. Apply once, get your curator badge and storefront URL.' },
-  { n:'02', t:'Add products you love',   b:'Add any product from any brand instantly. Write why you trust it. Group into collections. No approval process.' },
-  { n:'03', t:'Earn 80% on every sale',  b:'When your followers shop through your storefront you earn 80% commission. Tracked automatically, paid monthly.' },
+  { n:'01', t:'Apply & get verified',   b:'Anyone with a trusted point of view — creator, doctor, stylist, icon. Apply once, get your curator badge and storefront URL.' },
+  { n:'02', t:'Add products you love',  b:'Add any product from any brand instantly. Write why you trust it. Group into collections. No approval process.' },
+  { n:'03', t:'Earn 80% on every sale', b:'When your followers shop through your storefront you earn 80% commission. Tracked automatically, paid monthly.' },
 ]
 
 const SHOPPER_STEPS = [
-  { n:'01', t:'Follow who you trust',      b:'Find the dermatologist you follow, the stylist you love, the chef you admire. All their picks in one place.' },
-  { n:'02', t:'Discover with real context',b:'Every product has a curator note — why they use it, how long, what it does. No anonymous reviews.' },
-  { n:'03', t:'Shop directly from brands', b:'Click through to the brand website. No middlemen, no markups. Trusted picks, straight to checkout.' },
+  { n:'01', t:'Follow who you trust',       b:'Find the dermatologist you follow, the stylist you love, the chef you admire. All their picks in one place.' },
+  { n:'02', t:'Discover with real context', b:'Every product has a curator note — why they use it, how long, what it does. No anonymous reviews.' },
+  { n:'03', t:'Shop directly from brands',  b:'Click through to the brand website. No middlemen, no markups. Trusted picks, straight to checkout.' },
 ]
 
-const BRANDS = ['Forest Essentials','Sabyasachi','Minimalist','Nykaa','Mamaearth','Dot & Key','Kama Ayurveda']
+const MARQUEE_ITEMS = ['Skincare','Fashion','Wellness','Dermatologist Picks','Home & Living','Beauty','Nutrition','Fitness','Jewellery','Tech']
 
-const CURATOR_FEATS  = ['Your storefront at curatekin.com/you','Add any product from any brand instantly','Earn 80% commission on every sale','Direct brand collaboration opportunities']
-const SHOPPER_FEATS  = ['Follow curators whose taste you trust','Verified picks from doctors & experts','Shop directly from brand websites','Save picks and build your wishlist']
+const CURATOR_FEATS = ['Your storefront at curatekin.com/you','Add any product from any brand instantly','Earn 80% commission on every sale','Direct brand collaboration opportunities']
+const SHOPPER_FEATS = ['Follow curators whose taste you trust','Verified picks from doctors & experts','Shop directly from brand websites','Save picks and build your wishlist']
 
 const FOOTER_PLATFORM = [['Browse curators','/curators'],['Categories','/categories'],['For brands','/brands'],['About','/about']]
-const FOOTER_CURATORS = [['Apply to join','/signup'],['Dashboard','/dashboard'],['Earnings','/earnings'],['Help','/help']]
-const FOOTER_COMPANY  = [['Privacy','/privacy'],['Terms','/terms'],['Contact','mailto:hello@curatekin.com'],['Careers','/careers']]
+const FOOTER_CURATORS = [['Apply to join','/signup'],['Dashboard','/dashboard'],['Earnings','/dashboard/earnings'],['Help','/help']]
+const FOOTER_COMPANY  = [['Privacy','/privacy'],['Terms','/terms'],['Contact','mailto:hello@curatekin.com'],['Affiliate policy','/affiliate-policy']]
 
-// ─────────────────────────────────────────────────────────────────
+// Placeholder tones for curator cards until real photos
+const TONES = [
+  'linear-gradient(160deg,#2A2420,#1A1410)',
+  'linear-gradient(160deg,#1E1E2A,#141420)',
+  'linear-gradient(160deg,#1A2020,#101818)',
+  'linear-gradient(160deg,#24201A,#18140E)',
+  'linear-gradient(160deg,#20181E,#180E18)',
+]
+
 export default function Home() {
-  // All signup CTAs are plain <Link href="/signup"> — no JS needed
   return (
     <>
+      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-          --w:    #FAFAF8; --w2: #F4F2EE;
-          --ink:  #141210; --ink2: #3A3630; --muted: #8C867E; --dim: #C4BEB6;
-          --acc:  #B07D4A; --acc2: #C99A6A;
-          --acc-bg: rgba(176,125,74,0.09); --acc-br: rgba(176,125,74,0.22);
-          --br:   rgba(20,18,16,0.07);
-          --serif:'Cormorant Garamond', Georgia, serif;
-          --sans: 'DM Sans', system-ui, sans-serif;
+          --cream: #F0EDE8;
+          --cream2: #E8E4DE;
+          --ink:   #141210;
+          --ink2:  #3A3630;
+          --muted: #8C867E;
+          --dim:   #B4AEA8;
+          --gold:  #B07D4A;
+          --gold2: #C99A6A;
+          --burg:  #8B1A1A;
+          --br:    rgba(20,18,16,0.08);
+          --br-w:  rgba(255,255,255,0.1);
+          --serif: 'Cormorant Garamond', Georgia, serif;
+          --sans:  'DM Sans', system-ui, sans-serif;
         }
-        html { scroll-behavior: smooth; }
-        body { background:var(--w); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+        html  { scroll-behavior: smooth; }
+        body  { background: var(--cream); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 
         /* ── Nav ── */
-        nav { position:fixed; top:0; left:0; right:0; z-index:100; height:60px; display:flex; align-items:center; justify-content:space-between; padding:0 44px; background:rgba(250,250,248,0.94); backdrop-filter:blur(18px); border-bottom:0.5px solid var(--br); }
-        .logo { font-family:var(--serif); font-size:21px; font-weight:300; color:var(--ink); text-decoration:none; letter-spacing:0.03em; }
-        .logo em { font-style:italic; color:var(--acc); }
-        .nav-mid { display:flex; gap:32px; }
-        .nav-mid a { font-size:13px; color:var(--muted); text-decoration:none; letter-spacing:0.03em; transition:color .15s; }
-        .nav-mid a:hover { color:var(--ink); }
-        .nav-right { display:flex; gap:8px; align-items:center; }
-        .btn-ghost { font-size:13px; color:var(--muted); background:none; border:none; cursor:pointer; font-family:var(--sans); padding:6px 12px; border-radius:100px; text-decoration:none; }
-        .btn-dark  { font-size:13px; font-weight:500; font-family:var(--sans); background:var(--ink); color:var(--w); border:none; padding:8px 20px; border-radius:100px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; }
-        .btn-dark:hover { opacity:0.88; }
+        nav {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+          height: 60px; display: flex; align-items: center; justify-content: space-between;
+          padding: 0 48px;
+          background: rgba(240,237,232,0.92); backdrop-filter: blur(20px);
+          border-bottom: 0.5px solid var(--br);
+        }
+        .logo     { font-family: var(--serif); font-size: 22px; font-weight: 300; color: var(--ink); text-decoration: none; }
+        .logo em  { font-style: italic; color: var(--burg); }
+        .nav-mid  { display: flex; gap: 36px; }
+        .nav-mid a{ font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
+        .nav-mid a:hover { color: var(--ink); }
+        .nav-right{ display: flex; gap: 8px; align-items: center; }
+        .btn-ghost{ font-size: 13px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: var(--sans); padding: 6px 14px; text-decoration: none; }
+        .btn-ink  { font-size: 12px; font-weight: 500; font-family: var(--sans); background: var(--ink); color: var(--cream); border: none; padding: 9px 22px; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; }
+        .btn-ink:hover { opacity: 0.85; }
 
-        /* ── Hero ── */
-        .hero { min-height:100vh; display:grid; grid-template-columns:1fr 1fr; padding-top:60px; }
-        .hero-left { display:flex; flex-direction:column; justify-content:center; padding:72px 56px 72px 44px; border-right:0.5px solid var(--br); }
-        .hero-tag { display:inline-flex; align-items:center; gap:6px; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--acc); font-weight:500; margin-bottom:32px; }
-        .hero-tag-dot { width:4px; height:4px; border-radius:50%; background:var(--acc); }
-        h1 { font-family:var(--serif); font-size:clamp(52px,5vw,78px); font-weight:300; line-height:1.07; color:var(--ink); margin-bottom:24px; }
-        h1 em { font-style:italic; color:var(--acc); }
-        .hero-sub { font-size:15px; font-weight:300; color:var(--muted); line-height:1.8; max-width:380px; margin-bottom:44px; }
-        .hero-btns { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:56px; }
-        .btn-outline { font-size:13px; font-family:var(--sans); color:var(--ink2); border:0.5px solid var(--br); background:transparent; padding:10px 22px; border-radius:100px; text-decoration:none; display:inline-flex; align-items:center; }
-        .hero-stats { display:flex; border-top:0.5px solid var(--br); padding-top:40px; }
-        .hstat { flex:1; padding-right:24px; }
-        .hstat + .hstat { padding-left:24px; border-left:0.5px solid var(--br); }
-        .hstat-n { font-family:var(--serif); font-size:32px; font-weight:300; color:var(--ink); line-height:1; }
-        .hstat-l { font-size:11px; color:var(--muted); letter-spacing:0.07em; margin-top:6px; }
-
-        /* ── Hero right / storefront mock ── */
-        .hero-right { background:var(--w2); position:relative; overflow:hidden; display:flex; flex-direction:column; }
-        .storefront-mock { flex:1; display:flex; flex-direction:column; padding:32px 32px 0; overflow:hidden; }
-        .sf-profile { display:flex; align-items:center; gap:14px; margin-bottom:28px; padding-bottom:28px; border-bottom:0.5px solid var(--br); }
-        .sf-avatar { width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,#D4B896,#B8956A); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:20px; font-style:italic; color:#fff; flex-shrink:0; }
-        .sf-name { font-size:16px; font-weight:500; color:var(--ink); }
-        .sf-role { font-size:12px; color:var(--muted); margin-top:3px; }
-        .sf-verified { margin-left:auto; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:100px; background:var(--acc-bg); border:0.5px solid var(--acc-br); font-size:10px; letter-spacing:0.07em; color:var(--acc); font-weight:500; }
-        .sf-label { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-bottom:16px; font-weight:500; }
-        .sf-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-        .sf-card { border-radius:12px; overflow:hidden; border:0.5px solid var(--br); background:var(--w); }
-        .sf-card-img { aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; position:relative; }
-        .c1{background:linear-gradient(160deg,#EDE4D8,#D4C4B0)}.c2{background:linear-gradient(160deg,#E2DACE,#CABFB0)}
-        .c3{background:linear-gradient(160deg,#E8E0D4,#D0C8B8)}.c4{background:linear-gradient(160deg,#DFE4DC,#C8D0C4)}
-        .c5{background:linear-gradient(160deg,#E6DDD4,#D0C4B4)}.c6{background:linear-gradient(160deg,#EAE2D8,#D8CAB8)}
-        .sf-glyph { font-family:var(--serif); font-size:28px; font-style:italic; color:rgba(20,18,16,0.15); }
-        .sf-tag { position:absolute; bottom:8px; left:8px; padding:3px 9px; border-radius:100px; background:rgba(250,250,248,0.88); font-size:10px; color:var(--ink2); border:0.5px solid rgba(20,18,16,0.07); letter-spacing:0.04em; }
-        .sf-card-body { padding:10px 12px 12px; }
-        .sf-brand { font-size:10px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; margin-bottom:3px; }
-        .sf-pname { font-size:12px; font-weight:500; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .sf-price { font-size:12px; color:var(--muted); margin-top:2px; }
-        .sf-fade { height:80px; background:linear-gradient(to bottom,transparent,var(--w2)); margin-top:-80px; pointer-events:none; flex-shrink:0; }
+        /* ── Hero — full bleed dark ── */
+        .hero {
+          min-height: 100vh; padding-top: 60px;
+          position: relative; display: flex; align-items: center;
+          background: var(--ink);
+          overflow: hidden;
+        }
+        .hero-bg {
+          position: absolute; inset: 0;
+          background:
+            radial-gradient(ellipse 80% 60% at 70% 50%, rgba(176,125,74,0.08) 0%, transparent 70%),
+            radial-gradient(ellipse 40% 80% at 20% 30%, rgba(139,26,26,0.06) 0%, transparent 60%);
+        }
+        /* Decorative editorial lines */
+        .hero-line {
+          position: absolute; right: 0; top: 0; bottom: 0; width: 45%;
+          border-left: 0.5px solid rgba(255,255,255,0.06);
+        }
+        .hero-content {
+          position: relative; z-index: 2;
+          padding: 80px 48px;
+          max-width: 680px;
+        }
+        .hero-eyebrow {
+          display: inline-flex; align-items: center; gap: 10px;
+          font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+          color: var(--gold); font-weight: 500; margin-bottom: 36px;
+        }
+        .hero-eyebrow-line { width: 24px; height: 0.5px; background: var(--gold); }
+        h1 {
+          font-family: var(--serif); font-size: clamp(52px, 6vw, 88px);
+          font-weight: 300; line-height: 1.04; color: #fff;
+          margin-bottom: 28px; letter-spacing: -0.01em;
+        }
+        h1 em { font-style: italic; color: var(--gold2); }
+        .hero-sub {
+          font-size: 15px; font-weight: 300; color: rgba(255,255,255,0.45);
+          line-height: 1.8; max-width: 440px; margin-bottom: 48px;
+        }
+        .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 64px; }
+        .btn-gold  { font-size: 12px; letter-spacing: 0.08em; font-family: var(--sans); font-weight: 500; background: var(--gold); color: #fff; border: none; padding: 12px 28px; cursor: pointer; text-decoration: none; }
+        .btn-gold:hover { background: var(--gold2); }
+        .btn-ghost-dark { font-size: 12px; letter-spacing: 0.08em; font-family: var(--sans); color: rgba(255,255,255,0.5); background: none; border: 0.5px solid rgba(255,255,255,0.2); padding: 12px 28px; text-decoration: none; }
+        .btn-ghost-dark:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.8); }
+        .hero-stats { display: flex; gap: 0; border-top: 0.5px solid rgba(255,255,255,0.08); padding-top: 40px; }
+        .hstat { flex: 1; padding-right: 32px; }
+        .hstat + .hstat { padding-left: 32px; border-left: 0.5px solid rgba(255,255,255,0.08); }
+        .hstat-n { font-family: var(--serif); font-size: 34px; font-weight: 300; color: #fff; line-height: 1; }
+        .hstat-l { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px; }
 
         /* ── Marquee ── */
-        .mq-wrap { border-top:0.5px solid var(--br); border-bottom:0.5px solid var(--br); padding:12px 0; overflow:hidden; background:var(--w); }
-        .mq-track { display:inline-block; white-space:nowrap; animation:mq 30s linear infinite; }
+        .mq-wrap { border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); padding: 14px 0; overflow: hidden; background: var(--cream); }
+        .mq-track { display: inline-block; white-space: nowrap; animation: mq 32s linear infinite; }
         @keyframes mq { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-        .mq-item { display:inline-flex; align-items:center; gap:10px; margin-right:44px; font-family:var(--serif); font-style:italic; font-size:15px; color:var(--muted); }
-        .mq-dot { color:var(--acc); font-style:normal; font-size:9px; }
+        .mq-item { display: inline-flex; align-items: center; gap: 12px; margin-right: 48px; font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); }
+        .mq-sep { color: var(--gold); font-style: normal; font-size: 8px; }
 
-        /* ── Sections ── */
-        .section { max-width:1200px; margin:0 auto; padding:96px 44px; }
-        .sec-tag { font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--acc); font-weight:500; margin-bottom:18px; display:flex; align-items:center; gap:10px; }
-        .sec-tag::before { content:''; width:18px; height:0.5px; background:var(--acc); }
-        .sec-h  { font-family:var(--serif); font-size:clamp(36px,3.5vw,52px); font-weight:300; line-height:1.1; color:var(--ink); margin-bottom:16px; }
-        .sec-h em { font-style:italic; color:var(--acc); }
-        .sec-p  { font-size:15px; font-weight:300; color:var(--muted); line-height:1.8; max-width:420px; margin-bottom:52px; }
+        /* ── Section shell ── */
+        .section { max-width: 1200px; margin: 0 auto; padding: 96px 48px; }
 
-        /* ── Curators ── */
-        .curator-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-        .c-card { border:0.5px solid var(--br); border-radius:18px; background:var(--w); overflow:hidden; transition:transform .2s,box-shadow .2s; text-decoration:none; display:block; color:inherit; }
-        .c-card:hover { transform:translateY(-4px); box-shadow:0 16px 48px rgba(20,18,16,0.07); }
-        .c-img { height:200px; display:flex; align-items:center; justify-content:center; position:relative; border-bottom:0.5px solid var(--br); }
-        .t1{background:linear-gradient(150deg,#EDE5D8,#D8CAB4)}.t2{background:linear-gradient(150deg,#E2DDD5,#C8BFAF)}
-        .t3{background:linear-gradient(150deg,#E5DFD8,#CEBFB0)}.t4{background:linear-gradient(150deg,#E0DDD6,#CAC4B8)}
-        .c-mono  { font-family:var(--serif); font-size:48px; font-style:italic; font-weight:300; color:rgba(20,18,16,0.1); }
-        .c-badge { position:absolute; bottom:10px; left:10px; padding:4px 10px; border-radius:100px; background:rgba(250,250,248,0.9); font-size:10px; color:var(--ink2); letter-spacing:0.05em; border:0.5px solid var(--br); font-weight:500; }
-        .c-body  { padding:16px 18px 18px; }
-        .c-name  { font-size:15px; font-weight:500; color:var(--ink); margin-bottom:3px; }
-        .c-role  { font-size:12px; color:var(--muted); font-weight:300; margin-bottom:14px; }
-        .c-stats { display:flex; gap:16px; padding-top:12px; border-top:0.5px solid var(--br); }
-        .c-sv    { font-family:var(--serif); font-size:17px; font-weight:300; color:var(--ink); }
-        .c-sl    { font-size:10px; color:var(--dim); letter-spacing:0.06em; margin-top:2px; }
+        /* ── "Shop by" display type ── */
+        .display-eyebrow { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); margin-bottom: 4px; }
+        .display-heading { font-family: var(--serif); font-size: clamp(48px,5vw,80px); font-weight: 300; color: var(--ink); line-height: 1; margin-bottom: 48px; }
+
+        /* ── Curator grid — asymmetric masonry ── */
+        .curator-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr 1fr;
+          grid-template-rows: 360px 280px;
+          gap: 3px;
+        }
+        .curator-card {
+          position: relative; overflow: hidden; cursor: pointer;
+          text-decoration: none; display: block;
+        }
+        .curator-card.large {
+          grid-column: 1 / 3;
+          grid-row: 1 / 3;
+        }
+        .curator-card.small-1 { grid-column: 3; grid-row: 1; }
+        .curator-card.small-2 { grid-column: 4; grid-row: 1; }
+        .curator-card.small-3 { grid-column: 3; grid-row: 2; }
+        .curator-card.small-4 { grid-column: 4; grid-row: 2; }
+        .curator-bg {
+          position: absolute; inset: 0;
+          transition: transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94);
+        }
+        .curator-card:hover .curator-bg { transform: scale(1.04); }
+        .curator-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 50%, transparent 100%);
+        }
+        .curator-info {
+          position: absolute; bottom: 0; left: 0; right: 0;
+          padding: 20px 22px;
+        }
+        .curator-badge {
+          display: inline-block; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+          color: var(--gold2); border: 0.5px solid rgba(176,125,74,0.4);
+          padding: 3px 8px; margin-bottom: 8px;
+        }
+        .curator-name {
+          font-family: var(--serif); font-weight: 300; color: #fff;
+          line-height: 1.1;
+        }
+        .curator-card.large .curator-name { font-size: 32px; }
+        .curator-card:not(.large) .curator-name { font-size: 18px; }
+        .curator-eyebrow {
+          font-family: var(--serif); font-style: italic; font-size: 12px;
+          color: rgba(255,255,255,0.5); margin-bottom: 4px;
+        }
+        .curator-role {
+          font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px;
+        }
+        .curator-card.large .curator-role { font-size: 13px; }
+
+        /* ── Mid-page dark editorial break ── */
+        .dark-break {
+          position: relative; overflow: hidden;
+          background: var(--ink); padding: 96px 48px;
+          text-align: center;
+        }
+        .dark-break-bg {
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(176,125,74,0.07) 0%, transparent 70%);
+        }
+        .dark-break-content { position: relative; z-index: 2; max-width: 600px; margin: 0 auto; }
+        .dark-break h2 {
+          font-family: var(--serif); font-size: clamp(36px, 4vw, 60px);
+          font-weight: 300; color: #fff; line-height: 1.1; margin-bottom: 12px;
+        }
+        .dark-break h2 em { font-style: italic; color: var(--gold2); }
+        .dark-break p { font-size: 14px; color: rgba(255,255,255,0.35); margin-bottom: 36px; font-weight: 300; }
+        .dark-break-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
         /* ── How it works ── */
-        .hiw-wrap { border-top:0.5px solid var(--br); background:var(--w2); }
-        .hiw-cols { display:grid; grid-template-columns:1fr 1fr; gap:80px; margin-top:64px; padding-top:56px; border-top:0.5px solid var(--br); }
-        .hiw-role { font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); font-weight:500; margin-bottom:36px; }
-        .step    { display:flex; gap:20px; margin-bottom:36px; }
-        .step-n  { font-family:var(--serif); font-size:12px; color:var(--acc); opacity:.6; padding-top:2px; width:16px; flex-shrink:0; }
-        .step-t  { font-size:14px; font-weight:500; color:var(--ink); margin-bottom:6px; }
-        .step-b  { font-size:13px; color:var(--muted); line-height:1.7; font-weight:300; }
+        .hiw-wrap { background: var(--cream2); border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); }
+        .hiw-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; padding-top: 48px; border-top: 0.5px solid var(--br); }
+        .hiw-role { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 32px; }
+        .step      { display: flex; gap: 20px; margin-bottom: 32px; }
+        .step-n    { font-family: var(--serif); font-size: 11px; color: var(--gold); width: 18px; flex-shrink: 0; padding-top: 3px; }
+        .step-t    { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+        .step-b    { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; }
 
-        /* ── Brands ── */
-        .brands-wrap { border-top:0.5px solid var(--br); padding:52px 44px; }
-        .brands-label { font-size:11px; letter-spacing:0.13em; text-transform:uppercase; color:var(--dim); text-align:center; margin-bottom:32px; font-weight:500; }
-        .brands-row { display:flex; align-items:center; justify-content:center; gap:52px; flex-wrap:wrap; }
-        .brand-n { font-family:var(--serif); font-size:17px; font-weight:300; font-style:italic; color:var(--dim); }
-
-        /* ── Join ── */
-        .join-wrap { border-top:0.5px solid var(--br); }
-        .join-grid { display:grid; grid-template-columns:1fr 1fr; }
-        .join-col  { padding:88px 64px; display:flex; flex-direction:column; justify-content:center; }
-        .join-col.dark { background:var(--ink); }
-        .join-col.dark .sec-tag { color:var(--acc2); }
-        .join-col.dark .sec-tag::before { background:var(--acc2); }
-        .join-col.dark .sec-h  { color:var(--w); }
-        .join-col.dark .sec-h em { color:var(--acc2); }
-        .join-col.dark .sec-p  { color:rgba(250,250,248,.45); }
-        .feats   { margin:28px 0 36px; }
-        .feat    { display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; font-size:13px; color:var(--muted); font-weight:300; line-height:1.5; }
-        .join-col.dark .feat { color:rgba(250,250,248,.4); }
-        .feat-d  { width:4px; height:4px; border-radius:50%; background:var(--acc); margin-top:5px; flex-shrink:0; }
-        .join-col.dark .feat-d { background:var(--acc2); }
-        /* Single shared CTA button — variant via class */
-        .btn-cta { display:inline-flex; align-items:center; padding:12px 28px; border-radius:100px; font-size:13px; font-weight:500; font-family:var(--sans); cursor:pointer; text-decoration:none; align-self:flex-start; border:none; }
-        .btn-cta.light { background:var(--ink); color:var(--w); }
-        .btn-cta.cream { background:var(--w);   color:var(--ink); }
-        .btn-cta:hover { opacity:0.88; }
+        /* ── Join section — dark/light split ── */
+        .join-wrap { border-top: 0.5px solid var(--br); }
+        .join-grid { display: grid; grid-template-columns: 1fr 1fr; }
+        .join-col  { padding: 88px 64px; display: flex; flex-direction: column; }
+        .join-col.dark { background: var(--ink); }
+        .join-h    { font-family: var(--serif); font-size: clamp(32px,3vw,48px); font-weight: 300; line-height: 1.1; color: var(--ink); margin-bottom: 16px; }
+        .join-h em { font-style: italic; color: var(--gold); }
+        .join-col.dark .join-h { color: #fff; }
+        .join-col.dark .join-h em { color: var(--gold2); }
+        .join-p    { font-size: 14px; color: var(--muted); line-height: 1.8; font-weight: 300; margin-bottom: 36px; max-width: 360px; }
+        .join-col.dark .join-p { color: rgba(255,255,255,0.35); }
+        .feats     { margin-bottom: 40px; }
+        .feat      { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; color: var(--muted); font-weight: 300; line-height: 1.5; }
+        .join-col.dark .feat { color: rgba(255,255,255,0.35); }
+        .feat-dot  { width: 3px; height: 3px; border-radius: 50%; background: var(--gold); margin-top: 7px; flex-shrink: 0; }
+        .join-col.dark .feat-dot { background: var(--gold2); }
 
         /* ── Footer ── */
-        footer { background:var(--ink); color:var(--w); padding:64px 44px 40px; }
-        .ft { display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:48px; padding-bottom:48px; border-bottom:0.5px solid rgba(255,255,255,.07); margin-bottom:32px; }
-        .ft-logo { font-family:var(--serif); font-size:24px; font-weight:300; color:var(--w); margin-bottom:12px; }
-        .ft-logo em { font-style:italic; color:var(--acc2); }
-        .ft-tag  { font-size:13px; color:rgba(250,250,248,.35); font-weight:300; line-height:1.65; max-width:190px; }
-        .ft-col-h { font-size:10px; letter-spacing:0.13em; text-transform:uppercase; color:rgba(250,250,248,.25); margin-bottom:16px; font-weight:500; }
-        .ft-links { display:flex; flex-direction:column; gap:10px; }
-        .ft-links a { font-size:13px; color:rgba(250,250,248,.4); text-decoration:none; font-weight:300; }
-        .ft-bottom { display:flex; align-items:center; justify-content:space-between; }
-        .ft-copy { font-size:11px; color:rgba(250,250,248,.2); }
-        .ft-bl { display:flex; gap:20px; }
-        .ft-bl a { font-size:11px; color:rgba(250,250,248,.2); text-decoration:none; }
+        footer { background: var(--ink); color: #fff; padding: 64px 48px 40px; }
+        .ft     { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr; gap: 48px; padding-bottom: 48px; border-bottom: 0.5px solid rgba(255,255,255,0.06); margin-bottom: 28px; }
+        .ft-logo{ font-family: var(--serif); font-size: 22px; font-weight: 300; color: #fff; margin-bottom: 10px; }
+        .ft-logo em { font-style: italic; color: var(--gold2); }
+        .ft-tag { font-size: 13px; color: rgba(255,255,255,0.25); font-weight: 300; line-height: 1.65; max-width: 180px; }
+        .ft-h   { font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 16px; font-weight: 500; }
+        .ft-lks { display: flex; flex-direction: column; gap: 10px; }
+        .ft-lks a { font-size: 13px; color: rgba(255,255,255,0.35); text-decoration: none; font-weight: 300; transition: color .15s; }
+        .ft-lks a:hover { color: rgba(255,255,255,0.7); }
+        .ft-btm { display: flex; align-items: center; justify-content: space-between; }
+        .ft-copy{ font-size: 11px; color: rgba(255,255,255,0.15); }
+        .ft-bl  { display: flex; gap: 20px; }
+        .ft-bl a{ font-size: 11px; color: rgba(255,255,255,0.15); text-decoration: none; }
 
         /* ── Responsive ── */
-        @media(max-width:1024px){
-          nav { padding:0 24px; } .nav-mid { display:none; }
-          .hero { grid-template-columns:1fr; min-height:auto; }
-          .hero-left { padding:80px 24px 56px; border-right:none; }
-          .hero-right { min-height:480px; }
-          .section { padding:72px 24px; }
-          .curator-row { grid-template-columns:1fr 1fr; }
-          .hiw-cols { grid-template-columns:1fr; gap:48px; }
-          .join-grid { grid-template-columns:1fr; }
-          .join-col { padding:64px 32px; }
-          .ft { grid-template-columns:1fr 1fr; gap:32px; }
+        @media (max-width: 1024px) {
+          nav { padding: 0 24px; }
+          .nav-mid { display: none; }
+          .hero-content { padding: 80px 24px; }
+          .section { padding: 72px 24px; }
+          .curator-grid {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 300px 220px 220px;
+          }
+          .curator-card.large { grid-column: 1 / 3; grid-row: 1; }
+          .curator-card.small-1 { grid-column: 1; grid-row: 2; }
+          .curator-card.small-2 { grid-column: 2; grid-row: 2; }
+          .curator-card.small-3 { grid-column: 1; grid-row: 3; }
+          .curator-card.small-4 { grid-column: 2; grid-row: 3; }
+          .hiw-cols { grid-template-columns: 1fr; gap: 48px; }
+          .join-grid { grid-template-columns: 1fr; }
+          .join-col { padding: 64px 32px; }
+          .dark-break { padding: 72px 24px; }
+          .ft { grid-template-columns: 1fr 1fr; gap: 32px; }
         }
-        @media(max-width:600px){
-          .curator-row { grid-template-columns:1fr; }
-          .sf-grid { grid-template-columns:1fr 1fr; }
-          .ft { grid-template-columns:1fr; }
+
+        @media (max-width: 640px) {
+          .hero-content { padding: 72px 20px; }
+          h1 { font-size: 44px; }
+          .curator-grid {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 240px 180px 180px;
+          }
+          .curator-card.large .curator-name { font-size: 24px; }
+          .display-heading { font-size: 40px; }
+          .section { padding: 60px 20px; }
+          .ft { grid-template-columns: 1fr; }
+          .join-col { padding: 52px 20px; }
         }
       `}</style>
-
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
 
       {/* ── Nav ── */}
       <nav>
@@ -225,92 +306,104 @@ export default function Home() {
         </div>
         <div className="nav-right">
           <a href="/login" className="btn-ghost">Sign in</a>
-          <Link href="/signup" className="btn-dark">Get started</Link>
+          <Link href="/signup" className="btn-ink">Get started</Link>
         </div>
       </nav>
 
-      {/* ── Hero ── */}
+      {/* ── Hero — full bleed dark ── */}
       <div className="hero">
-        <div className="hero-left">
-          <div className="hero-tag"><div className="hero-tag-dot" />Trusted curation · Real people</div>
-          <h1>Shop what<br/>they <em>actually</em><br/>love</h1>
-          <p className="hero-sub">The people you trust — creators, doctors, stylists, icons — curate the products they genuinely stand behind. Discover them all in one place.</p>
+        <div className="hero-bg" />
+        <div className="hero-line" />
+        <div className="hero-content">
+          <div className="hero-eyebrow">
+            <div className="hero-eyebrow-line" />
+            Trusted curation · Real people
+          </div>
+          <h1>Curated by<br/>people, not<br/><em>algorithms.</em></h1>
+          <p className="hero-sub">
+            The creators, doctors, and stylists you follow — sharing the products they genuinely use.
+            Discover everything in one place, and shop with real context.
+          </p>
           <div className="hero-btns">
-            <Link href="/signup" className="btn-dark">Start your storefront</Link>
-            <a href="#curators" className="btn-outline">Browse curators</a>
+            <Link href="/signup" className="btn-gold">Start your storefront</Link>
+            <a href="#curators" className="btn-ghost-dark">Browse curators</a>
           </div>
           <div className="hero-stats">
             {[['2,400+','Curators'],['48K+','Products curated'],['80%','Creator commission']].map(([n,l]) => (
-              <div className="hstat" key={l}><div className="hstat-n">{n}</div><div className="hstat-l">{l}</div></div>
+              <div className="hstat" key={l}>
+                <div className="hstat-n">{n}</div>
+                <div className="hstat-l">{l}</div>
+              </div>
             ))}
           </div>
-        </div>
-        <div className="hero-right">
-          <div className="storefront-mock">
-            <div className="sf-profile">
-              <div className="sf-avatar">Dr</div>
-              <div><div className="sf-name">Dr. Priya Sharma</div><div className="sf-role">Dermatologist · Mumbai</div></div>
-              <div className="sf-verified">✦ Verified</div>
-            </div>
-            <div className="sf-label">Skincare Essentials</div>
-            <div className="sf-grid">
-              {SKINCARE_PRODUCTS.map(p => (
-                <div className="sf-card" key={p.name}>
-                  <div className={`sf-card-img ${p.tone}`}><div className="sf-glyph">{p.glyph}</div><div className="sf-tag">{p.tag}</div></div>
-                  <div className="sf-card-body"><div className="sf-brand">{p.brand}</div><div className="sf-pname">{p.name}</div><div className="sf-price">{p.price}</div></div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="sf-fade" />
         </div>
       </div>
 
       {/* ── Marquee ── */}
       <div className="mq-wrap" aria-hidden="true">
-        {/* Duplicate array in JS so no manual copy-paste in markup */}
         <div className="mq-track">
           {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
-            <span key={i} className="mq-item">{item} <span className="mq-dot">✦</span></span>
+            <span key={i} className="mq-item">
+              {item} <span className="mq-sep">✦</span>
+            </span>
           ))}
         </div>
       </div>
 
-      {/* ── Curators ── */}
+      {/* ── Curators — asymmetric editorial grid ── */}
       <div id="curators" className="section">
-        <div className="sec-tag">Featured curators</div>
-        <div className="sec-h">Tastemakers you can <em>trust</em></div>
-        <p className="sec-p">From dermatologists to fashion editors — every curator on CurateKin vouches personally for every product they share.</p>
-        <div className="curator-row">
-          {CURATORS.map(c => (
-            <a key={c.name} href={`/${c.name.toLowerCase().replace(/ /g,'-')}`} className="c-card">
-              <div className={`c-img ${c.tone}`}><div className="c-mono">{c.mono}</div><div className="c-badge">{c.badge}</div></div>
-              <div className="c-body">
-                <div className="c-name">{c.name}</div>
-                <div className="c-role">{c.role}</div>
-                <div className="c-stats">
-                  <div><div className="c-sv">{c.products}</div><div className="c-sl">Products</div></div>
-                  <div><div className="c-sv">{c.followers}</div><div className="c-sl">Followers</div></div>
+        <div className="display-eyebrow">Shop by</div>
+        <div className="display-heading">Curator</div>
+
+        <div className="curator-grid">
+          {CURATORS.map((c, i) => {
+            const sizeClass = i === 0 ? 'large' : `small-${i}`
+            return (
+              <a key={c.name} href={`/${c.name.toLowerCase().replace(/ \./g,'').replace(/ /g,'-')}`} className={`curator-card ${sizeClass}`}>
+                <div className="curator-bg" style={{ background: TONES[i] }} />
+                <div className="curator-overlay" />
+                <div className="curator-info">
+                  <div className="curator-badge">{c.badge}</div>
+                  <div className="curator-eyebrow">Curated by</div>
+                  <div className="curator-name">{c.name}</div>
+                  {i === 0 && <div className="curator-role">{c.role} · {c.products} products · {c.followers} followers</div>}
+                  {i !== 0 && <div className="curator-role">{c.products} products</div>}
                 </div>
-              </div>
-            </a>
-          ))}
+              </a>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Mid-page dark editorial break ── */}
+      <div className="dark-break">
+        <div className="dark-break-bg" />
+        <div className="dark-break-content">
+          <h2>Your taste is<br/>worth <em>sharing.</em></h2>
+          <p>Join India's first creator-led affiliate platform. Build your storefront in minutes.</p>
+          <div className="dark-break-btns">
+            <Link href="/signup" className="btn-gold">Apply as a creator</Link>
+            <Link href="/signup" className="btn-ghost-dark">Join as a shopper</Link>
+          </div>
         </div>
       </div>
 
       {/* ── How it works ── */}
       <div className="hiw-wrap" id="how">
         <div className="section">
-          <div className="sec-tag">How it works</div>
-          <div className="sec-h">Two audiences. One <em>platform.</em></div>
+          <div className="display-eyebrow">Simple by design</div>
+          <div className="display-heading">How it works</div>
           <div className="hiw-cols">
-            {[['For curators & creators', CREATOR_STEPS],['For shoppers & buyers', SHOPPER_STEPS]].map(([role, steps]) => (
-              <div key={role as string}>
-                <div className="hiw-role">{role as string}</div>
-                {(steps as typeof CREATOR_STEPS).map(s => (
+            {([['For curators & creators', CREATOR_STEPS], ['For shoppers & buyers', SHOPPER_STEPS]] as const).map(([role, steps]) => (
+              <div key={role}>
+                <div className="hiw-role">{role}</div>
+                {steps.map(s => (
                   <div className="step" key={s.n}>
                     <div className="step-n">{s.n}</div>
-                    <div><div className="step-t">{s.t}</div><div className="step-b">{s.b}</div></div>
+                    <div>
+                      <div className="step-t">{s.t}</div>
+                      <div className="step-b">{s.b}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -319,34 +412,34 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Brands ── */}
-      <div className="brands-wrap">
-        <div className="brands-label">Curators share products from</div>
-        <div className="brands-row">
-          {BRANDS.map(b => <div key={b} className="brand-n">{b}</div>)}
-        </div>
-      </div>
-
-      {/* ── Join ── */}
+      {/* ── Join — dark / light split ── */}
       <div className="join-wrap">
         <div className="join-grid">
           <div className="join-col">
-            <div className="sec-tag">For curators</div>
-            <div className="sec-h">Your taste is your <em>brand</em></div>
-            <p className="sec-p">Turn products you already love into a storefront that earns. No follower minimum. No brand approvals.</p>
+            <div className="display-eyebrow" style={{color:'var(--muted)'}}>For curators</div>
+            <div className="join-h">Your taste<br/>is your <em>brand</em></div>
+            <p className="join-p">Turn products you already love into a storefront that earns. No follower minimum. No brand approvals.</p>
             <div className="feats">
-              {CURATOR_FEATS.map(f => <div key={f} className="feat"><div className="feat-d" />{f}</div>)}
+              {CURATOR_FEATS.map(f => (
+                <div key={f} className="feat"><div className="feat-dot" />{f}</div>
+              ))}
             </div>
-            <Link href="/signup" className="btn-cta light">Apply as a curator</Link>
+            <Link href="/signup" className="btn-ink" style={{alignSelf:'flex-start',letterSpacing:'0.06em',padding:'11px 28px'}}>
+              Apply as a curator
+            </Link>
           </div>
           <div className="join-col dark">
-            <div className="sec-tag">For shoppers</div>
-            <div className="sec-h">Discover products with <em>real context</em></div>
-            <p className="sec-p">Shop what the people you trust actually use. Every product comes with a personal note — not a sponsored caption.</p>
+            <div className="display-eyebrow" style={{color:'rgba(255,255,255,0.3)'}}>For shoppers</div>
+            <div className="join-h">Discover with<br/><em>real context</em></div>
+            <p className="join-p">Shop what the people you trust actually use. Every product comes with a personal note — not a sponsored caption.</p>
             <div className="feats">
-              {SHOPPER_FEATS.map(f => <div key={f} className="feat"><div className="feat-d" />{f}</div>)}
+              {SHOPPER_FEATS.map(f => (
+                <div key={f} className="feat"><div className="feat-dot" />{f}</div>
+              ))}
             </div>
-            <Link href="/signup" className="btn-cta cream">Join as a shopper</Link>
+            <Link href="/signup" className="btn-gold" style={{alignSelf:'flex-start'}}>
+              Join as a shopper
+            </Link>
           </div>
         </div>
       </div>
@@ -356,18 +449,20 @@ export default function Home() {
         <div className="ft">
           <div>
             <div className="ft-logo">Curate<em>Kin</em></div>
-            <div className="ft-tag">Where trusted tastemakers meet the products they love.</div>
+            <div className="ft-tag">Where India's tastemakers meet the products they love.</div>
           </div>
-          {[['Platform', FOOTER_PLATFORM],['Curators', FOOTER_CURATORS],['Company', FOOTER_COMPANY]].map(([heading, links]) => (
-            <div key={heading as string}>
-              <div className="ft-col-h">{heading as string}</div>
-              <div className="ft-links">
-                {(links as string[][]).map(([label, href]) => <a key={label} href={href}>{label}</a>)}
+          {([['Platform', FOOTER_PLATFORM], ['Curators', FOOTER_CURATORS], ['Company', FOOTER_COMPANY]] as const).map(([heading, links]) => (
+            <div key={heading}>
+              <div className="ft-h">{heading}</div>
+              <div className="ft-lks">
+                {(links as string[][]).map(([label, href]) => (
+                  <a key={label} href={href}>{label}</a>
+                ))}
               </div>
             </div>
           ))}
         </div>
-        <div className="ft-bottom">
+        <div className="ft-btm">
           <div className="ft-copy">© 2026 CurateKin. All rights reserved.</div>
           <div className="ft-bl">
             <a href="/privacy">Privacy</a>
