@@ -151,9 +151,10 @@ export default function Home() {
         .curator-grid {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr;
-          grid-template-rows: 420px 280px;
+          grid-template-rows: 460px 300px;
           gap: 3px;
-          width: 100%;
+          width: 100vw;
+          max-width: 100%;
         }
         .curator-card {
           position: relative; overflow: hidden; cursor: pointer;
@@ -354,25 +355,26 @@ export default function Home() {
       </div>
 
       {/* ── Curators — asymmetric editorial grid ── */}
-      <div id="curators" className="section">
-        <div className="display-eyebrow">Shop by</div>
-        <div className="display-heading">Curator</div>
-
+      <div id="curators">
+        <div style={{ maxWidth:1200, margin:'0 auto', padding:'96px 48px 48px' }}>
+          <div className="display-eyebrow">Shop by</div>
+          <div className="display-heading">Curator</div>
+        </div>
         <div className="curator-grid">
           {CURATORS.map((c, i) => {
             const sizeClass = i === 0 ? 'large' : `small-${i}`
             return (
-              <a key={c.name} href={`/${c.name.toLowerCase().replace(/ \./g,'').replace(/ /g,'-')}`} className={`curator-card ${sizeClass}`}>
-                <div className="curator-bg" style={{ background: TONES[i] }} />
-                <div className="curator-overlay" />
-                <div className="curator-info">
-                  <div className="curator-badge">{c.badge}</div>
-                  <div className="curator-eyebrow">Curated by</div>
-                  <div className="curator-name">{c.name}</div>
-                  {i === 0 && <div className="curator-role">{c.role} · {c.products} products · {c.followers} followers</div>}
-                  {i !== 0 && <div className="curator-role">{c.products} products</div>}
-                </div>
-              </a>
+            <a key={c.name} href={`/${c.name.toLowerCase().replace(/ \./g,'').replace(/ /g,'-')}`} className={`curator-card ${sizeClass}`}>
+              <div className="curator-bg" style={{ background: TONES[i] }} />
+              <div className="curator-overlay" />
+              <div className="curator-info">
+                <div className="curator-badge">{c.badge}</div>
+                <div className="curator-eyebrow">Curated by</div>
+                <div className="curator-name">{c.name}</div>
+                {i === 0 && <div className="curator-role">{c.role} · {c.products} products · {c.followers} followers</div>}
+                {i !== 0 && <div className="curator-role">{c.products} products</div>}
+              </div>
+            </a>
             )
           })}
         </div>
