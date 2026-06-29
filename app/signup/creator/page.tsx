@@ -153,11 +153,11 @@ export default function CreatorSignupPage() {
         const isCurrent = step === n
         return (
           <div key={n} style={{ display:'flex', alignItems:'center', gap:4 }}>
-            <div title={label} style={{ width:30, height:30, borderRadius:'50%', border:`1.5px solid ${isDone || isCurrent ? '#0A0A0A' : '#D4D4D4'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:500, background: isDone ? '#0A0A0A' : '#fff', color: isDone ? '#fff' : isCurrent ? '#0A0A0A' : '#D4D4D4', transition:'all 0.2s', fontFamily:'DM Sans, sans-serif', cursor: isDone ? 'pointer' : 'default' }}
+            <div title={label} style={{ width:30, height:30, borderRadius:'50%', border:`1.5px solid ${isDone || isCurrent ? '#0A0A0A' : '#888888'}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:500, background: isDone ? '#0A0A0A' : '#fff', color: isDone ? '#fff' : isCurrent ? '#0A0A0A' : '#888888', transition:'all 0.2s', fontFamily:'DM Sans, sans-serif', cursor: isDone ? 'pointer' : 'default' }}
               onClick={() => isDone && go(n)}>
               {isDone ? '✓' : n}
             </div>
-            {i < STEPS.length - 1 && <div style={{ width:28, height:1, background: step > n ? '#0A0A0A' : '#E5E5E5' }} />}
+            {i < STEPS.length - 1 && <div style={{ width:28, height:1.5, background: step > n ? '#0A0A0A' : '#AAAAAA' }} />}
           </div>
         )
       })}
