@@ -67,19 +67,6 @@ export default function DashboardHome() {
         .search-input::placeholder { color:rgba(255,255,255,0.35); }
       `}</style>
 
-      {/* Dark sub-header — same #0A0A0A as nav */}
-      <div style={{ background:'#0A0A0A', padding:'18px 40px', display:'flex', alignItems:'center', justifyContent:'space-between', borderTop:'0.5px solid rgba(255,255,255,0.06)' }}>
-        <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:34, fontWeight:300, color:'#fff', fontStyle:'italic', letterSpacing:'-0.01em' }}>
-          Atelier
-        </h1>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <input className="search-input" placeholder="Search your closet" value={search} onChange={e => setSearch(e.target.value)} />
-          <a href="/dashboard/products" style={{ background:'#fff', color:'#0A0A0A', border:'none', padding:'10px 22px', fontSize:13, fontWeight:500, cursor:'pointer', fontFamily:'inherit', letterSpacing:'0.04em', textDecoration:'none', whiteSpace:'nowrap' }}>
-            + ADD PIECE
-          </a>
-        </div>
-      </div>
-
       {/* Category tabs — white bar */}
       <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', overflowX:'auto', display:'flex', padding:'0 40px' }}>
         {CATS.map(c => (

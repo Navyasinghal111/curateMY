@@ -96,9 +96,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Right — search + add piece + avatar */}
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 16px', borderLeft:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
-            <a href={`/${profile?.username}`} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize:11, color:'rgba(255,255,255,0.5)', textDecoration:'none', letterSpacing:'0.08em', border:'0.5px solid rgba(255,255,255,0.2)', padding:'6px 14px', whiteSpace:'nowrap', transition:'all 0.15s' }}>
-              VIEW STOREFRONT ↗
+            <input
+              placeholder="Search your closet"
+              style={{ background:'rgba(255,255,255,0.08)', border:'0.5px solid rgba(255,255,255,0.15)', color:'#fff', padding:'7px 14px', fontSize:12, outline:'none', fontFamily:'inherit', width:200 }}
+            />
+            <a href="/dashboard/products"
+              style={{ background:'#fff', color:'#0A0A0A', padding:'7px 16px', fontSize:12, fontWeight:500, textDecoration:'none', whiteSpace:'nowrap', letterSpacing:'0.04em' }}>
+              + ADD PIECE
             </a>
 
             {/* Avatar + dropdown */}
