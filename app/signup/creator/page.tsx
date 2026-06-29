@@ -185,14 +185,17 @@ export default function CreatorSignupPage() {
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <div style={{ minHeight:'100vh', background:'#fff', fontFamily:'DM Sans, sans-serif' }}>
 
-        <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 48px', height:60, borderBottom:'0.5px solid #F0F0F0', position:'sticky', top:0, background:'#fff', zIndex:10 }}>
-          <Link href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:20, fontWeight:300, color:'#0A0A0A', textDecoration:'none' }}>
-            Curate<em style={{ fontStyle:'italic', color:'#B07D4A' }}>Kin</em>
+        <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 48px', height:64, borderBottom:'0.5px solid #EBEBEB', position:'sticky', top:0, background:'#fff', zIndex:10 }}>
+          <Link href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:22, fontWeight:400, color:'#0A0A0A', textDecoration:'none', letterSpacing:'-0.01em' }}>
+            curatekin
           </Link>
-          <div style={{ display:'flex', gap:20, alignItems:'center' }}>
-            <Link href="/signup" style={{ fontSize:14, color:'rgba(255,255,255,0.6)', textDecoration:'none' }}>← Back</Link>
-            <Link href="/login" style={{ fontSize:14, color:'rgba(255,255,255,0.6)', textDecoration:'none' }}>
-              Already have an account? <span style={{ color:'#fff', textDecoration:'underline' }}>Log in</span>
+          <div style={{ display:'flex', gap:28, alignItems:'center' }}>
+            <Link href="/signup" style={{ fontSize:14, color:'#0A0A0A', textDecoration:'none', fontWeight:400 }}>← Back</Link>
+            <Link href="/login" style={{ fontSize:14, color:'#0A0A0A', textDecoration:'none', fontWeight:400 }}>
+              Log In
+            </Link>
+            <Link href="/signup" style={{ fontSize:14, color:'#0A0A0A', textDecoration:'none', fontWeight:500, padding:'8px 20px', border:'1.5px solid #0A0A0A', borderRadius:4 }}>
+              Sign Up
             </Link>
           </div>
         </nav>
