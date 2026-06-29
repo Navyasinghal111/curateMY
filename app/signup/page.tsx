@@ -10,9 +10,13 @@ const SESSION_KEY = 'ck_creator_draft'
 
 type Role = 'shopper' | 'creator' | 'brand' | null
 
+// ── Dark inputs (shopper + brand forms stay dark) ──
 const inp = 'w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-white/60 transition-colors'
 const sel = 'w-full px-4 py-3 bg-[#111] border border-white/20 text-[12px] text-white outline-none focus:border-white/60 transition-colors appearance-none'
-const lbl = 'text-[10px] tracking-[0.12em] text-white/40'
+
+// ── White inputs (creator form) ──
+const winp: React.CSSProperties = { width:'100%', padding:'12px 16px', border:'1px solid #E5E5E5', borderRadius:6, fontSize:13, color:'#0A0A0A', background:'#fff', outline:'none', fontFamily:'inherit' }
+const wsel: React.CSSProperties = { width:'100%', padding:'12px 16px', border:'1px solid #E5E5E5', borderRadius:6, fontSize:13, color:'#0A0A0A', background:'#fff', outline:'none', fontFamily:'inherit', appearance:'none' as const }
 
 const NICHES    = ['Beauty','Skincare','Fashion','Home Decor','Wellness','Jewellery','Food & Lifestyle','Travel','Fitness']
 const PLATFORMS = ['Instagram','YouTube','Pinterest','Blog','LinkedIn','Other']
@@ -22,43 +26,34 @@ const ENG_RATES = ['Under 1%','1–3%','3–6%','6–10%','Above 10%']
 const SOURCES   = ['Instagram','A friend or creator','Google','A brand I work with','Other']
 
 const ROLE_CARDS = [
-  { role: 'shopper' as Role, image:'/card-shopper.jpg', title:'Shopper', sub:'A destination for shopping, not scrolling.', btn:'CREATE AN ACCOUNT' },
-  { role: 'creator' as Role, image:'/card-creator.jpg', title:'Creator', sub:'Where great taste leads to great opportunities.', btn:'APPLY' },
+  { role: 'shopper' as Role, image:'/card-shopper.jpg', title:'Shopper', sub:'A destination for shopping, not scrolling.',                btn:'CREATE AN ACCOUNT' },
+  { role: 'creator' as Role, image:'/card-creator.jpg', title:'Creator', sub:'Where great taste leads to great opportunities.',           btn:'APPLY' },
   { role: 'brand'   as Role, image:'/card-brand.jpg',   title:'Brand',   sub:'No one pushes your product like the people who love them.', btn:'APPLY' },
 ]
 
-function PendingScreen({ title, sub, onHome }: { title: string; sub: string; onHome: () => void }) {
+function PendingScreen({ title, sub, onHome, dark=true }: { title: string; sub: string; onHome: () => void; dark?: boolean }) {
+  const c = dark ? '#fff' : '#0A0A0A'
+  const m = dark ? 'rgba(255,255,255,0.4)' : '#6B6B6B'
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:'64px 24px', textAlign:'center' }}>
-      <div style={{ width:44, height:44, border:'1px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, fontSize:18, color:'#fff' }}>✓</div>
-      <p style={{ fontSize:10, letterSpacing:'0.2em', color:'rgba(255,255,255,0.4)', marginBottom:12, textTransform:'uppercase' }}>Status — Received</p>
-      <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#fff', marginBottom:16 }}>{title}</h1>
-      <p style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:300, lineHeight:1.7, maxWidth:280, marginBottom:32 }}>{sub}</p>
-      <button onClick={onHome} style={{ padding:'11px 32px', background:'#fff', color:'#000', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:'64px 24px', textAlign:'center', background: dark ? 'transparent' : '#fff' }}>
+      <div style={{ width:44, height:44, border:`1px solid ${c}`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, fontSize:18, color:c }}>✓</div>
+      <p style={{ fontSize:10, letterSpacing:'0.2em', color:m, marginBottom:12, textTransform:'uppercase' }}>Status — Received</p>
+      <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:c, marginBottom:16 }}>{title}</h1>
+      <p style={{ fontSize:12, color:m, fontWeight:300, lineHeight:1.7, maxWidth:280, marginBottom:32 }}>{sub}</p>
+      <button onClick={onHome} style={{ padding:'11px 32px', background: dark ? '#fff' : '#0A0A0A', color: dark ? '#000' : '#fff', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
         BACK TO CURATEKIN
       </button>
     </div>
   )
 }
 
-function RoleHeader({ onBack, tag, children }: { onBack: () => void; tag: string; children?: React.ReactNode }) {
+function RoleHeader({ onBack, tag, children, dark=true }: { onBack: () => void; tag: string; children?: React.ReactNode; dark?: boolean }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 24px', borderBottom:'0.5px solid rgba(255,255,255,0.08)', flexShrink:0 }}>
-      <button onClick={onBack} style={{ fontSize:11, letterSpacing:'0.08em', color:'rgba(255,255,255,0.4)', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit' }}>← Back</button>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 24px', borderBottom:`0.5px solid ${dark ? 'rgba(255,255,255,0.08)' : '#E5E5E5'}`, flexShrink:0, background: dark ? 'transparent' : '#fff' }}>
+      <button onClick={onBack} style={{ fontSize:11, letterSpacing:'0.08em', color: dark ? 'rgba(255,255,255,0.4)' : '#9B9B9B', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit' }}>← Back</button>
       {children ?? <div style={{ width:40 }} />}
-      <p style={{ fontSize:10, letterSpacing:'0.18em', color:'rgba(255,255,255,0.35)', textTransform:'uppercase' }}>{tag}</p>
+      <p style={{ fontSize:10, letterSpacing:'0.18em', color: dark ? 'rgba(255,255,255,0.35)' : '#9B9B9B', textTransform:'uppercase' }}>{tag}</p>
     </div>
-  )
-}
-
-function Checkbox({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: React.ReactNode }) {
-  return (
-    <label style={{ display:'flex', alignItems:'flex-start', gap:12, cursor:'pointer' }}>
-      <div onClick={onChange} style={{ width:16, height:16, border:`1px solid ${checked ? '#fff' : 'rgba(255,255,255,0.25)'}`, flexShrink:0, marginTop:2, display:'flex', alignItems:'center', justifyContent:'center', background: checked ? '#fff' : 'transparent', cursor:'pointer', transition:'all 0.15s' }}>
-        {checked && <span style={{ fontSize:9, color:'#000', fontWeight:700 }}>✓</span>}
-      </div>
-      <span style={{ fontSize:11, color:'rgba(255,255,255,0.5)', lineHeight:1.6 }}>{children}</span>
-    </label>
   )
 }
 
@@ -66,6 +61,7 @@ function draftSave(data: object) { try { sessionStorage.setItem(SESSION_KEY, JSO
 function draftLoad<T>(): T | null { try { const r = sessionStorage.getItem(SESSION_KEY); return r ? JSON.parse(r) : null } catch { return null } }
 function draftClear() { try { sessionStorage.removeItem(SESSION_KEY) } catch {} }
 
+// ── SHOPPER FORM — stays dark ──────────────────────────────────
 function ShopperForm({ onBack }: { onBack: () => void }) {
   const [name, setName]       = useState('')
   const [email, setEmail]     = useState('')
@@ -77,8 +73,7 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
   const router   = useRouter()
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true); setError('')
+    e.preventDefault(); setLoading(true); setError('')
     const { data, error: err } = await supabase.auth.signUp({ email, password })
     if (err) { setError(err.message); setLoading(false); return }
     if (data.user) await supabase.from('profiles').insert({ id: data.user.id, display_name: name, role: 'shopper', status: 'pending' })
@@ -93,7 +88,7 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 20px', overflowY:'auto' }}>
         <div style={{ width:'100%', maxWidth:320 }}>
           <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:30, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Create your account</h2>
-          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:32, fontWeight:300 }}>Discover products curated by people you trust.</p>
+          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:32 }}>Discover products curated by people you trust.</p>
           <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center' }}>{error}</p>}
             <input type="text"     placeholder="Full name"              value={name}     onChange={e => setName(e.target.value)}  required className={inp} />
@@ -109,36 +104,37 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
   )
 }
 
+// ── CREATOR FORM — WHITE ───────────────────────────────────────
 function CreatorForm({ onBack }: { onBack: () => void }) {
-  const [step, setStep]                                 = useState(1)
-  const [name, setName]                                 = useState('')
-  const [email, setEmail]                               = useState('')
-  const [password, setPass]                             = useState('')
-  const [countryCode, setCountryCode]                   = useState('+91')
-  const [phone, setPhone]                               = useState('')
-  const [city, setCity]                                 = useState('')
-  const [ageOk, setAgeOk]                               = useState(false)
-  const [primaryPlatform, setPrimaryPlatform]           = useState('')
-  const [primaryHandle, setPrimaryHandle]               = useState('')
-  const [primaryFollowers, setPrimaryFollowers]         = useState('')
-  const [secondaryPlatform, setSecondaryPlatform]       = useState('')
-  const [secondaryHandle, setSecondaryHandle]           = useState('')
-  const [secondaryFollowers, setSecondaryFollowers]     = useState('')
-  const [engagementRate, setEngagementRate]             = useState('')
-  const [niches, setNiches]                             = useState<string[]>([])
-  const [language, setLanguage]                         = useState('')
-  const [bio, setBio]                                   = useState('')
-  const [source, setSource]                             = useState('')
-  const [referral, setReferral]                         = useState('')
-  const [igConnected, setIgConnected]                   = useState(false)
-  const [igHandle, setIgHandle]                         = useState('')
-  const [upiId, setUpiId]                               = useState('')
-  const [panNumber, setPanNumber]                       = useState('')
-  const [agreedTos, setAgreedTos]                       = useState(false)
-  const [agreedAffiliate, setAgreedAffiliate]           = useState(false)
-  const [error, setError]                               = useState('')
-  const [loading, setLoading]                           = useState(false)
-  const [done, setDone]                                 = useState(false)
+  const [step, setStep]                             = useState(1)
+  const [name, setName]                             = useState('')
+  const [email, setEmail]                           = useState('')
+  const [password, setPass]                         = useState('')
+  const [countryCode, setCountryCode]               = useState('+91')
+  const [phone, setPhone]                           = useState('')
+  const [city, setCity]                             = useState('')
+  const [ageOk, setAgeOk]                           = useState(false)
+  const [primaryPlatform, setPrimaryPlatform]       = useState('')
+  const [primaryHandle, setPrimaryHandle]           = useState('')
+  const [primaryFollowers, setPrimaryFollowers]     = useState('')
+  const [secondaryPlatform, setSecondaryPlatform]   = useState('')
+  const [secondaryHandle, setSecondaryHandle]       = useState('')
+  const [secondaryFollowers, setSecondaryFollowers] = useState('')
+  const [engagementRate, setEngagementRate]         = useState('')
+  const [niches, setNiches]                         = useState<string[]>([])
+  const [language, setLanguage]                     = useState('')
+  const [bio, setBio]                               = useState('')
+  const [source, setSource]                         = useState('')
+  const [referral, setReferral]                     = useState('')
+  const [igConnected, setIgConnected]               = useState(false)
+  const [igHandle, setIgHandle]                     = useState('')
+  const [upiId, setUpiId]                           = useState('')
+  const [panNumber, setPanNumber]                   = useState('')
+  const [agreedTos, setAgreedTos]                   = useState(false)
+  const [agreedAffiliate, setAgreedAffiliate]       = useState(false)
+  const [error, setError]                           = useState('')
+  const [loading, setLoading]                       = useState(false)
+  const [done, setDone]                             = useState(false)
 
   const supabase = createClient()
   const router   = useRouter()
@@ -209,40 +205,39 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     } finally { setLoading(false) }
   }
 
-  if (done) return <PendingScreen title="Application received." sub="We'll review your profile and get back to you within 3–5 days. Keep creating." onHome={() => router.push('/')} />
+  if (done) return <PendingScreen dark={false} title="Application received." sub="We'll review your profile and get back to you within 3–5 days. Keep creating." onHome={() => router.push('/')} />
 
   const Dots = () => (
     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
       {[1,2,3,4,5].map((s,i) => (
         <div key={s} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <div style={{
-            width:20, height:20, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:9, border:'1px solid',
-            background: step > s ? '#fff' : step === s ? '#fff' : 'transparent',
-            borderColor: step > s ? '#fff' : step === s ? '#fff' : 'rgba(255,255,255,0.2)',
-            color: step > s ? '#000' : step === s ? '#000' : 'rgba(255,255,255,0.3)',
+            width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:9, fontWeight:500,
+            border:`1.5px solid ${step > s ? '#0A0A0A' : step === s ? '#0A0A0A' : '#D4D4D4'}`,
+            background: step > s ? '#0A0A0A' : step === s ? '#0A0A0A' : '#fff',
+            color: step > s ? '#fff' : step === s ? '#fff' : '#D4D4D4',
             transition:'all 0.15s'
           }}>
             {step > s ? '✓' : s}
           </div>
-          {i < 4 && <div style={{ width:16, height:0.5, background: step > s ? '#fff' : 'rgba(255,255,255,0.15)' }} />}
+          {i < 4 && <div style={{ width:14, height:1, background: step > s ? '#0A0A0A' : '#E5E5E5' }} />}
         </div>
       ))}
     </div>
   )
 
   const Nav = ({ onNext, label='NEXT', isSubmit=false, showBack=true }: { onNext:()=>void; label?:string; isSubmit?:boolean; showBack?:boolean }) => (
-    <div style={{ display:'flex', gap:8, marginTop:16 }}>
+    <div style={{ display:'flex', gap:10, marginTop:16 }}>
       {showBack && (
-        <button onClick={prev} style={{ flex:1, padding:'11px', border:'0.5px solid rgba(255,255,255,0.2)', background:'transparent', color:'rgba(255,255,255,0.4)', fontSize:11, letterSpacing:'0.08em', cursor:'pointer', fontFamily:'inherit' }}>
-          ← BACK
+        <button onClick={prev} style={{ flex:1, padding:'12px', border:'1px solid #E5E5E5', background:'#fff', color:'#6B6B6B', fontSize:11, letterSpacing:'0.08em', cursor:'pointer', fontFamily:'inherit', borderRadius:6 }}>
+          GO BACK
         </button>
       )}
       <button onClick={onNext} disabled={isSubmit && loading} style={{
-        flex: showBack ? 2 : 1, padding:'11px',
-        background: isSubmit ? '#fff' : '#fff',
-        color: '#000',
-        fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit',
+        flex: showBack ? 2 : 1, padding:'12px',
+        background:'#0A0A0A', color:'#fff',
+        fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit', borderRadius:6,
         opacity: (isSubmit && loading) ? 0.5 : 1
       }}>
         {isSubmit && loading ? 'SUBMITTING...' : label}
@@ -250,35 +245,51 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
     </div>
   )
 
-  const formStyle: React.CSSProperties = { display:'flex', flexDirection:'column', gap:12 }
-  const sectionLabel = (text: string) => <p style={{ fontSize:10, letterSpacing:'0.12em', color:'rgba(255,255,255,0.35)', textTransform:'uppercase', marginBottom:4 }}>{text}</p>
+  const SectionLabel = ({ children }: { children: string }) => (
+    <p style={{ fontSize:10, letterSpacing:'0.12em', color:'#9B9B9B', textTransform:'uppercase', marginBottom:6 }}>{children}</p>
+  )
+
+  const WhiteCheckbox = ({ checked, onChange, children }: { checked:boolean; onChange:()=>void; children:React.ReactNode }) => (
+    <label style={{ display:'flex', alignItems:'flex-start', gap:10, cursor:'pointer' }}>
+      <div onClick={onChange} style={{ width:16, height:16, border:`1.5px solid ${checked ? '#0A0A0A' : '#D4D4D4'}`, borderRadius:3, flexShrink:0, marginTop:2, display:'flex', alignItems:'center', justifyContent:'center', background: checked ? '#0A0A0A' : '#fff', cursor:'pointer', transition:'all 0.15s' }}>
+        {checked && <span style={{ fontSize:9, color:'#fff', fontWeight:700 }}>✓</span>}
+      </div>
+      <span style={{ fontSize:12, color:'#6B6B6B', lineHeight:1.6 }}>{children}</span>
+    </label>
+  )
+
+  const fs: React.CSSProperties = { display:'flex', flexDirection:'column', gap:12 }
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
-      <RoleHeader onBack={step > 1 ? prev : onBack} tag="For Creators">
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden', background:'#fff' }}>
+      <RoleHeader dark={false} onBack={step > 1 ? prev : onBack} tag="For Creators">
         <Dots />
       </RoleHeader>
-      <div style={{ flex:1, overflowY:'auto', padding:'24px 20px' }}>
-        <div style={{ width:'100%', maxWidth:320, margin:'0 auto' }}>
-          {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center', marginBottom:16 }}>{error}</p>}
+      <div style={{ flex:1, overflowY:'auto', padding:'28px 20px', background:'#fff' }}>
+        <div style={{ width:'100%', maxWidth:360, margin:'0 auto' }}>
+          {error && (
+            <div style={{ padding:'10px 14px', background:'#FFF5F5', border:'1px solid #FED7D7', borderRadius:6, marginBottom:16 }}>
+              <p style={{ fontSize:12, color:'#C53030' }}>{error}</p>
+            </div>
+          )}
 
           {step === 1 && <>
-            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Basic info</h2>
-            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Let's start with who you are.</p>
-            <div style={formStyle}>
-              <input type="text"     placeholder="Full name*"                    value={name}     onChange={e => setName(e.target.value)}  className={inp} />
-              <input type="email"    placeholder="Email address*"               value={email}    onChange={e => setEmail(e.target.value)} className={inp} />
-              <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPass(e.target.value)}  minLength={6} className={inp} />
-              <input type="text"     placeholder="City*"                        value={city}     onChange={e => setCity(e.target.value)}  className={inp} />
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', textAlign:'center', marginBottom:4 }}>Basic info</h2>
+            <p style={{ fontSize:13, color:'#6B6B6B', textAlign:'center', marginBottom:24 }}>Let's start with who you are.</p>
+            <div style={fs}>
+              <input type="text"     placeholder="Full name*"                    value={name}     onChange={e => setName(e.target.value)}  style={winp} />
+              <input type="email"    placeholder="Email address*"               value={email}    onChange={e => setEmail(e.target.value)} style={winp} />
+              <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPass(e.target.value)}  minLength={6} style={winp} />
+              <input type="text"     placeholder="City*"                        value={city}     onChange={e => setCity(e.target.value)}  style={winp} />
               <div style={{ display:'flex', gap:8 }}>
-                <select value={countryCode} onChange={e => setCountryCode(e.target.value)} style={{ width:72, padding:'10px 8px', background:'#111', border:'0.5px solid rgba(255,255,255,0.2)', color:'#fff', fontSize:12, outline:'none', appearance:'none', flexShrink:0 }}>
+                <select value={countryCode} onChange={e => setCountryCode(e.target.value)} style={{ ...wsel, width:80, flexShrink:0 }}>
                   {['+91','+1','+44','+971','+65'].map(c => <option key={c}>{c}</option>)}
                 </select>
-                <input type="tel" placeholder="Phone number* (10 digits)" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))} maxLength={10} className={inp} style={{ flex:1 }} />
+                <input type="tel" placeholder="Phone number* (10 digits)" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))} maxLength={10} style={{ ...winp, flex:1 }} />
               </div>
-              <Checkbox checked={ageOk} onChange={() => setAgeOk(a => !a)}>
+              <WhiteCheckbox checked={ageOk} onChange={() => setAgeOk(a => !a)}>
                 I confirm I am 18 years of age or older*
-              </Checkbox>
+              </WhiteCheckbox>
               <Nav onNext={() => {
                 if (!name || !email || !password) return setError('Please fill all required fields')
                 if (password.length < 6) return setError('Password must be at least 6 characters')
@@ -287,42 +298,40 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
                 if (!ageOk) return setError('You must confirm you are 18 or older')
                 next()
               }} showBack={false} />
-              <a href="/dashboard" style={{ display:'block', textAlign:'center', fontSize:10, color:'rgba(255,255,255,0.2)', letterSpacing:'0.08em', marginTop:8, textDecoration:'none', padding:'8px', border:'1px dashed rgba(255,255,255,0.1)' }}>
+              <a href="/dashboard" style={{ display:'block', textAlign:'center', fontSize:11, color:'#D4D4D4', padding:'8px', border:'1px dashed #E5E5E5', textDecoration:'none', borderRadius:4 }}>
                 ⚡ Preview dashboard (editor only)
               </a>
             </div>
           </>}
 
           {step === 2 && <>
-            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Your platforms</h2>
-            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>It's about taste, not follower count.</p>
-            <div style={formStyle}>
-              {sectionLabel('Primary Platform')}
-              <select value={primaryPlatform} onChange={e => setPrimaryPlatform(e.target.value)} className={sel}>
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', textAlign:'center', marginBottom:4 }}>Your platforms</h2>
+            <p style={{ fontSize:13, color:'#6B6B6B', textAlign:'center', marginBottom:24 }}>It's about taste, not follower count.</p>
+            <div style={fs}>
+              <SectionLabel>Primary platform</SectionLabel>
+              <select value={primaryPlatform} onChange={e => setPrimaryPlatform(e.target.value)} style={wsel}>
                 <option value="">Select platform*</option>
                 {PLATFORMS.map(p => <option key={p}>{p}</option>)}
               </select>
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                <input type="text" placeholder="Handle or profile URL*" value={primaryHandle} onChange={e => setPrimaryHandle(e.target.value)} className={inp} />
-                <select value={primaryFollowers} onChange={e => setPrimaryFollowers(e.target.value)} className={sel}>
-                  <option value="">Followers*</option>
-                  {FOLLOWERS.map(r => <option key={r}>{r}</option>)}
-                </select>
-              </div>
-              <select value={engagementRate} onChange={e => setEngagementRate(e.target.value)} className={sel}>
+              <input type="text" placeholder="Handle or profile URL*" value={primaryHandle} onChange={e => setPrimaryHandle(e.target.value)} style={winp} />
+              <select value={primaryFollowers} onChange={e => setPrimaryFollowers(e.target.value)} style={wsel}>
+                <option value="">Followers*</option>
+                {FOLLOWERS.map(r => <option key={r}>{r}</option>)}
+              </select>
+              <select value={engagementRate} onChange={e => setEngagementRate(e.target.value)} style={wsel}>
                 <option value="">Average engagement rate</option>
                 {ENG_RATES.map(r => <option key={r}>{r}</option>)}
               </select>
-              <div style={{ borderTop:'0.5px solid rgba(255,255,255,0.08)', paddingTop:12 }}>
-                {sectionLabel('Secondary Platform (optional)')}
-                <select value={secondaryPlatform} onChange={e => setSecondaryPlatform(e.target.value)} className={sel}>
+              <div style={{ borderTop:'1px solid #F0F0F0', paddingTop:12 }}>
+                <SectionLabel>Secondary platform (optional)</SectionLabel>
+                <select value={secondaryPlatform} onChange={e => setSecondaryPlatform(e.target.value)} style={{ ...wsel, marginTop:6 }}>
                   <option value="">Select platform</option>
                   {PLATFORMS.map(p => <option key={p}>{p}</option>)}
                 </select>
                 {secondaryPlatform && (
                   <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:8 }}>
-                    <input type="text" placeholder="Handle or profile URL" value={secondaryHandle} onChange={e => setSecondaryHandle(e.target.value)} className={inp} />
-                    <select value={secondaryFollowers} onChange={e => setSecondaryFollowers(e.target.value)} className={sel}>
+                    <input type="text" placeholder="Handle or profile URL" value={secondaryHandle} onChange={e => setSecondaryHandle(e.target.value)} style={winp} />
+                    <select value={secondaryFollowers} onChange={e => setSecondaryFollowers(e.target.value)} style={wsel}>
                       <option value="">Follower count</option>
                       {FOLLOWERS.map(r => <option key={r}>{r}</option>)}
                     </select>
@@ -337,33 +346,39 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
           </>}
 
           {step === 3 && <>
-            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Your content</h2>
-            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Tell us what makes your taste unique.</p>
-            <div style={formStyle}>
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', textAlign:'center', marginBottom:4 }}>Your content</h2>
+            <p style={{ fontSize:13, color:'#6B6B6B', textAlign:'center', marginBottom:24 }}>Tell us what makes your taste unique.</p>
+            <div style={fs}>
               <div>
-                {sectionLabel('Your niche*')}
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
+                <SectionLabel>Your niche*</SectionLabel>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:8 }}>
                   {NICHES.map(n => (
                     <button key={n} type="button" onClick={() => toggleNiche(n)} style={{
-                      fontSize:10, letterSpacing:'0.06em', padding:'6px 12px',
-                      border:`0.5px solid ${niches.includes(n) ? '#fff' : 'rgba(255,255,255,0.2)'}`,
-                      background: niches.includes(n) ? '#fff' : 'transparent',
-                      color: niches.includes(n) ? '#000' : 'rgba(255,255,255,0.5)',
-                      cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s'
+                      padding:'7px 14px', borderRadius:99,
+                      border:`1px solid ${niches.includes(n) ? '#0A0A0A' : '#E5E5E5'}`,
+                      background: niches.includes(n) ? '#0A0A0A' : '#fff',
+                      color: niches.includes(n) ? '#fff' : '#6B6B6B',
+                      fontSize:12, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s'
                     }}>{n}</button>
                   ))}
                 </div>
               </div>
-              <select value={language} onChange={e => setLanguage(e.target.value)} className={sel}>
-                <option value="">Content language*</option>
-                {LANGUAGES.map(l => <option key={l}>{l}</option>)}
-              </select>
-              <textarea placeholder="Describe your content style and aesthetic...*" value={bio} onChange={e => setBio(e.target.value)} rows={3} className={inp} style={{ resize:'none' }} />
-              <select value={source} onChange={e => setSource(e.target.value)} className={sel}>
+              <div>
+                <SectionLabel>Content language*</SectionLabel>
+                <select value={language} onChange={e => setLanguage(e.target.value)} style={{ ...wsel, marginTop:6 }}>
+                  <option value="">Select language</option>
+                  {LANGUAGES.map(l => <option key={l}>{l}</option>)}
+                </select>
+              </div>
+              <div>
+                <SectionLabel>Bio & content style*</SectionLabel>
+                <textarea placeholder="Describe your content style and aesthetic..." value={bio} onChange={e => setBio(e.target.value)} rows={3} style={{ ...winp, resize:'none', marginTop:6, lineHeight:1.6 }} />
+              </div>
+              <select value={source} onChange={e => setSource(e.target.value)} style={wsel}>
                 <option value="">How did you hear about us?</option>
                 {SOURCES.map(s => <option key={s}>{s}</option>)}
               </select>
-              <input type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} className={inp} />
+              <input type="text" placeholder="Referral code (optional)" value={referral} onChange={e => setReferral(e.target.value)} style={winp} />
               <Nav onNext={() => {
                 if (!niches.length || !language || !bio) return setError('Please fill niche, language, and bio')
                 next()
@@ -372,56 +387,51 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
           </>}
 
           {step === 4 && <>
-            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Verify Instagram</h2>
-            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Prove you own the account you're applying with.</p>
-            <div style={formStyle}>
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', textAlign:'center', marginBottom:4 }}>Verify Instagram</h2>
+            <p style={{ fontSize:13, color:'#6B6B6B', textAlign:'center', marginBottom:24 }}>Prove you own the account you're applying with.</p>
+            <div style={fs}>
               {igConnected
-                ? <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', border:'0.5px solid rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.05)' }}>
-                    <div style={{ width:32, height:32, borderRadius:'50%', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', color:'#000', fontSize:14, flexShrink:0 }}>✓</div>
+                ? <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', border:'1px solid #E5E5E5', borderRadius:6, background:'#FAFAFA' }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', background:'#0A0A0A', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, flexShrink:0 }}>✓</div>
                     <div>
-                      <p style={{ fontSize:12, color:'#fff', fontWeight:500 }}>@{igHandle}</p>
-                      <p style={{ fontSize:10, color:'rgba(255,255,255,0.4)' }}>Instagram confirmed</p>
+                      <p style={{ fontSize:13, color:'#0A0A0A', fontWeight:500 }}>@{igHandle}</p>
+                      <p style={{ fontSize:11, color:'#9B9B9B' }}>Instagram verified</p>
                     </div>
                   </div>
-                : <button onClick={connectInstagram} style={{ width:'100%', padding:'12px', background:'linear-gradient(to right, #833ab4, #fd1d1d, #fcb045)', color:'#fff', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
-                    CONNECT INSTAGRAM
+                : <button onClick={connectInstagram} style={{ width:'100%', padding:'13px', background:'linear-gradient(to right, #833ab4, #fd1d1d, #fcb045)', color:'#fff', fontSize:12, letterSpacing:'0.06em', border:'none', cursor:'pointer', fontFamily:'inherit', borderRadius:6 }}>
+                    Connect Instagram
                   </button>
               }
-              <Nav onNext={next} label={igConnected ? 'NEXT' : 'SKIP & CONTINUE →'} />
-              {!igConnected && <p style={{ fontSize:10, color:'rgba(255,255,255,0.2)', textAlign:'center' }}>You can verify from your dashboard after approval.</p>}
+              <Nav onNext={next} label={igConnected ? 'NEXT' : 'SKIP FOR NOW →'} />
+              {!igConnected && <p style={{ fontSize:12, color:'#9B9B9B', textAlign:'center' }}>You can verify from your dashboard after approval.</p>}
             </div>
           </>}
 
           {step === 5 && <>
-            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:4 }}>Payouts & agreement</h2>
-            <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', textAlign:'center', marginBottom:20, fontWeight:300 }}>Almost there. Set up how you'll get paid.</p>
-            <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+            <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300, color:'#0A0A0A', textAlign:'center', marginBottom:4 }}>Payouts & agreement</h2>
+            <p style={{ fontSize:13, color:'#6B6B6B', textAlign:'center', marginBottom:24 }}>Almost there. Set up how you'll get paid.</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
               <div>
-                {sectionLabel('UPI ID')}
-                <input type="text" placeholder="e.g. priya@okicici*" value={upiId} onChange={e => setUpiId(e.target.value)} className={inp} style={{ marginTop:6 }} />
-                <p style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:6, fontFamily:'monospace' }}>Your 80% commission is transferred here monthly once balance crosses ₹100.</p>
+                <SectionLabel>UPI ID</SectionLabel>
+                <input type="text" placeholder="e.g. yourname@okicici*" value={upiId} onChange={e => setUpiId(e.target.value)} style={{ ...winp, marginTop:6 }} />
+                <p style={{ fontSize:12, color:'#9B9B9B', marginTop:6, lineHeight:1.5 }}>Your 80% commission is transferred here monthly once balance crosses ₹100.</p>
               </div>
               <div>
-                {sectionLabel('PAN Number')}
-                <input type="text" placeholder="e.g. ABCDE1234F*" value={panNumber} onChange={e => setPanNumber(e.target.value.toUpperCase())} maxLength={10} className={inp} style={{ marginTop:6 }} />
-                <p style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:6, fontFamily:'monospace' }}>Required for earnings above ₹50,000/year. Never shared with brands.</p>
+                <SectionLabel>PAN Number</SectionLabel>
+                <input type="text" placeholder="e.g. ABCDE1234F*" value={panNumber} onChange={e => setPanNumber(e.target.value.toUpperCase())} maxLength={10} style={{ ...winp, marginTop:6 }} />
+                <p style={{ fontSize:12, color:'#9B9B9B', marginTop:6, lineHeight:1.5 }}>Required for earnings above ₹50,000/year. Never shared with brands.</p>
               </div>
-              <div style={{ borderTop:'0.5px solid rgba(255,255,255,0.08)', paddingTop:16, display:'flex', flexDirection:'column', gap:12 }}>
-                {sectionLabel('Agreements')}
-                <Checkbox checked={agreedTos} onChange={() => setAgreedTos(a => !a)}>
-                  I agree to the{' '}
-                  <a href="/terms" target="_blank" style={{ color:'rgba(255,255,255,0.7)', textDecoration:'underline' }}>Terms & Conditions</a>
-                  {' '}and{' '}
-                  <a href="/privacy" target="_blank" style={{ color:'rgba(255,255,255,0.7)', textDecoration:'underline' }}>Privacy Policy</a>*
-                </Checkbox>
-                <Checkbox checked={agreedAffiliate} onChange={() => setAgreedAffiliate(a => !a)}>
-                  I agree to the{' '}
-                  <a href="/affiliate-policy" target="_blank" style={{ color:'rgba(255,255,255,0.7)', textDecoration:'underline' }}>Affiliate & Commission Policy</a>,
-                  including the 80% commission structure and monthly payout schedule*
-                </Checkbox>
+              <div style={{ borderTop:'1px solid #F0F0F0', paddingTop:16, display:'flex', flexDirection:'column', gap:12 }}>
+                <SectionLabel>Agreements</SectionLabel>
+                <WhiteCheckbox checked={agreedTos} onChange={() => setAgreedTos(a => !a)}>
+                  I agree to the <a href="/terms" target="_blank" style={{ color:'#0A0A0A', textDecoration:'underline' }}>Terms & Conditions</a> and <a href="/privacy" target="_blank" style={{ color:'#0A0A0A', textDecoration:'underline' }}>Privacy Policy</a>*
+                </WhiteCheckbox>
+                <WhiteCheckbox checked={agreedAffiliate} onChange={() => setAgreedAffiliate(a => !a)}>
+                  I agree to the <a href="/affiliate-policy" target="_blank" style={{ color:'#0A0A0A', textDecoration:'underline' }}>Affiliate & Commission Policy</a>, including the 80% commission structure*
+                </WhiteCheckbox>
               </div>
-              <Nav onNext={() => submit(false)} label="SUBMIT APPLICATION →" isSubmit />
-              <button onClick={() => submit(true)} style={{ background:'none', border:'1px dashed rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.2)', fontSize:10, letterSpacing:'0.08em', padding:'8px', cursor:'pointer', fontFamily:'inherit' }}>
+              <Nav onNext={() => submit(false)} label="SUBMIT APPLICATION" isSubmit />
+              <button onClick={() => submit(true)} style={{ background:'none', border:'1px dashed #E5E5E5', color:'#D4D4D4', fontSize:11, letterSpacing:'0.06em', padding:'10px', cursor:'pointer', fontFamily:'inherit', borderRadius:4 }}>
                 ⚡ Skip payouts & submit (testing only)
               </button>
             </div>
@@ -433,6 +443,7 @@ function CreatorForm({ onBack }: { onBack: () => void }) {
   )
 }
 
+// ── BRAND FORM — stays dark ────────────────────────────────────
 function BrandForm({ onBack }: { onBack: () => void }) {
   const [company,  setCompany]  = useState('')
   const [email,    setEmail]    = useState('')
@@ -461,7 +472,7 @@ function BrandForm({ onBack }: { onBack: () => void }) {
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 20px', overflowY:'auto' }}>
         <div style={{ width:'100%', maxWidth:320 }}>
           <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Partner with CurateKin</h2>
-          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:28, fontWeight:300 }}>No one pushes your product like the people who love it.</p>
+          <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:28 }}>No one pushes your product like the people who love it.</p>
           <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center' }}>{error}</p>}
             <input type="text"  placeholder="Brand / company name*" value={company}  onChange={e => setCompany(e.target.value)}  required className={inp} />
@@ -486,6 +497,7 @@ function BrandForm({ onBack }: { onBack: () => void }) {
   )
 }
 
+// ── MAIN SIGNUP PAGE ───────────────────────────────────────────
 export default function SignupPage() {
   const [role, setRole] = useState<Role>(null)
 
@@ -503,56 +515,26 @@ export default function SignupPage() {
       <div style={{ position:'fixed', inset:0, zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:'12px' }}>
         <div style={{ position:'relative', width:'100%', maxWidth:1100, background:'#000', boxShadow:'0 32px 80px rgba(0,0,0,0.6)', display:'flex', flexDirection:'column', height:'min(760px,95vh)' }}>
 
-          {/* Close button */}
-          <button
-            onClick={(e) => { e.stopPropagation(); window.history.back() }}
-            style={{ position:'absolute', top:16, right:16, zIndex:60, width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,0.08)', border:'none', color:'rgba(255,255,255,0.6)', fontSize:22, cursor:'pointer', borderRadius:'50%', lineHeight:1 }}>
-            ×
-          </button>
+          <button onClick={goHome} style={{ position:'absolute', top:16, right:16, zIndex:60, width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(255,255,255,0.08)', border:'none', color:'rgba(255,255,255,0.6)', fontSize:22, cursor:'pointer', borderRadius:'50%', lineHeight:1 }}>×</button>
 
           {!role && (
             <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
-              {/* Role cards */}
-              <div style={{ flex:1, display:'grid', gridTemplateColumns:'repeat(3,1fr)', overflow:'hidden' }}
-                className="max-sm:grid-cols-1 max-sm:overflow-y-auto">
+              <div style={{ flex:1, display:'grid', gridTemplateColumns:'repeat(3,1fr)', overflow:'hidden' }}>
                 {ROLE_CARDS.map(card => (
-                  <button
-                    key={card.role}
-                    onClick={() => setRole(card.role)}
+                  <button key={card.role} onClick={() => setRole(card.role)}
                     style={{ position:'relative', overflow:'hidden', textAlign:'left', display:'flex', flexDirection:'column', minHeight:220, border:'none', padding:0, cursor:'pointer' }}
                     onMouseEnter={e => { const bg = e.currentTarget.querySelector('.card-bg') as HTMLElement; if (bg) bg.style.transform='scale(1.05)' }}
                     onMouseLeave={e => { const bg = e.currentTarget.querySelector('.card-bg') as HTMLElement; if (bg) bg.style.transform='scale(1)' }}>
-                    {/* Photo */}
-                    <div className="card-bg" style={{
-                      position:'absolute', inset:0,
-                      backgroundImage:`url(${card.image})`,
-                      backgroundSize:'cover', backgroundPosition:'center',
-                      transition:'transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)'
-                    }} />
-                    {/* Gradient overlay */}
+                    <div className="card-bg" style={{ position:'absolute', inset:0, backgroundImage:`url(${card.image})`, backgroundSize:'cover', backgroundPosition:'center', transition:'transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)' }} />
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.1) 100%)' }} />
-                    {/* Content pinned to bottom */}
                     <div style={{ position:'relative', zIndex:2, display:'flex', flexDirection:'column', justifyContent:'flex-end', flex:1, padding:28 }}>
-                      <h3 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontWeight:300, color:'#fff', lineHeight:1, marginBottom:10, letterSpacing:'-0.01em' }}>
-                        {card.title}
-                      </h3>
-                      <p style={{ fontSize:12, color:'rgba(255,255,255,0.55)', fontWeight:300, lineHeight:1.6, marginBottom:24, minHeight:36 }}>
-                        {card.sub}
-                      </p>
-                      <span style={{
-                        display:'inline-block', padding:'10px 22px',
-                        border:'1px solid rgba(255,255,255,0.5)',
-                        fontSize:10, letterSpacing:'0.12em', color:'#fff',
-                        fontFamily:'DM Sans, sans-serif', alignSelf:'flex-start',
-                        transition:'background 0.2s, color 0.2s'
-                      }}>
-                        {card.btn}
-                      </span>
+                      <h3 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontWeight:300, color:'#fff', lineHeight:1, marginBottom:10, letterSpacing:'-0.01em' }}>{card.title}</h3>
+                      <p style={{ fontSize:12, color:'rgba(255,255,255,0.55)', fontWeight:300, lineHeight:1.6, marginBottom:24, minHeight:36 }}>{card.sub}</p>
+                      <span style={{ display:'inline-block', padding:'10px 22px', border:'1px solid rgba(255,255,255,0.5)', fontSize:10, letterSpacing:'0.12em', color:'#fff', fontFamily:'DM Sans, sans-serif', alignSelf:'flex-start' }}>{card.btn}</span>
                     </div>
                   </button>
                 ))}
               </div>
-              {/* Bottom bar */}
               <div style={{ borderTop:'0.5px solid rgba(255,255,255,0.08)', padding:'14px', textAlign:'center', flexShrink:0, background:'#000' }}>
                 <p style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>
                   Already have an account?{' '}
