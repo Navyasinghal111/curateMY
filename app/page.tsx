@@ -44,7 +44,7 @@ const TONES = [
 export default function Home() {
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Fanwood+Text:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -59,7 +59,7 @@ export default function Home() {
           --burg:  #8B1A1A;
           --br:    rgba(20,18,16,0.08);
           --br-w:  rgba(255,255,255,0.1);
-          --serif: 'Cormorant Garamond', Georgia, serif;
+          --serif: 'Fanwood Text', 'Cormorant Garamond', Georgia, serif;
           --sans:  'DM Sans', system-ui, sans-serif;
         }
         html  { scroll-behavior: smooth; }

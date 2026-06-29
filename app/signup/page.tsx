@@ -23,7 +23,7 @@ function PendingScreen({ title, sub, onHome }: { title: string; sub: string; onH
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, padding:'64px 24px', textAlign:'center' }}>
       <div style={{ width:44, height:44, border:'1px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, fontSize:18, color:'#fff' }}>✓</div>
       <p style={{ fontSize:10, letterSpacing:'0.2em', color:'rgba(255,255,255,0.4)', marginBottom:12, textTransform:'uppercase' }}>Status — Received</p>
-      <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#fff', marginBottom:16 }}>{title}</h1>
+      <h1 style={{ fontFamily:'Fanwood Text, serif', fontSize:28, fontWeight:300, color:'#fff', marginBottom:16 }}>{title}</h1>
       <p style={{ fontSize:12, color:'rgba(255,255,255,0.5)', fontWeight:300, lineHeight:1.7, maxWidth:280, marginBottom:32 }}>{sub}</p>
       <button onClick={onHome} style={{ padding:'11px 32px', background:'#fff', color:'#000', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
         BACK TO CURATEKIN
@@ -66,7 +66,7 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
       <RoleHeader onBack={onBack} tag="For Shoppers" />
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 20px', overflowY:'auto' }}>
         <div style={{ width:'100%', maxWidth:320 }}>
-          <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:30, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Create your account</h2>
+          <h2 style={{ fontFamily:'Fanwood Text, serif', fontSize:30, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Create your account</h2>
           <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:32 }}>Discover products curated by people you trust.</p>
           <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center' }}>{error}</p>}
@@ -110,7 +110,7 @@ function BrandForm({ onBack }: { onBack: () => void }) {
       <RoleHeader onBack={onBack} tag="For Brands" />
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 20px', overflowY:'auto' }}>
         <div style={{ width:'100%', maxWidth:320 }}>
-          <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Partner with CurateKin</h2>
+          <h2 style={{ fontFamily:'Fanwood Text, serif', fontSize:28, fontWeight:300, color:'#fff', textAlign:'center', marginBottom:8 }}>Partner with CurateKin</h2>
           <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', textAlign:'center', marginBottom:28 }}>No one pushes your product like the people who love it.</p>
           <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
             {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center' }}>{error}</p>}
@@ -174,7 +174,7 @@ export default function SignupPage() {
                     <div className="card-bg" style={{ position:'absolute', inset:0, backgroundImage:`url(${card.image})`, backgroundSize:'cover', backgroundPosition:'center', transition:'transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94)' }} />
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.1) 100%)' }} />
                     <div style={{ position:'relative', zIndex:2, display:'flex', flexDirection:'column', justifyContent:'flex-end', flex:1, padding:28 }}>
-                      <h3 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:52, fontWeight:300, color:'#fff', lineHeight:1, marginBottom:10, letterSpacing:'-0.01em' }}>{card.title}</h3>
+                      <h3 style={{ fontFamily:'Fanwood Text, serif', fontSize:52, fontWeight:300, color:'#fff', lineHeight:1, marginBottom:10, letterSpacing:'-0.01em' }}>{card.title}</h3>
                       <p style={{ fontSize:12, color:'rgba(255,255,255,0.55)', fontWeight:300, lineHeight:1.6, marginBottom:24, minHeight:36 }}>{card.sub}</p>
                       <span style={{ display:'inline-block', padding:'10px 22px', border:'1px solid rgba(255,255,255,0.5)', fontSize:10, letterSpacing:'0.12em', color:'#fff', fontFamily:'DM Sans, sans-serif', alignSelf:'flex-start' }}>{card.btn}</span>
                     </div>

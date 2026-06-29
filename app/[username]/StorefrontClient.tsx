@@ -30,7 +30,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
   return (
     <div style={{ background:'#F0EDE8', minHeight:'100vh', fontFamily:'DM Sans, system-ui, sans-serif', color:'#1a1a1a' }}>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Fanwood+Text:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
 
@@ -50,7 +50,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .card:hover{box-shadow:0 8px 32px rgba(26,26,26,0.12)}
         .cimg{aspect-ratio:3/4;background:#E8E4DE;display:flex;align-items:center;justify-content:center;overflow:hidden}
         .cimg img{width:100%;height:100%;object-fit:contain;padding:12px}
-        .cph{font-family:'Cormorant Garamond',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
+        .cph{font-family:'Fanwood Text',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
         .cbody{padding:12px 14px 16px}
         .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#aaa;margin-bottom:4px}
         .ctitle{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.4;margin-bottom:6px}
@@ -113,7 +113,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
       {/* ── Nav ── */}
       <nav className="nav-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 48px', background:'#F0EDE8' }}>
-        <a href="/" className="nav-logo" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:26, fontWeight:400, color:'#1a1a1a', textDecoration:'none' }}>
+        <a href="/" className="nav-logo" style={{ fontFamily:'Fanwood Text, serif', fontSize:26, fontWeight:400, color:'#1a1a1a', textDecoration:'none' }}>
           Curate<em style={{ fontStyle:'italic', color:'#8B1A1A' }}>Kin</em>
         </a>
         <div className="nav-desktop-search" style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -155,11 +155,11 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         <div className="bio-avatar" style={{ width:64, height:64, borderRadius:'50%', background:'#D4B896', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
           {creator.avatar_url
             ? <img src={creator.avatar_url} alt={creator.display_name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-            : <span style={{ fontFamily:'Cormorant Garamond, serif', fontSize:22, fontStyle:'italic', color:'#fff' }}>{initials}</span>
+            : <span style={{ fontFamily:'Fanwood Text, serif', fontSize:22, fontStyle:'italic', color:'#fff' }}>{initials}</span>
           }
         </div>
         <div style={{ flex:1, minWidth:0 }}>
-          <h1 className="bio-name" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:400, color:'#1a1a1a', marginBottom:4 }}>{creator.display_name}</h1>
+          <h1 className="bio-name" style={{ fontFamily:'Fanwood Text, serif', fontSize:28, fontWeight:400, color:'#1a1a1a', marginBottom:4 }}>{creator.display_name}</h1>
           <div className="bio-meta" style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
             {creator.city && <span style={{ fontSize:12, color:'#888' }}>{creator.city}</span>}
             {creator.instagram_handle && (

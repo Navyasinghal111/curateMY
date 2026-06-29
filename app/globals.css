@@ -2,7 +2,7 @@
 
 /* ── CurateKin Design System ─────────────────────────────────────
    Theme: White editorial — clean, luxury, minimal
-   Fonts: Cormorant Garamond (serif) + DM Sans (sans)
+   Fonts: Fanwood Text + Cormorant Garamond (serif) + DM Sans (sans)
    Palette: White + near-black + single gold accent
 ──────────────────────────────────────────────────────────────── */
 
@@ -29,7 +29,7 @@
   --border-strong: rgba(0, 0, 0, 0.2);
 
   /* Typography */
-  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-serif: 'Fanwood Text', 'Cormorant Garamond', Georgia, serif;
   --font-sans:  'DM Sans', system-ui, -apple-system, sans-serif;
   --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
 
