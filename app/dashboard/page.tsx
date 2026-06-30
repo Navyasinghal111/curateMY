@@ -249,10 +249,10 @@ export default function DashboardHome() {
 
       {/* Profile header */}
       <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-        <div style={{ width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, flexShrink:0 }}>
+        <div style={{ width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F3E9DD', border:'1px solid #E8D8C3', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, flexShrink:0 }}>
           {profile.avatar_url
             ? <img src={profile.avatar_url} alt={profile.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-            : <span style={{ ...S, fontSize:36, color:'rgba(0,0,0,0.15)' }}>{profile.name?.[0]?.toUpperCase() || '?'}</span>}
+            : <span style={{ ...S, fontSize:40, fontWeight:400, color:'#B07D4A' }}>{profile.name?.[0]?.toUpperCase() || '?'}</span>}
         </div>
         <p style={{ fontSize:14, fontStyle:'italic', fontFamily:'Cormorant Garamond, serif', color:'#9B9B9B', marginBottom:4 }}>Curated by</p>
         <h1 style={{ ...S, fontSize:36, lineHeight:1.1, marginBottom:10 }}>{profile.name || 'Creator'}</h1>
