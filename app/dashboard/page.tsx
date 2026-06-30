@@ -7,6 +7,7 @@ const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JE
 const PRODUCT_CATS = ['Apparel','Coats & Outerwear','Footwear','Bags & Purses','Jewelry & Watches','Makeup','Skincare','Haircare']
 
 type Product = { id:string; title:string; brand:string; price:string; image_url:string; product_url:string; category:string; wishlisted?:boolean }
+type Profile = { name:string; username:string; avatar_url:string; followers:number }
 
 const db = () => createClient()
 const INP: React.CSSProperties = { width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }
@@ -140,6 +141,7 @@ export default function DashboardHome() {
   const [search,   setSearch]   = useState('')
   const [modal,    setModal]    = useState(false)
   const [openMenu, setOpenMenu] = useState<string|null>(null)
+  const [profile,  setProfile]  = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0 })
   const supabase = db()
 
   useEffect(() => {
@@ -156,6 +158,43 @@ export default function DashboardHome() {
       setProducts(data ?? [])
     }
     load()
+  }, [])
+
+  // Profile header data — tries the `profiles` table first, falls back to
+  // auth user metadata, then to a generic placeholder. Safe even if the
+  // `profiles` table or its columns don't exist yet.
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data:{ user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const fallbackName = (user.user_metadata?.full_name as string) || (user.email ? user.email.split('@')[0] : 'Creator')
+      const fallbackUsername = (user.user_metadata?.username as string) || fallbackName.toLowerCase().replace(/\s+/g,'')
+      const fallbackAvatar = (user.user_metadata?.avatar_url as string) || ''
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, username, avatar_url, followers, follower_count')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (error || !data) {
+          setProfile({ name: fallbackName, username: fallbackUsername, avatar_url: fallbackAvatar, followers: 0 })
+          return
+        }
+
+        setProfile({
+          name: data.full_name || fallbackName,
+          username: data.username || fallbackUsername,
+          avatar_url: data.avatar_url || fallbackAvatar,
+          followers: data.followers ?? data.follower_count ?? 0,
+        })
+      } catch {
+        setProfile({ name: fallbackName, username: fallbackUsername, avatar_url: fallbackAvatar, followers: 0 })
+      }
+    }
+    loadProfile()
   }, [])
 
   const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>p.category?.toUpperCase()===t).length
@@ -207,6 +246,20 @@ export default function DashboardHome() {
         .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
         .addbtn:hover{background:#333}
       `}</style>
+
+      {/* Profile header */}
+      <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+        <div style={{ width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, flexShrink:0 }}>
+          {profile.avatar_url
+            ? <img src={profile.avatar_url} alt={profile.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+            : <span style={{ ...S, fontSize:36, color:'rgba(0,0,0,0.15)' }}>{profile.name?.[0]?.toUpperCase() || '?'}</span>}
+        </div>
+        <p style={{ fontSize:14, fontStyle:'italic', fontFamily:'Cormorant Garamond, serif', color:'#9B9B9B', marginBottom:4 }}>Curated by</p>
+        <h1 style={{ ...S, fontSize:36, lineHeight:1.1, marginBottom:10 }}>{profile.name || 'Creator'}</h1>
+        <p style={{ fontSize:12, color:'#9B9B9B', letterSpacing:'0.04em' }}>
+          @{profile.username} · {profile.followers.toLocaleString('en-IN')} followers
+        </p>
+      </div>
 
       {/* Category tabs */}
       <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', overflowX:'auto', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
