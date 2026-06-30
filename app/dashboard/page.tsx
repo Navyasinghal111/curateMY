@@ -177,7 +177,7 @@ export default function DashboardHome() {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, username, avatar_url, followers, follower_count')
+          .select('display_name, username, avatar_url')
           .eq('id', user.id)
           .maybeSingle()
 
@@ -187,10 +187,10 @@ export default function DashboardHome() {
         }
 
         setProfile({
-          name: data.full_name || fallbackName,
+          name: data.display_name || fallbackName,
           username: data.username || fallbackUsername,
           avatar_url: data.avatar_url || fallbackAvatar,
-          followers: data.followers ?? data.follower_count ?? 0,
+          followers: 0,
         })
       } catch {
         setProfile({ name: fallbackName, username: fallbackUsername, avatar_url: fallbackAvatar, followers: 0 })
@@ -200,8 +200,10 @@ export default function DashboardHome() {
   }, [])
 
   // Upload a new avatar photo: stores the file in Supabase Storage under
-  // the `avatars` bucket, then saves the public URL to the profiles row
-  // and updates the screen immediately.
+  // the `avatars` bucket, then saves the public URL to the profiles row.
+  // Checks whether a row already exists first, then does an explicit
+  // UPDATE or INSERT — avoids relying on upsert/onConflict working
+  // correctly against a constraint we haven't fully verified.
   const uploadAvatar = async (file: File) => {
     const { data:{ user } } = await supabase.auth.getUser()
     if (!user) return
@@ -212,12 +214,34 @@ export default function DashboardHome() {
       if (upErr) { alert('Could not upload photo: ' + upErr.message); setUploadingAvatar(false); return }
       const publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
 
-      const { error: dbErr } = await supabase
+      // Check if a profile row already exists for this user
+      const { data: existing } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, avatar_url: publicUrl }, { onConflict: 'id' })
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      let dbErr = null
+
+      if (existing) {
+        // Row exists — just update the avatar, leave username untouched
+        const { error } = await supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrl })
+          .eq('id', user.id)
+        dbErr = error
+      } else {
+        // No row yet — create one with a generated username
+        const fallbackUsername = (user.email ? user.email.split('@')[0] : `user${user.id.slice(0,8)}`)
+        const { error } = await supabase
+          .from('profiles')
+          .insert({ id: user.id, avatar_url: publicUrl, username: fallbackUsername, display_name: fallbackUsername })
+        dbErr = error
+      }
+
       if (dbErr) { alert('Photo uploaded but could not save to profile: ' + dbErr.message); setUploadingAvatar(false); return }
 
-      setProfile(prev => ({ ...prev, avatar_url: publicUrl }))
+      setProfile(prev => ({ ...prev, avatar_url: publicUrl, username: prev.username || existing?.username || '' }))
     } catch (err) {
       alert('Something went wrong uploading the photo.')
     }
@@ -280,7 +304,7 @@ export default function DashboardHome() {
         <div
           onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
           className="avatar-upload"
-          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F3E9DD', border:'1px solid #E8D8C3', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, flexShrink:0, cursor:'pointer' }}
+          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F0EDE8', border:'1.5px solid #C8C4BC', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, flexShrink:0, cursor:'pointer' }}
         >
           {profile.avatar_url
             ? <img src={profile.avatar_url} alt={profile.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -298,7 +322,7 @@ export default function DashboardHome() {
           onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = '' }}
           style={{ display:'none' }}
         />
-        <p style={{ fontSize:14, fontStyle:'italic', fontFamily:'Cormorant Garamond, serif', color:'#9B9B9B', marginBottom:4 }}>Curated by</p>
+        <p style={{ fontSize:14, fontStyle:'italic', fontFamily:'Cormorant Garamond, serif', color:'#5C5C5C', marginBottom:4 }}>Curated by</p>
         <h1 style={{ ...S, fontSize:36, lineHeight:1.1, marginBottom:10 }}>{profile.name || 'Creator'}</h1>
         <p style={{ fontSize:12, color:'#9B9B9B', letterSpacing:'0.04em' }}>
           @{profile.username} · {profile.followers.toLocaleString('en-IN')} followers
