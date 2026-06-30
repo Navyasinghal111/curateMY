@@ -142,6 +142,8 @@ export default function DashboardHome() {
   const [modal,    setModal]    = useState(false)
   const [openMenu, setOpenMenu] = useState<string|null>(null)
   const [profile,  setProfile]  = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0 })
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
   const supabase = db()
 
   useEffect(() => {
@@ -197,6 +199,31 @@ export default function DashboardHome() {
     loadProfile()
   }, [])
 
+  // Upload a new avatar photo: stores the file in Supabase Storage under
+  // the `avatars` bucket, then saves the public URL to the profiles row
+  // and updates the screen immediately.
+  const uploadAvatar = async (file: File) => {
+    const { data:{ user } } = await supabase.auth.getUser()
+    if (!user) return
+    setUploadingAvatar(true)
+    try {
+      const path = `${user.id}/${Date.now()}.${file.name.split('.').pop()}`
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert:true })
+      if (upErr) { alert('Could not upload photo: ' + upErr.message); setUploadingAvatar(false); return }
+      const publicUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, avatar_url: publicUrl }, { onConflict: 'id' })
+      if (dbErr) { alert('Photo uploaded but could not save to profile: ' + dbErr.message); setUploadingAvatar(false); return }
+
+      setProfile(prev => ({ ...prev, avatar_url: publicUrl }))
+    } catch (err) {
+      alert('Something went wrong uploading the photo.')
+    }
+    setUploadingAvatar(false)
+  }
+
   const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>p.category?.toUpperCase()===t).length
 
   const filtered = products.filter(p => {
@@ -245,21 +272,39 @@ export default function DashboardHome() {
         .ditem.red i{color:#E53E3E}
         .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
         .addbtn:hover{background:#333}
+        .avatar-upload:hover .avatar-overlay{opacity:1}
       `}</style>
 
       {/* Profile header */}
       <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-        <div style={{ width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F3E9DD', border:'1px solid #E8D8C3', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, flexShrink:0 }}>
+        <div
+          onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
+          className="avatar-upload"
+          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F3E9DD', border:'1px solid #E8D8C3', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, flexShrink:0, cursor:'pointer' }}
+        >
           {profile.avatar_url
             ? <img src={profile.avatar_url} alt={profile.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
             : <span style={{ ...S, fontSize:40, fontWeight:400, color:'#B07D4A' }}>{profile.name?.[0]?.toUpperCase() || '?'}</span>}
+          <div className="avatar-overlay" style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', opacity: uploadingAvatar ? 1 : 0, transition:'opacity 0.15s' }}>
+            <span style={{ fontSize:10, color:'#fff', letterSpacing:'0.05em', textTransform:'uppercase' }}>
+              {uploadingAvatar ? 'Uploading…' : 'Change photo'}
+            </span>
+          </div>
         </div>
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = '' }}
+          style={{ display:'none' }}
+        />
         <p style={{ fontSize:14, fontStyle:'italic', fontFamily:'Cormorant Garamond, serif', color:'#9B9B9B', marginBottom:4 }}>Curated by</p>
         <h1 style={{ ...S, fontSize:36, lineHeight:1.1, marginBottom:10 }}>{profile.name || 'Creator'}</h1>
         <p style={{ fontSize:12, color:'#9B9B9B', letterSpacing:'0.04em' }}>
           @{profile.username} · {profile.followers.toLocaleString('en-IN')} followers
         </p>
       </div>
+
 
       {/* Category tabs */}
       <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', overflowX:'auto', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
