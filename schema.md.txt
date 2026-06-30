@@ -1,0 +1,83 @@
+# CurateKin — Database Schema Reference
+
+Last updated: confirmed live by SQL diagnostic query, this session.
+Keep this file updated any time a table is created or changed — saves
+re-diagnosing structure from scratch every session.
+
+---
+
+## `profiles`
+
+Stores creator account info shown on the dashboard profile header and
+(eventually) public storefront pages.
+
+| Column         | Type      | Notes                                      |
+|----------------|-----------|---------------------------------------------|
+| `id`           | uuid      | Matches `auth.users.id`. Confirmed exists.  |
+| `username`     | text      | NOT NULL — confirmed by error message.      |
+| `display_name` | text      | The creator's shown name (e.g. "Navya").    |
+| `bio`          | text      | Free text, e.g. "love love" in test data.   |
+| `avatar_url`   | text      | Nullable. Public Storage URL once uploaded. |
+| `created_at`   | timestamp | Auto-set.                                   |
+
+**NOT confirmed / likely missing:**
+- No `followers` or `follower_count` column exists yet. Follower count
+  in the dashboard is currently hardcoded to 0.
+- Primary key / unique constraint on `id` was never fully confirmed via
+  diagnostic — the avatar upload code was rewritten to do an explicit
+  check-then-update-or-insert specifically to avoid depending on this.
+
+**Storage bucket:** `avatars` (public). RLS policies: anyone can view,
+only the owning user (matched by folder name = their user id) can
+insert/update/delete.
+
+---
+
+## `storefront_products`
+
+Stores each product a creator adds to their closet/storefront.
+
+| Column        | Type    | Notes                                              |
+|---------------|---------|------------------------------------------------------|
+| `id`          | uuid    | Primary key (used in product URLs: `/r/{id}`)         |
+| `creator_id`  | uuid    | Matches `auth.users.id` / `profiles.id`               |
+| `title`       | text    | Product name                                          |
+| `brand`       | text    |                                                        |
+| `price`       | text    | Stored as string with ₹ symbol, e.g. "₹2499"          |
+| `image_url`   | text    | Public Storage URL                                    |
+| `product_url` | text    | Original shop link (Nykaa/Amazon/Myntra/etc)          |
+| `category`    | text    | One of the PRODUCT_CATS list, e.g. "Skincare"         |
+| `description` | text    | Optional notes field                                  |
+| `active`      | boolean | Used for soft-delete — "Remove" sets this false        |
+| `wishlisted`  | boolean | Toggled via three-dot menu                            |
+| `created_at`  | timestamp | Auto-set, used for sort order                       |
+
+**Storage bucket:** `product-images` (referenced in code, assumed to
+already exist and work — not diagnosed this session since no bugs
+were hit there).
+
+---
+
+## Tables that DON'T exist yet (known gaps)
+
+- Followers / follows table (needed for real follower counts + shopper
+  "follow a creator" feature)
+- Any shopper-side table (saved items, browsing history, etc.)
+- Earnings / payouts table
+- Cuelinks integration data (click tracking, commission records)
+
+---
+
+## How to re-verify this file against the live database
+
+If something seems off, run this in Supabase SQL Editor:
+
+```sql
+select table_name, column_name, data_type, is_nullable
+from information_schema.columns
+where table_schema = 'public'
+order by table_name, ordinal_position;
+```
+
+This lists every table and column in one shot — paste the result back
+into a chat with Claude to update this file.
