@@ -97,10 +97,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {/* Right — search + avatar */}
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 16px', borderLeft:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
             <input placeholder="Search your closet" style={{ background:'rgba(255,255,255,0.07)', border:'0.5px solid rgba(255,255,255,0.12)', color:'#fff', padding:'6px 14px', fontSize:12, outline:'none', fontFamily:'inherit', width:180, borderRadius:3 }} />
-            <a href={`/${profile?.username}`} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize:11, color:'rgba(255,255,255,0.5)', textDecoration:'none', letterSpacing:'0.08em', border:'0.5px solid rgba(255,255,255,0.2)', padding:'6px 14px', whiteSpace:'nowrap', transition:'all 0.15s' }}>
-              VIEW STOREFRONT ↗
-            </a>
 
             {/* Avatar + dropdown */}
             <div style={{ position:'relative' }}>
