@@ -265,10 +265,10 @@ export default function DashboardHome() {
                   {p.image_url ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                     : <span style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.1)' }}>{p.title?.[0]}</span>}
                 </div>
-                <div style={{ padding:'10px 12px 8px' }}>
+                <div style={{ padding:'10px 12px 8px', display:'flex', flexDirection:'column', minHeight:96 }}>
                   <p style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#9B9B9B', marginBottom:3 }}>{p.brand}</p>
-                  <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:5 }}>{p.title}</p>
-                  <p style={{ ...S, fontSize:15 }}>{p.price}</p>
+                  <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
+                  <p style={{ ...S, fontSize:15, marginTop:'auto' }}>{p.price}</p>
                 </div>
                 <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', margin:'0 12px 12px', padding:'7px', background:'#0A0A0A', color:'#fff', fontSize:10, letterSpacing:'0.1em', textAlign:'center', textDecoration:'none' }}>
