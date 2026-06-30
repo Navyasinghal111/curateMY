@@ -214,7 +214,9 @@ export default function DashboardHome() {
   const supabase = db()
 
   useEffect(() => {
-    const close = () => setOpenMenu(null)
+    const close = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('.tdot, .dmenu')) setOpenMenu(null)
+    }
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [])
