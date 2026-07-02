@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -6,19 +7,28 @@ export async function GET(
   { params }: { params: Promise<{ productId: string }> }
 ) {
   const { productId } = await params
-  const supabase = createClient()
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll() } }
+  )
 
   const { data: product } = await supabase
-    .from('products')
-    .select('affiliate_url')
+    .from('storefront_products')
+    .select('product_url')
     .eq('id', productId)
     .single()
 
-  if (!product) {
+  if (!product?.product_url) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  await supabase.from('clicks').insert({ product_id: productId })
+  // Log the click, but never let a logging failure block the redirect —
+  // the shopper reaching the product matters more than the click record.
+  try {
+    await supabase.from('clicks').insert({ product_id: productId })
+  } catch {}
 
-  return NextResponse.redirect(product.affiliate_url)
+  return NextResponse.redirect(product.product_url)
 }

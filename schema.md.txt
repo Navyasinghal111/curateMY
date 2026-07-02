@@ -1,83 +1,94 @@
-# CurateKin — Database Schema Reference
+# CurateKin — MVP Plan & Progress
 
-Last updated: confirmed live by SQL diagnostic query, this session.
-Keep this file updated any time a table is created or changed — saves
-re-diagnosing structure from scratch every session.
+Last updated: today's session (auto-fill fix, storefront discovery, redirect fix)
 
 ---
 
-## `profiles`
+## What "MVP" means for CurateKin
 
-Stores creator account info shown on the dashboard profile header and
-(eventually) public storefront pages.
+The one loop that has to work for CurateKin to be a real product:
 
-| Column         | Type      | Notes                                      |
-|----------------|-----------|---------------------------------------------|
-| `id`           | uuid      | Matches `auth.users.id`. Confirmed exists.  |
-| `username`     | text      | NOT NULL — confirmed by error message.      |
-| `display_name` | text      | The creator's shown name (e.g. "Navya").    |
-| `bio`          | text      | Free text, e.g. "love love" in test data.   |
-| `avatar_url`   | text      | Nullable. Public Storage URL once uploaded. |
-| `created_at`   | timestamp | Auto-set.                                   |
+**Creator curates a product → publishes it on their storefront → a shopper finds and browses it → shopper clicks → shopper reaches the real product → (eventually) creator earns commission.**
 
-**NOT confirmed / likely missing:**
-- No `followers` or `follower_count` column exists yet. Follower count
-  in the dashboard is currently hardcoded to 0.
-- Primary key / unique constraint on `id` was never fully confirmed via
-  diagnostic — the avatar upload code was rewritten to do an explicit
-  check-then-update-or-insert specifically to avoid depending on this.
-
-**Storage bucket:** `avatars` (public). RLS policies: anyone can view,
-only the owning user (matched by folder name = their user id) can
-insert/update/delete.
+Everything else — follower counts, earnings dashboards, chat, gifting — is decoration until this loop works end to end. As of today, **this loop works**, with one piece (real commission tracking) still pending an external approval.
 
 ---
 
-## `storefront_products`
+## MVP Checklist
 
-Stores each product a creator adds to their closet/storefront.
+| # | Piece | Status |
+|---|-------|--------|
+| 1 | Creator account + dashboard to manage products | ✅ Done |
+| 2 | Add product manually | ✅ Done |
+| 3 | Auto-fill product details from a pasted link | ✅ Fixed today (Nykaa, Myntra, Amazon, Flipkart, generic sites via ScraperAPI) |
+| 4 | Auto-detect product category | ✅ Fixed today |
+| 5 | Edit an existing product | ✅ Fixed today |
+| 6 | Creator profile (photo, name, bio) | ✅ Done |
+| 7 | Public storefront page per creator (`/username`) | ✅ Already built — confirmed working today |
+| 8 | "Shop Now" buttons take shoppers to the real product | ✅ Fixed today (was pointing to the wrong database table/column) |
+| 9 | Site accessible to real visitors (not gated) | ⏳ Currently gated behind an access-key "under construction" mode — needs a decision on when to open it |
+| 10 | Real affiliate commission tracking (Cuelinks) | ⏳ Blocked — application not yet submitted |
+| 11 | Way for shoppers to discover creators (directory/browse page) | ❌ Not built yet |
 
-| Column        | Type    | Notes                                              |
-|---------------|---------|------------------------------------------------------|
-| `id`          | uuid    | Primary key (used in product URLs: `/r/{id}`)         |
-| `creator_id`  | uuid    | Matches `auth.users.id` / `profiles.id`               |
-| `title`       | text    | Product name                                          |
-| `brand`       | text    |                                                        |
-| `price`       | text    | Stored as string with ₹ symbol, e.g. "₹2499"          |
-| `image_url`   | text    | Public Storage URL                                    |
-| `product_url` | text    | Original shop link (Nykaa/Amazon/Myntra/etc)          |
-| `category`    | text    | One of the PRODUCT_CATS list, e.g. "Skincare"         |
-| `description` | text    | Optional notes field                                  |
-| `active`      | boolean | Used for soft-delete — "Remove" sets this false        |
-| `wishlisted`  | boolean | Toggled via three-dot menu                            |
-| `created_at`  | timestamp | Auto-set, used for sort order                       |
-
-**Storage bucket:** `product-images` (referenced in code, assumed to
-already exist and work — not diagnosed this session since no bugs
-were hit there).
+Rows 1–8 are the actual MVP loop, and they all work now. Rows 9–11 are what stands between "works when I test it" and "ready for real shoppers."
 
 ---
 
-## Tables that DON'T exist yet (known gaps)
+## What got done today, in order
 
-- Followers / follows table (needed for real follower counts + shopper
-  "follow a creator" feature)
-- Any shopper-side table (saved items, browsing history, etc.)
-- Earnings / payouts table
-- Cuelinks integration data (click tracking, commission records)
+1. **Profile header** — clickable avatar upload, real name/username pulled from the `profiles` table, follower count placeholder, positioned above category tabs (ShopMy-style layout)
+2. **Fixed a data bug** — dashboard was reading a column called `full_name` that didn't exist; real column is `display_name`
+3. **Three-dot product menu** — was silently closing itself the instant it opened; fixed the click-outside logic
+4. **Edit product** — built from scratch; previously did nothing when clicked
+5. **Auto-fill scraper rebuilt** — previous version failed on almost every Indian site; now uses ScraperAPI with site-specific extractors for Nykaa/Myntra/Amazon/Flipkart plus a generic fallback for everything else
+6. **Auto-category detection** — product category now guesses itself from the title/description (e.g. anything mentioning "hair" → Haircare)
+7. **Discovered the public storefront already existed** — `app/[username]/page.tsx` was already built in a previous session; confirmed it works correctly with real data
+8. **Found and fixed a critical bug in the buy-link redirect** — it was querying a table/column (`products` / `affiliate_url`) that don't exist; every "Shop Now" click was silently failing and sending shoppers back to the homepage. Fixed to use the real table/columns (`storefront_products` / `product_url`)
+9. **Found the access-key gate** — `proxy.ts` has `SITE_LIVE = false`, which blocks all visitors except those with `?key=billiondollarcompany` in the URL. This explains earlier confusion about pages "not working" — they were being gated, not broken
 
 ---
 
-## How to re-verify this file against the live database
+## What's left before this is a real, public MVP
 
-If something seems off, run this in Supabase SQL Editor:
+**1. Apply to Cuelinks** (cuelinks.com, Publisher account) — takes ~10 min to apply, a few days to get approved. Once approved, "Shop Now" links get wrapped with real affiliate tracking instead of plain redirects.
 
-```sql
-select table_name, column_name, data_type, is_nullable
-from information_schema.columns
-where table_schema = 'public'
-order by table_name, ordinal_position;
-```
+**2. Decide when to flip `SITE_LIVE` to `true`** in `proxy.ts` — this is the switch that takes the whole site out of "under construction" mode for real visitors. Until this flips, only people with the secret key can see anything.
 
-This lists every table and column in one shot — paste the result back
-into a chat with Claude to update this file.
+**3. Build a creator discovery page** — right now, the only way to find a creator's storefront is to already know their username. There's no `curatekin.com/creators` or similar directory page yet. Without this, shoppers have no way to find anyone.
+
+---
+
+## Honest assessment — risks worth naming
+
+**Things get lost between sessions.** Today we discovered a fully-built public storefront page that already existed and worked, and an access-key gate (`SITE_LIVE = false` in `proxy.ts`, key: `billiondollarcompany`) quietly blocking every real visitor — neither documented anywhere before today. This is a real pattern, not a one-off: undocumented work gets "re-discovered" instead of built on.
+
+**Today's work wasn't linear.** We moved from avatar styling → SQL diagnostics → auto-fill → category logic → storefront discovery → a critical redirect bug, mostly reactively as each bug surfaced the next. Partly unavoidable, partly avoidable with more upfront planning per session.
+
+**The terminal/git/VS Code layer has been a consistent source of friction** — "why won't localhost load," "what does git push do," files pasted into the wrong folder. This is a normal place to be without a dev background, but it has cost real time today and is worth solving directly rather than repeatedly working around.
+
+**Fix going forward:**
+- Start each session by opening this doc and picking one thing to focus on, rather than letting scope drift
+- Keep "check the actual file/database before writing new code" as the default for everything, not just schema questions
+- Seriously consider having one technical person handle git/deployment/environment setup for a few hours, freeing time for product decisions instead of terminal commands
+
+---
+
+## Supabase-specific friction (raised today)
+
+Supabase itself is a reasonable choice and isn't the core problem — but today's *use* of it was slow, for identifiable reasons:
+
+- **No schema map existed until partway through today.** Every bug required stopping to dig through SQL Editor to find real column names (`full_name` vs `display_name`, missing `followers` column, etc.) — reactive discovery instead of known facts. `SCHEMA.md` should fix this, but only if kept updated.
+- **Supabase recently split API keys into two systems** — new "Publishable/Secret" keys vs the old "Legacy anon/service_role" keys — and the codebase expects the old naming. This is a genuinely confusing transition Supabase itself made, not a mistake on our end.
+- **Raw SQL queries were used for things the visual Table Editor would answer in seconds** (e.g. "what columns does this table have"). SQL is right for actual changes; it's overkill for a quick look.
+
+**Fix going forward:**
+- Use the **Table Editor** tab (not SQL Editor) for quick "what's in this table" checks
+- Keep `SCHEMA.md` updated any time a table changes, so we stop re-diagnosing from scratch
+- Write SQL only when actually changing the database, always explained clearly before running
+
+---
+
+- **Check the actual file/database before writing new code.** Several bugs today (column names, the redirect table, the access key) were found by reading existing files first instead of guessing — this should stay the default move, not the exception.
+- **Test locally when possible**, using `npm run dev` and `localhost:3000`, before pushing to the live site.
+- **Remember `git add . && git commit -m "..." && git push`** is the real save-and-deploy sequence — "git save" is not a real command.
+- **The schema reference file** (`SCHEMA.md`, saved in the project root) should get updated if the database structure changes again.
