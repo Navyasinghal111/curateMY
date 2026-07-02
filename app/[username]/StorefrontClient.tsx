@@ -45,17 +45,20 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         /* ── Product grid ── */
         .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
 
-        /* ── Product card ── */
-        .card{background:#fff;overflow:hidden;transition:box-shadow 0.2s;text-decoration:none;color:inherit;display:block}
+        /* ── Product card — fixed body height so titles of any length
+               produce equal cards. The image area is already equal
+               (aspect-ratio:3/4); .cbody now locks the same way. ── */
+        .card{background:#fff;overflow:hidden;transition:box-shadow 0.2s;text-decoration:none;color:inherit;display:flex;flex-direction:column}
         .card:hover{box-shadow:0 8px 32px rgba(26,26,26,0.12)}
-        .cimg{aspect-ratio:3/4;background:#E8E4DE;display:flex;align-items:center;justify-content:center;overflow:hidden}
-        .cimg img{width:100%;height:100%;object-fit:contain;padding:12px}
+        .cimg{aspect-ratio:3/4;background:#E8E4DE;position:relative;overflow:hidden}
+        .cimg-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+        .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;padding:12px}
         .cph{font-family:'Fanwood Text',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
-        .cbody{padding:12px 14px 16px}
-        .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#aaa;margin-bottom:4px}
-        .ctitle{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.4;margin-bottom:6px}
-        .cprice{font-family:'Cormorant Garamond',serif;font-size:17px;color:#1a1a1a}
-        .cbuy{display:block;margin:10px 14px 14px;padding:9px;background:#1a1a1a;color:#fff;font-size:11px;letter-spacing:0.08em;text-align:center;text-decoration:none;border:none;cursor:pointer;font-family:inherit;transition:background 0.15s}
+        .cbody{padding:12px 14px 16px;display:flex;flex-direction:column;height:118px}
+        .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#aaa;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ctitle{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.4;margin-bottom:6px;height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .cprice{font-family:'Cormorant Garamond',serif;font-size:17px;color:#1a1a1a;margin-top:auto}
+        .cbuy{display:block;margin:0 14px 14px;padding:9px;background:#1a1a1a;color:#fff;font-size:11px;letter-spacing:0.08em;text-align:center;text-decoration:none;border:none;cursor:pointer;font-family:inherit;transition:background 0.15s}
         .cbuy:hover{background:#333}
 
         /* ── Search input ── */
@@ -67,45 +70,29 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
         /* ── MOBILE BREAKPOINT ── */
         @media (max-width: 768px) {
-          /* Nav */
           .nav-desktop-search { display: none !important }
           .mobile-search { display: block }
           .nav-wrap { padding: 16px 20px !important }
           .nav-logo { font-size: 22px !important }
-
-          /* Bio section */
           .bio-wrap { padding: 20px 20px 16px !important; flex-direction: column !important; align-items: flex-start !important; gap: 12px !important }
           .bio-right { align-self: flex-start !important; text-align: left !important }
           .bio-name { font-size: 22px !important }
           .bio-meta { gap: 10px !important }
           .bio-avatar { width: 52px !important; height: 52px !important }
-
-          /* Tabs */
           .tab-bar-inner { padding: 0 20px !important }
           .tab { padding: 12px 14px !important; font-size: 10px !important }
-
-          /* Grid — 2 columns on mobile */
           .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important }
-
-          /* Grid padding */
           .grid-wrap { padding: 20px 16px 60px !important }
-
-          /* Card tweaks for small screen */
-          .cbody { padding: 8px 10px 10px !important }
+          .cbody { padding: 8px 10px 10px !important; height: 108px !important }
           .ctitle { font-size: 12px !important }
           .cbrand { font-size: 8px !important }
           .cprice { font-size: 15px !important }
           .cbuy { margin: 6px 10px 10px !important; padding: 8px !important; font-size: 10px !important }
-
-          /* Empty state */
           .empty-state { padding: 60px 20px !important }
-
-          /* Footer */
           .footer-wrap { padding: 16px 20px !important; flex-direction: column !important; gap: 10px !important; align-items: flex-start !important }
         }
 
         @media (max-width: 480px) {
-          /* Single column on very small phones */
           .grid { grid-template-columns: repeat(2, 1fr) !important }
           .bio-name { font-size: 20px !important }
         }
@@ -131,7 +118,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
             </a>
           )}
         </div>
-        {/* Mobile: show ADD PIECE if owner */}
         {isOwner && (
           <a href="/dashboard/products"
             className="mobile-add-btn"
@@ -205,7 +191,11 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
             {filtered.map(p => (
               <div key={p.id} className="card">
                 <div className="cimg">
-                  {p.image ? <img src={p.image} alt={p.title} /> : <div className="cph">{p.title[0]}</div>}
+                  <div className="cimg-fallback"><span className="cph">{p.title[0]}</span></div>
+                  {p.image && (
+                    <img src={p.image} alt={p.title}
+                      onError={e => { e.currentTarget.style.display = 'none' }} />
+                  )}
                 </div>
                 <div className="cbody">
                   <p className="cbrand">{p.brand}</p>
