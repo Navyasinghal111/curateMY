@@ -1,67 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-async function tryFetch(url: string): Promise<string | null> {
-  const proxies = [
-    // Proxy 1: ScraperAPI free tier
-    `https://api.scraperapi.com?url=${encodeURIComponent(url)}&render=false`,
-    // Proxy 2: AllOrigins
-    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    // Proxy 3: corsproxy
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    // Proxy 4: thingproxy
-    `https://thingproxy.freeboard.io/fetch/${url}`,
-  ]
+const KEY = process.env.SCRAPER_API_KEY
+const scrapeUrl = (url: string, render = false) =>
+  `https://api.scraperapi.com?api_key=${KEY}&url=${encodeURIComponent(url)}&render=${render}&country_code=in`
 
-  // Try direct with browser-like headers first
-  try {
-    const res = await fetch(url, {
+async function fetchHtml(url: string): Promise<string | null> {
+  const attempts: (() => Promise<Response>)[] = [
+    ...(KEY ? [
+      () => fetch(scrapeUrl(url), { signal: AbortSignal.timeout(15000) }),
+      () => fetch(scrapeUrl(url, true), { signal: AbortSignal.timeout(20000) }),
+    ] : []),
+    () => fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-IN,en;q=0.9,hi;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Upgrade-Insecure-Requests': '1',
+        'Accept-Language': 'en-IN,en;q=0.9',
       },
       signal: AbortSignal.timeout(8000),
-    })
-    if (res.ok) {
-      const text = await res.text()
-      if (text.length > 500 && (text.includes('og:title') || text.includes('<title'))) {
-        return text
-      }
-    }
-  } catch {}
+    }),
+    () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(10000) }),
+  ]
 
-  // Try proxies
-  for (const proxy of proxies) {
+  for (const attempt of attempts) {
     try {
-      const res = await fetch(proxy, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CurateKin/1.0)' },
-        signal: AbortSignal.timeout(10000),
-      })
+      const res = await attempt()
       if (!res.ok) continue
-
-      let text = ''
-      if (proxy.includes('allorigins')) {
-        const json = await res.json()
-        text = json?.contents ?? ''
-      } else {
-        text = await res.text()
-      }
-
-      if (text.length > 500) return text
+      const isAllOrigins = res.url?.includes('allorigins')
+      const text = isAllOrigins ? (await res.json())?.contents : await res.text()
+      if (text?.length > 500) return text
     } catch {}
   }
-
   return null
 }
 
-function get(html: string, patterns: RegExp[]): string {
+const g = (html: string, patterns: RegExp[]): string => {
   for (const p of patterns) {
     const m = html.match(p)
     if (m?.[1]?.trim()) return m[1].trim()
@@ -69,13 +40,73 @@ function get(html: string, patterns: RegExp[]): string {
   return ''
 }
 
-function cleanTitle(title: string): string {
-  return title
-    .replace(/ \| .*$/, '')
-    .replace(/ - .*$/, '')
-    .replace(/ – .*$/, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+const decodeEntities = (s: string) => s
+  .replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&amp;/g, '&')
+  .replace(/&quot;/g, '"').replace(/&#x2F;/g, '/').replace(/&nbsp;/g, ' ')
+
+const cleanTitle = (t: string) => decodeEntities(t).replace(/ [|\-] .*$/, '').replace(/\s+/g, ' ').trim()
+const cleanPrice = (p: string) => p.replace(/,/g, '').replace(/[^0-9.]/g, '')
+
+function extract(html: string, domain: string, parsed: URL) {
+  const is = (s: string) => domain.includes(s)
+
+  const title = g(html, [
+    ...(is('amazon') ? [/id="productTitle"[^>]*>\s*([^<]+)/i] : []),
+    ...(is('flipkart') ? [/class="[^"]*B_NuCI[^"]*"[^>]*>([^<]+)/] : []),
+    ...(is('myntra') ? [/"name":"([^"]+)","type"/] : []),
+    /property="og:title"[\s\S]{0,20}content="([^"]+)"/i,
+    /content="([^"]+)"[\s\S]{0,20}property="og:title"/i,
+    /<title[^>]*>([^<]+)/i,
+  ])
+
+  const price = g(html, [
+    ...(is('amazon') ? [/class="[^"]*a-price-whole[^"]*"[^>]*>([0-9,]+)/] : []),
+    ...(is('flipkart') ? [/class="[^"]*_30jeq3[^"]*"[^>]*>([0-9,]+)/] : []),
+    /"(?:price|offer_price|discounted_price|discountedPrice|selling_price|mrp)":[\s"]*([0-9,]+)/,
+    /property="og:price:amount"[\s\S]{0,20}content="([^"]+)"/i,
+    /class="[^"]*price[^"]*"[^>]*>\s*[^0-9]*([0-9,]+)/,
+  ])
+
+  let image = g(html, [
+    ...(is('amazon') ? [/"(?:hiRes|large)":"(https[^"]+)"/] : []),
+    ...(is('flipkart') ? [/"url":"(https:\/\/rukminim[^"]+)"/] : []),
+    /property="og:image"[\s\S]{0,20}content="([^"]+)"/i,
+    /content="([^"]+)"[\s\S]{0,20}property="og:image"/i,
+    /name="twitter:image"[\s\S]{0,20}content="([^"]+)"/i,
+  ])
+  if (image?.startsWith('//')) image = `https:${image}`
+  else if (image?.startsWith('/')) image = `${parsed.protocol}//${parsed.host}${image}`
+
+  const brand = g(html, [
+    /"(?:brand|brandName)":"([^"]+)"/,
+    /"brand"[^}]{0,80}"name":\s*"([^"]+)"/i,
+    /property="og:(?:brand|site_name)"[\s\S]{0,20}content="([^"]+)"/i,
+  ]) || domain.split('.')[0].replace(/^./, c => c.toUpperCase())
+
+  return { title, price, image, brand }
+}
+
+// ── auto-detect category from title/description/url ───────────────
+function detectCategory(title: string, description: string, url: string): string {
+  const text = `${title} ${description} ${url}`.toLowerCase()
+
+  // Order matters: more specific / compound terms checked first so
+  // e.g. "hair serum" matches Haircare before generic "serum" matches Skincare
+  const map: [string[], string][] = [
+    [['hair','shampoo','conditioner','scalp'], 'Haircare'],
+    [['lipstick','foundation','concealer','mascara','eyeliner','eyeshadow','blush','bronzer','highlighter','makeup','kajal','kohl','primer','setting spray','contour','lip gloss','lip liner','bb cream','cc cream'], 'Makeup'],
+    [['face serum','face wash','face cream','face mask','moisturiser','moisturizer','sunscreen','spf','toner','cleanser','retinol','vitamin c serum','hyaluronic','niacinamide','exfoliant','scrub','micellar','skincare','skin care'], 'Skincare'],
+    [['sneaker','boot','heel','sandal','loafer','flat shoe','pump','mule','slipper','footwear','stiletto','wedge','kolhapuri','mojari'], 'Footwear'],
+    [['handbag','tote bag','clutch','backpack','sling bag','wallet','purse','satchel','crossbody','pouch','duffel'], 'Bags & Purses'],
+    [['necklace','earring','finger ring','bracelet','wrist watch','bangle','anklet','pendant','brooch','jewellery','jewelry','chain necklace','choker'], 'Jewelry & Watches'],
+    [['jacket','overcoat','blazer','trench coat','parka','windbreaker','shrug','cape','outerwear'], 'Coats & Outerwear'],
+    [['dress','kurta','saree','lehenga','jeans','trouser','skirt','shorts','co-ord','jumpsuit','romper','palazzo','salwar','kurti','tshirt','t-shirt','sweater','hoodie','sweatshirt','cardigan','leggings','tank top','blouse','shirt','top'], 'Apparel'],
+  ]
+
+  for (const [keywords, category] of map) {
+    if (keywords.some(k => text.includes(k))) return category
+  }
+  return 'Skincare' // default
 }
 
 export async function POST(req: NextRequest) {
@@ -88,74 +119,26 @@ export async function POST(req: NextRequest) {
     catch { return NextResponse.json({ error: 'Invalid URL' }, { status: 400 }) }
 
     const domain = parsed.hostname.replace('www.', '')
-    const html = await tryFetch(parsed.href)
+    const html = await fetchHtml(parsed.href)
+    if (!html) return NextResponse.json({ error: 'Could not fetch product. Fill in manually.', url: parsed.href }, { status: 422 })
 
-    if (!html) {
-      return NextResponse.json({
-        error: 'Could not fetch product details automatically. Please fill in the details manually.',
-        url: parsed.href,
-      }, { status: 422 })
-    }
+    const raw = extract(html, domain, parsed)
+    const title = cleanTitle(raw.title)
+    const brand = decodeEntities(raw.brand)
+    const priceNum = cleanPrice(raw.price)
+    const isIndian = domain.endsWith('.in') || ['nykaa','myntra','flipkart','ajio','meesho'].some(s => domain.includes(s))
+    const price = priceNum ? `${isIndian ? '₹' : '$'}${priceNum}` : ''
+    const description = decodeEntities(g(html, [
+      /property="og:description"[\s\S]{0,20}content="([^"]+)"/i,
+      /name="description"[\s\S]{0,20}content="([^"]+)"/i,
+    ]))
 
-    // Title
-    const rawTitle = get(html, [
-      /property="og:title"\s+content="([^"]+)"/i,
-      /content="([^"]+)"\s+property="og:title"/i,
-      /<title[^>]*>([^<]+)/i,
-    ])
-    const title = cleanTitle(rawTitle)
+    if (!title && !raw.image) return NextResponse.json({ error: 'Could not read this page. Try pasting the image URL manually.', url: parsed.href }, { status: 422 })
 
-    // Image
-    let image = get(html, [
-      /property="og:image"\s+content="([^"]+)"/i,
-      /content="([^"]+)"\s+property="og:image"/i,
-      /property="og:image:secure_url"\s+content="([^"]+)"/i,
-      /name="twitter:image:src"\s+content="([^"]+)"/i,
-      /name="twitter:image"\s+content="([^"]+)"/i,
-    ])
-    if (image?.startsWith('//')) image = `https:${image}`
-    else if (image?.startsWith('/')) image = `${parsed.protocol}//${parsed.host}${image}`
+    const category = detectCategory(title, description, parsed.href)
 
-    // Price
-    let price = get(html, [
-      /property="og:price:amount"\s+content="([^"]+)"/i,
-      /property="product:price:amount"\s+content="([^"]+)"/i,
-      /"price":\s*"([0-9,]+\.?[0-9]*)"/,
-      /"selling_price":\s*([0-9]+)/,
-      /"mrp":\s*([0-9]+)/,
-      /class="[^"]*price[^"]*"[^>]*>\s*[₹$]?\s*([0-9,]+)/,
-    ])
-    price = price.replace(/,/g, '')
-
-    const currency = domain.endsWith('.in') || ['nykaa','myntra','flipkart','ajio','amazon.in','meesho'].some(s => domain.includes(s)) ? 'INR' : 'USD'
-    const sym: Record<string,string> = { INR:'₹', USD:'$', GBP:'£', EUR:'€' }
-    const formattedPrice = price ? `${sym[currency] ?? '₹'}${price}` : ''
-
-    // Brand
-    const brand = get(html, [
-      /property="og:brand"\s+content="([^"]+)"/i,
-      /property="product:brand"\s+content="([^"]+)"/i,
-      /"brand"[^}]{0,50}"name":\s*"([^"]+)"/i,
-      /itemprop="brand"[^>]*>\s*([^<]+)/i,
-      /property="og:site_name"\s+content="([^"]+)"/i,
-    ]) || domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1)
-
-    // Description
-    const description = get(html, [
-      /property="og:description"\s+content="([^"]+)"/i,
-      /name="description"\s+content="([^"]+)"/i,
-    ])
-
-    if (!title && !image) {
-      return NextResponse.json({
-        error: 'Could not read this page. Try right-clicking the product image → Copy image address, then paste it in the image field.',
-        url: parsed.href,
-      }, { status: 422 })
-    }
-
-    return NextResponse.json({ title, description, image, price: formattedPrice, brand, url: parsed.href, domain })
-
-  } catch (err) {
+    return NextResponse.json({ title, description, image: raw.image, price, brand, category, url: parsed.href, domain })
+  } catch {
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 }
