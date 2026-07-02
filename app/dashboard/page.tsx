@@ -113,7 +113,6 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       if (d.price) setPrice(d.price.replace(/[₹$£€]/g,''))
       if (d.image) { setImg(d.image); setPreview(d.image) }
       if (d.url)   setShopLink(d.url)
-      if (d.category) setCat(d.category)
       setMsg({ text:'Details filled — review below', type:'ok' })
     } catch { setMsg({ text:'Could not fetch. Fill manually.', type:'err' }) }
     setScraping(false)
