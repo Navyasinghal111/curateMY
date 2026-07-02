@@ -82,6 +82,27 @@ function extract(html: string, domain: string, parsed: URL) {
   return { title, price, image, brand }
 }
 
+// ── auto-detect category from title/description/url ───────────────
+function detectCategory(title: string, description: string, url: string): string {
+  const text = `${title} ${description} ${url}`.toLowerCase()
+
+  const map: [string[], string][] = [
+    [['skincare','serum','moisturiser','moisturizer','sunscreen','spf','toner','face wash','cleanser','face cream','face mask','retinol','vitamin c','hyaluronic','niacinamide','exfoliant','scrub','micellar'], 'Skincare'],
+    [['lipstick','foundation','concealer','mascara','eyeliner','eyeshadow','blush','bronzer','highlighter','makeup','kajal','kohl','primer','setting spray','contour','lip gloss','lip liner','bb cream','cc cream'], 'Makeup'],
+    [['shampoo','conditioner','hair mask','hair oil','hair serum','hair color','hair colour','dry shampoo','hair spray','hair gel','scalp','hair care','haircare','biotin'], 'Haircare'],
+    [['sneaker','boot','heel','sandal','loafer','flat','pump','mule','slipper','shoe','footwear','stiletto','wedge','kolhapuri','mojari'], 'Footwear'],
+    [['handbag','tote','clutch','backpack','sling','wallet','purse','bag','satchel','crossbody','pouch','duffel'], 'Bags & Purses'],
+    [['necklace','earring','ring','bracelet','watch','bangle','anklet','pendant','brooch','jewellery','jewelry','chain','choker'], 'Jewelry & Watches'],
+    [['jacket','coat','blazer','overcoat','trench','parka','windbreaker','shrug','cape','outerwear'], 'Coats & Outerwear'],
+    [['dress','top','shirt','blouse','kurta','saree','lehenga','jeans','trouser','skirt','shorts','co-ord','jumpsuit','romper','palazzo','salwar','kurti','tshirt','t-shirt','sweater','hoodie','sweatshirt','cardigan','leggings','tank'], 'Apparel'],
+  ]
+
+  for (const [keywords, category] of map) {
+    if (keywords.some(k => text.includes(k))) return category
+  }
+  return 'Skincare' // default
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json()
@@ -107,7 +128,9 @@ export async function POST(req: NextRequest) {
 
     if (!title && !raw.image) return NextResponse.json({ error: 'Could not read this page. Try pasting the image URL manually.', url: parsed.href }, { status: 422 })
 
-    return NextResponse.json({ title, description, image: raw.image, price, brand: raw.brand, url: parsed.href, domain })
+    const category = detectCategory(title, description, parsed.href)
+
+    return NextResponse.json({ title, description, image: raw.image, price, brand: raw.brand, category, url: parsed.href, domain })
   } catch {
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
