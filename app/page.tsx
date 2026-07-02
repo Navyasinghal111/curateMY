@@ -1,418 +1,490 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
-const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
-const PRODUCT_CATS = ['Apparel','Coats & Outerwear','Footwear','Bags & Purses','Jewelry & Watches','Makeup','Skincare','Haircare']
-const SERIF = 'Cormorant Garamond, serif'
+// ── Data ─────────────────────────────────────────────────────────
+type FoundingProduct = { id:string; title:string; brand:string; price:string; image_url:string }
+type FoundingCurator  = { id:string; username:string; display_name:string; avatar_url:string; bio:string; city?:string }
 
-type Product = { id:string; title:string; brand:string; price:string; image_url:string; product_url:string; category:string; wishlisted?:boolean; description?:string }
-type Profile  = { name:string; username:string; avatar_url:string; followers:number }
+const CREATOR_STEPS = [
+  { n:'01', t:'Apply & get verified',   b:'Anyone with a trusted point of view — creator, doctor, stylist, icon. Apply once, get your curator badge and storefront URL.' },
+  { n:'02', t:'Add products you love',  b:'Add any product from any brand instantly. Write why you trust it. Group into collections. No approval process.' },
+  { n:'03', t:'Earn 80% on every sale', b:'When your followers shop through your storefront you earn 80% commission. Tracked automatically, paid monthly.' },
+]
 
-const db  = () => createClient()
-const INP: React.CSSProperties = { width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }
-const LBL: React.CSSProperties = { display:'block', fontSize:10, letterSpacing:'0.1em', color:'#8C867E', textTransform:'uppercase', marginBottom:5 }
+const SHOPPER_STEPS = [
+  { n:'01', t:'Follow who you trust',       b:'Find the dermatologist you follow, the stylist you love, the chef you admire. All their picks in one place.' },
+  { n:'02', t:'Discover with real context', b:'Every product has a curator note — why they use it, how long, what it does. No anonymous reviews.' },
+  { n:'03', t:'Shop directly from brands',  b:'Click through to the brand website. No middlemen, no markups. Trusted picks, straight to checkout.' },
+]
 
-// ── shared image upload helper ────────────────────────────────────
-async function uploadImage(supabase: ReturnType<typeof db>, userId: string, file: File, bucket: string) {
-  const path = `${userId}/${Date.now()}.${file.name.split('.').pop()}`
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true })
-  if (error) throw error
-  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
-}
+const MARQUEE_ITEMS = ['Skincare','Fashion','Wellness','Dermatologist Picks','Home & Living','Beauty','Nutrition','Fitness','Jewellery','Tech']
 
-// ── shared product form ───────────────────────────────────────────
-type FormState = { img:string; name:string; brand:string; price:string; cat:string; shopLink:string; notes:string; preview:string; error:string; loading:boolean }
-type FormSet   = { img:(v:string)=>void; name:(v:string)=>void; brand:(v:string)=>void; price:(v:string)=>void; cat:(v:string)=>void; shopLink:(v:string)=>void; notes:(v:string)=>void; preview:(v:string)=>void; file:(f:File)=>void }
+const CURATOR_FEATS = ['Your storefront at curatekin.com/you','Add any product from any brand instantly','Earn 80% commission on every sale','Direct brand collaboration opportunities']
+const SHOPPER_FEATS = ['Follow curators whose taste you trust','Verified picks from doctors & experts','Shop directly from brand websites','Save picks and build your wishlist']
 
-function ProductForm({ state, set, fileRef }: { state:FormState; set:FormSet; fileRef:{ current:HTMLInputElement|null } }) {
-  const { img, name, brand, price, cat, shopLink, notes, preview, error } = state
-  return (
-    <div style={{ display:'flex', gap:24, padding:'20px 28px', overflowY:'auto', flex:1 }}>
-      <div style={{ width:180, flexShrink:0 }}>
-        <div onClick={() => fileRef.current?.click()} style={{ width:'100%', aspectRatio:'3/4', border:'1px dashed #C8C4BC', background:'#F0EDE8', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden' }}>
-          {preview
-            ? <img src={preview} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
-            : <><span style={{ fontSize:22, color:'#C8C4BC' }}>+</span><span style={{ fontSize:11, color:'#C8C4BC', marginTop:4 }}>Add photo</span></>}
-        </div>
-        <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
-          onChange={e => { const f = e.target.files?.[0]; if (f) { set.file(f); set.preview(URL.createObjectURL(f)) } }} />
-      </div>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
-        <div><label style={LBL}>Or paste image URL</label><input value={img} onChange={e => set.img(e.target.value)} placeholder="https://…/photo.jpg" style={INP} /></div>
-        <div><label style={LBL}>Name *</label><input value={name} onChange={e => set.name(e.target.value)} placeholder="Product name" style={INP} /></div>
-        <div><label style={LBL}>Brand</label><input value={brand} onChange={e => set.brand(e.target.value)} placeholder="Nykaa, Zara…" style={INP} /></div>
-        <div style={{ display:'flex', gap:10 }}>
-          <div style={{ flex:1 }}><label style={LBL}>Price (₹)</label><input value={price} onChange={e => set.price(e.target.value.replace(/[^0-9.]/g,''))} placeholder="2499" style={INP} /></div>
-          <div style={{ flex:1 }}>
-            <label style={LBL}>Category</label>
-            <select value={cat} onChange={e => set.cat(e.target.value)} style={{ ...INP, appearance:'auto' }}>
-              {PRODUCT_CATS.map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
-        <div><label style={LBL}>Shop link</label><input value={shopLink} onChange={e => set.shopLink(e.target.value)} placeholder="https://…" style={INP} /></div>
-        <div><label style={LBL}>Notes (optional)</label><textarea value={notes} onChange={e => set.notes(e.target.value)} placeholder="Why you love it…" rows={2} style={{ ...INP, resize:'vertical' }} /></div>
-        {error && <p style={{ fontSize:12, color:'#c0392b' }}>{error}</p>}
-      </div>
-    </div>
-  )
-}
+const FOOTER_PLATFORM = [['Browse curators','/curators'],['Categories','/categories'],['For brands','/brands'],['About','/about']]
+const FOOTER_CURATORS = [['Apply to join','/signup'],['Dashboard','/dashboard'],['Earnings','/dashboard/earnings'],['Help','/help']]
+const FOOTER_COMPANY  = [['Privacy','/privacy'],['Terms','/terms'],['Contact','mailto:hello@curatekin.com'],['Affiliate policy','/affiliate-policy']]
 
-// ── modal shell ───────────────────────────────────────────────────
-function ModalShell({ title, onClose, onSubmit, submitLabel, children }: { title:string; onClose:()=>void; onSubmit:()=>void; submitLabel:string; children:React.ReactNode }) {
-  return (
-    <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:300, padding:16 }}>
-      <div style={{ background:'#FAFAF8', width:'100%', maxWidth:640, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', borderRadius:4 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 28px 16px', borderBottom:'1px solid #E8E4DE' }}>
-          <h2 style={{ fontFamily:SERIF, fontSize:24, fontWeight:400, color:'#1a1a1a' }}>{title}</h2>
-          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:22, color:'#aaa', cursor:'pointer' }}>×</button>
-        </div>
-        {children}
-        <div style={{ padding:'0 28px 20px' }}>
-          <button onClick={onSubmit} style={{ width:'100%', padding:'13px', background:'#0A0A0A', color:'#fff', border:'none', fontSize:12, letterSpacing:'0.1em', cursor:'pointer', fontFamily:'inherit' }}>
-            {submitLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Add Modal ─────────────────────────────────────────────────────
-function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>void }) {
-  const [url,      setUrl]      = useState('')
-  const [img,      setImg]      = useState('')
-  const [name,     setName]     = useState('')
-  const [brand,    setBrand]    = useState('')
-  const [price,    setPrice]    = useState('')
-  const [cat,      setCat]      = useState('Skincare')
-  const [shopLink, setShopLink] = useState('')
-  const [notes,    setNotes]    = useState('')
-  const [preview,  setPreview]  = useState('')
-  const [imgFile,  setImgFile]  = useState<File|null>(null)
-  const [loading,  setLoading]  = useState(false)
-  const [scraping, setScraping] = useState(false)
-  const [msg,      setMsg]      = useState<{text:string;type:'ok'|'err'}>()
-  const [error,    setError]    = useState('')
-  const fileRef = useRef<HTMLInputElement>(null)
-  const supabase = db()
-
-  useEffect(() => { if (img && !imgFile) setPreview(img) }, [img])
-
-  const scrape = async () => {
-    if (!url.trim()) return
-    setScraping(true); setMsg(undefined); setShopLink(url.trim())
-    try {
-      const r = await fetch('/api/product/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: url.trim() }) })
-      const d = await r.json()
-      if (!r.ok) { setMsg({ text: d.error ?? 'Could not fetch', type:'err' }); setScraping(false); return }
-      if (d.title) setName(d.title)
-      if (d.brand) setBrand(d.brand)
-      if (d.price) setPrice(d.price.replace(/[₹$£€]/g,''))
-      if (d.image) { setImg(d.image); setPreview(d.image) }
-      if (d.url)   setShopLink(d.url)
-      if (d.category) setCat(d.category)
-      setMsg({ text:'Details filled — review below', type:'ok' })
-    } catch { setMsg({ text:'Could not fetch. Fill manually.', type:'err' }) }
-    setScraping(false)
-  }
-
-  const save = async () => {
-    const { data:{ user } } = await supabase.auth.getUser()
-    if (!user) { setError('Please log in.'); return }
-    if (!name.trim()) { setError('Please enter a product name'); return }
-    setLoading(true); setError('')
-    let finalImg = img.trim()
-    try { if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images') }
-    catch { setError('Image upload failed'); setLoading(false); return }
-    const { data, error: dbErr } = await supabase.from('storefront_products').insert({
-      creator_id: user.id, title: name.trim(), brand: brand.trim(),
-      price: price ? `₹${price}` : '', image_url: finalImg,
-      product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
-      description: notes.trim(), active: true,
-    }).select().single()
-    if (dbErr) { setError(dbErr.message); setLoading(false); return }
-    onAdd(data); onClose()
-  }
-
-  const formState: FormState = { img, name, brand, price, cat, shopLink, notes, preview, error, loading }
-  const formSet:   FormSet   = { img:setImg, name:setName, brand:setBrand, price:setPrice, cat:setCat, shopLink:setShopLink, notes:setNotes, preview:setPreview, file:setImgFile }
-
-  return (
-    <ModalShell title="Add to closet" onClose={onClose} onSubmit={save} submitLabel={loading ? 'ADDING…' : 'ADD PIECE'}>
-      <div style={{ padding:'14px 28px', borderBottom:'1px solid #E8E4DE', display:'flex', gap:0 }}>
-        <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key==='Enter' && scrape()} placeholder="Paste URL — Nykaa, Amazon, Myntra…" style={{ ...INP, borderRight:'none', flex:1 }} />
-        <button onClick={scrape} disabled={scraping||!url.trim()} style={{ padding:'10px 18px', background:'#1a1a1a', color:'#fff', border:'none', fontSize:12, cursor:'pointer', fontFamily:'inherit', opacity: scraping||!url.trim() ? 0.5 : 1 }}>
-          {scraping ? 'Fetching…' : 'Auto-fill ↓'}
-        </button>
-      </div>
-      {msg && <p style={{ padding:'6px 28px 0', fontSize:11, color: msg.type==='ok' ? '#27ae60' : '#c0392b' }}>{msg.text}</p>}
-      <ProductForm state={formState} set={formSet} fileRef={fileRef} />
-    </ModalShell>
-  )
-}
-
-// ── Edit Modal ────────────────────────────────────────────────────
-function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>void; onSave:(p:Product)=>void }) {
-  const [img,      setImg]      = useState(product.image_url || '')
-  const [name,     setName]     = useState(product.title)
-  const [brand,    setBrand]    = useState(product.brand)
-  const [price,    setPrice]    = useState(product.price?.replace(/[^0-9.]/g,'') || '')
-  const [cat,      setCat]      = useState(PRODUCT_CATS.find(c => c.toUpperCase() === product.category?.toUpperCase()) || PRODUCT_CATS[0])
-  const [shopLink, setShopLink] = useState(product.product_url || '')
-  const [notes,    setNotes]    = useState(product.description || '')
-  const [preview,  setPreview]  = useState(product.image_url || '')
-  const [imgFile,  setImgFile]  = useState<File|null>(null)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
-  const fileRef = useRef<HTMLInputElement>(null)
-  const supabase = db()
-
-  useEffect(() => { if (img && !imgFile) setPreview(img) }, [img])
-
-  const save = async () => {
-    const { data:{ user } } = await supabase.auth.getUser()
-    if (!user) { setError('Please log in.'); return }
-    if (!name.trim()) { setError('Please enter a product name'); return }
-    setLoading(true); setError('')
-    let finalImg = img.trim()
-    try { if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images') }
-    catch { setError('Image upload failed'); setLoading(false); return }
-    const updates = {
-      title: name.trim(), brand: brand.trim(),
-      price: price ? `₹${price}` : '', image_url: finalImg,
-      product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
-      description: notes.trim(),
-    }
-    const { error: dbErr } = await supabase.from('storefront_products').update(updates).eq('id', product.id)
-    if (dbErr) { setError(dbErr.message); setLoading(false); return }
-    onSave({ ...product, ...updates }); onClose()
-  }
-
-  const formState: FormState = { img, name, brand, price, cat, shopLink, notes, preview, error, loading }
-  const formSet:   FormSet   = { img:setImg, name:setName, brand:setBrand, price:setPrice, cat:setCat, shopLink:setShopLink, notes:setNotes, preview:setPreview, file:setImgFile }
-
-  return (
-    <ModalShell title="Edit product" onClose={onClose} onSubmit={save} submitLabel={loading ? 'SAVING…' : 'SAVE CHANGES'}>
-      <ProductForm state={formState} set={formSet} fileRef={fileRef} />
-    </ModalShell>
-  )
-}
-
-// ── Dashboard ─────────────────────────────────────────────────────
-export default function DashboardHome() {
-  const [products,        setProducts]        = useState<Product[]>([])
-  const [tab,             setTab]             = useState('ALL')
-  const [search,          setSearch]          = useState('')
-  const [modal,           setModal]           = useState(false)
-  const [editProduct,     setEditProduct]     = useState<Product|null>(null)
-  const [openMenu,        setOpenMenu]        = useState<string|null>(null)
-  const [profile,         setProfile]         = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0 })
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const avatarInputRef = useRef<HTMLInputElement>(null)
-  const supabase = db()
-
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (!(e.target as Element).closest('.tdot, .dmenu')) setOpenMenu(null)
-    }
-    document.addEventListener('click', close)
-    return () => document.removeEventListener('click', close)
-  }, [])
+export default function Home() {
+  // Founding curator spotlight — pulls one real creator + their real
+  // products, rather than showing invented names and numbers.
+  const [founder, setFounder] = useState<FoundingCurator | null>(null)
+  const [founderProducts, setFounderProducts] = useState<FoundingProduct[]>([])
 
   useEffect(() => {
     const load = async () => {
-      const { data:{ user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data } = await supabase.from('storefront_products').select('*').eq('creator_id', user.id).eq('active', true).order('created_at', { ascending:false })
-      setProducts(data ?? [])
+      const supabase = createClient()
+      const { data: creator } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, bio, city')
+        .eq('username', 'navya')
+        .maybeSingle()
+
+      if (!creator) return
+      setFounder(creator)
+
+      const { data: products } = await supabase
+        .from('storefront_products')
+        .select('id, title, brand, price, image_url')
+        .eq('creator_id', creator.id)
+        .eq('active', true)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      setFounderProducts(products ?? [])
     }
     load()
   }, [])
-
-  useEffect(() => {
-    const load = async () => {
-      const { data:{ user } } = await supabase.auth.getUser()
-      if (!user) return
-      const fallback = {
-        name:     (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Creator',
-        username: (user.user_metadata?.username  as string) || user.email?.split('@')[0] || '',
-        avatar:   (user.user_metadata?.avatar_url as string) || '',
-      }
-      const { data } = await supabase.from('profiles').select('display_name, username, avatar_url').eq('id', user.id).maybeSingle()
-      setProfile({
-        name:       data?.display_name || fallback.name,
-        username:   data?.username     || fallback.username,
-        avatar_url: data?.avatar_url   || fallback.avatar,
-        followers:  0,
-      })
-    }
-    load()
-  }, [])
-
-  const uploadAvatar = async (file: File) => {
-    const { data:{ user } } = await supabase.auth.getUser()
-    if (!user) return
-    setUploadingAvatar(true)
-    try {
-      const publicUrl = await uploadImage(supabase, user.id, file, 'avatars')
-      const { data: existing } = await supabase.from('profiles').select('username').eq('id', user.id).maybeSingle()
-      if (existing) {
-        await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-      } else {
-        const u = user.email?.split('@')[0] || `user${user.id.slice(0,8)}`
-        await supabase.from('profiles').insert({ id: user.id, avatar_url: publicUrl, username: u, display_name: u })
-      }
-      setProfile(prev => ({ ...prev, avatar_url: publicUrl }))
-    } catch { alert('Could not upload photo.') }
-    setUploadingAvatar(false)
-  }
-
-  const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>p.category?.toUpperCase()===t).length
-
-  const filtered = products.filter(p => {
-    const catOk  = tab==='ALL' || (tab==='WISHLIST' ? p.wishlisted : p.category?.toUpperCase()===tab)
-    const srchOk = !search || [p.title,p.brand].some(s=>s?.toLowerCase().includes(search.toLowerCase()))
-    return catOk && srchOk
-  })
-
-  const totalValue = products.reduce((s,p) => s + (parseFloat(p.price?.replace(/[^0-9.]/g,'')||'0')||0), 0)
-
-  const toggleWish = async (id:string) => {
-    const p = products.find(x => x.id===id); if (!p) return
-    setProducts(prev => prev.map(x => x.id===id ? {...x, wishlisted:!p.wishlisted} : x))
-    const { data:{ user } } = await supabase.auth.getUser()
-    if (user) await supabase.from('storefront_products').update({ wishlisted:!p.wishlisted }).eq('id', id)
-  }
-
-  const remove = async (id:string) => {
-    setProducts(prev => prev.filter(x => x.id!==id))
-    const { data:{ user } } = await supabase.auth.getUser()
-    if (user) await supabase.from('storefront_products').update({ active:false }).eq('id', id)
-  }
-
-  const S: React.CSSProperties = { fontFamily:SERIF, fontWeight:300, color:'#0A0A0A' }
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-      <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Fanwood+Text:ital@0;1&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <style>{`
-        .cat-tab{background:none;border:none;border-bottom:2px solid transparent;padding:12px 14px;font-size:11px;font-weight:500;letter-spacing:0.08em;color:#9B9B9B;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all 0.15s}
-        .cat-tab:hover{color:#0A0A0A}
-        .cat-tab.on{color:#0A0A0A;border-bottom-color:#0A0A0A}
-        .cat-tab.wl{color:#C53030}
-        .cat-tab.wl.on{border-bottom-color:#C53030}
-        .pcard{background:#fff;border:0.5px solid #E8E4DC;overflow:visible;transition:box-shadow 0.2s;position:relative}
-        .pcard:hover{box-shadow:0 8px 28px rgba(0,0,0,0.09)}
-        .tdot{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:#fff;border:0.5px solid #E5E5E5;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08);z-index:10;font-size:14px;color:#666;letter-spacing:1px}
-        .pcard:hover .tdot{opacity:1}
-        .tdot:hover{background:#F5F5F5}
-        .dmenu{position:absolute;top:40px;right:8px;background:#fff;border:0.5px solid #E5E5E5;border-radius:8px;padding:4px 0;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200}
-        .ditem{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;color:#0A0A0A;cursor:pointer;background:none;border:none;width:100%;text-align:left;font-family:inherit}
-        .ditem:hover{background:#F5F5F5}
-        .ditem.red{color:#E53E3E}
-        .ditem i{font-size:15px;color:#9B9B9B}
-        .ditem.red i{color:#E53E3E}
-        .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
-        .addbtn:hover{background:#333}
-        .av-wrap:hover .av-overlay{opacity:1}
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+          --cream: #F0EDE8;
+          --cream2: #E8E4DE;
+          --ink:   #141210;
+          --ink2:  #3A3630;
+          --muted: #8C867E;
+          --dim:   #B4AEA8;
+          --gold:  #B07D4A;
+          --gold2: #C99A6A;
+          --burg:  #8B1A1A;
+          --br:    rgba(20,18,16,0.08);
+          --br-w:  rgba(255,255,255,0.1);
+          --serif: 'Fanwood Text', 'Cormorant Garamond', Georgia, serif;
+          --sans:  'DM Sans', system-ui, sans-serif;
+        }
+        html  { scroll-behavior: smooth; }
+        body  { background: var(--cream); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+        /* ── Nav ── */
+        nav {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+          height: 60px; display: flex; align-items: center; justify-content: space-between;
+          padding: 0 48px;
+          background: rgba(240,237,232,0.92); backdrop-filter: blur(20px);
+          border-bottom: 0.5px solid var(--br);
+        }
+        .logo     { font-family: var(--serif); font-size: 22px; font-weight: 300; color: var(--ink); text-decoration: none; }
+        .logo em  { font-style: italic; color: var(--burg); }
+        .nav-mid  { display: flex; gap: 36px; }
+        .nav-mid a{ font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
+        .nav-mid a:hover { color: var(--ink); }
+        .nav-right{ display: flex; gap: 8px; align-items: center; }
+        .btn-ghost{ font-size: 13px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: var(--sans); padding: 6px 14px; text-decoration: none; }
+        .btn-ink  { font-size: 12px; font-weight: 500; font-family: var(--sans); background: var(--ink); color: var(--cream); border: none; padding: 9px 22px; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; }
+        .btn-ink:hover { opacity: 0.85; }
+
+        /* ── Hero — full bleed dark ── */
+        .hero {
+          min-height: 100vh; padding-top: 60px;
+          position: relative; display: flex; align-items: center;
+          background: var(--ink);
+          overflow: hidden;
+        }
+        .hero-bg {
+          position: absolute; inset: 0;
+          background:
+            radial-gradient(ellipse 80% 60% at 70% 50%, rgba(176,125,74,0.08) 0%, transparent 70%),
+            radial-gradient(ellipse 40% 80% at 20% 30%, rgba(139,26,26,0.06) 0%, transparent 60%);
+        }
+        .hero-line {
+          position: absolute; right: 0; top: 0; bottom: 0; width: 45%;
+          border-left: 0.5px solid rgba(255,255,255,0.06);
+        }
+        .hero-content {
+          position: relative; z-index: 2;
+          padding: 80px 48px;
+          max-width: 680px;
+        }
+        .hero-eyebrow {
+          display: inline-flex; align-items: center; gap: 10px;
+          font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+          color: var(--gold); font-weight: 500; margin-bottom: 36px;
+        }
+        .hero-eyebrow-line { width: 24px; height: 0.5px; background: var(--gold); }
+        h1 {
+          font-family: var(--serif); font-size: clamp(52px, 6vw, 88px);
+          font-weight: 300; line-height: 1.04; color: #fff;
+          margin-bottom: 28px; letter-spacing: -0.01em;
+        }
+        h1 em { font-style: italic; color: var(--gold2); }
+        .hero-sub {
+          font-size: 15px; font-weight: 300; color: rgba(255,255,255,0.45);
+          line-height: 1.8; max-width: 440px; margin-bottom: 48px;
+        }
+        .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 56px; }
+        .btn-gold  { font-size: 12px; letter-spacing: 0.08em; font-family: var(--sans); font-weight: 500; background: var(--gold); color: #fff; border: none; padding: 12px 28px; cursor: pointer; text-decoration: none; }
+        .btn-gold:hover { background: var(--gold2); }
+        .btn-ghost-dark { font-size: 12px; letter-spacing: 0.08em; font-family: var(--sans); color: rgba(255,255,255,0.5); background: none; border: 0.5px solid rgba(255,255,255,0.2); padding: 12px 28px; text-decoration: none; }
+        .btn-ghost-dark:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.8); }
+
+        /* Honest founding-curator credit line — replaces invented stats */
+        .hero-credit { display: flex; align-items: center; gap: 14px; padding-top: 32px; border-top: 0.5px solid rgba(255,255,255,0.08); }
+        .hero-credit-line  { width: 24px; height: 0.5px; background: var(--gold); flex-shrink: 0; }
+        .hero-credit-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.32); }
+        .hero-credit-name  { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--gold2); text-decoration: none; }
+        .hero-credit-name:hover { color: #fff; }
+
+        /* ── Marquee ── */
+        .mq-wrap { border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); padding: 14px 0; overflow: hidden; background: var(--cream); }
+        .mq-track { display: inline-block; white-space: nowrap; animation: mq 32s linear infinite; }
+        @keyframes mq { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+        .mq-item { display: inline-flex; align-items: center; gap: 12px; margin-right: 48px; font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); }
+        .mq-sep { color: var(--gold); font-style: normal; font-size: 8px; }
+
+        /* ── Section shell ── */
+        .section { max-width: 1200px; margin: 0 auto; padding: 96px 48px; }
+        .display-eyebrow { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); margin-bottom: 4px; }
+        .display-heading { font-family: var(--serif); font-size: clamp(48px,5vw,80px); font-weight: 300; color: var(--ink); line-height: 1; margin-bottom: 48px; }
+
+        /* ── Founding curator spotlight — one real feature, not a grid ── */
+        .spotlight-wrap {
+          background: var(--cream2);
+          border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br);
+          animation: spotFade 0.7s ease;
+        }
+        @media (prefers-reduced-motion: reduce) { .spotlight-wrap { animation: none; } }
+        @keyframes spotFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .spotlight-inner { max-width: 1200px; margin: 0 auto; padding: 96px 48px; }
+        .spotlight-eyebrow {
+          font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+          color: var(--gold); font-weight: 500; margin-bottom: 28px;
+        }
+        .spotlight-head { display: flex; gap: 48px; align-items: flex-start; margin-bottom: 56px; }
+        .spotlight-portrait {
+          width: 240px; height: 320px; flex-shrink: 0;
+          border: 1px solid rgba(176,125,74,0.35);
+          background: linear-gradient(160deg,#2A2420,#1A1410);
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden;
+        }
+        .spotlight-portrait img { width: 100%; height: 100%; object-fit: cover; }
+        .spotlight-portrait span { font-family: var(--serif); font-style: italic; font-size: 56px; color: rgba(255,255,255,0.4); }
+        .spotlight-kicker { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); margin-bottom: 6px; }
+        .spotlight-name   { font-family: var(--serif); font-weight: 300; font-size: clamp(40px,4.2vw,64px); color: var(--ink); line-height: 1.05; margin-bottom: 16px; }
+        .spotlight-meta   { display: flex; gap: 14px; font-size: 12px; color: var(--muted); letter-spacing: 0.03em; margin-bottom: 18px; }
+        .spotlight-meta span + span { padding-left: 14px; border-left: 0.5px solid var(--br); }
+        .spotlight-bio    { font-size: 14px; color: var(--ink2); line-height: 1.8; font-weight: 300; max-width: 420px; margin-bottom: 24px; }
+        .spotlight-cta    { font-size: 12px; letter-spacing: 0.06em; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--gold); padding-bottom: 2px; }
+        .spotlight-cta:hover { color: var(--gold); }
+
+        .spotlight-rail-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+        .spotlight-rail { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 4px; }
+        .rail-item { flex-shrink: 0; width: 180px; text-decoration: none; color: inherit; }
+        .rail-img { aspect-ratio: 3/4; background: #fff; border: 0.5px solid var(--br); display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 8px; transition: box-shadow 0.2s; }
+        .rail-item:hover .rail-img { box-shadow: 0 8px 24px rgba(20,18,16,0.12); }
+        .rail-img img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+        .rail-ph { font-family: var(--serif); font-style: italic; font-size: 32px; color: rgba(20,18,16,0.1); }
+        .rail-brand { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+        .rail-price { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+
+        /* ── Mid-page dark editorial break ── */
+        .dark-break {
+          position: relative; overflow: hidden;
+          background: var(--ink); padding: 96px 48px;
+          text-align: center;
+        }
+        .dark-break-bg {
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(176,125,74,0.07) 0%, transparent 70%);
+        }
+        .dark-break-content { position: relative; z-index: 2; max-width: 600px; margin: 0 auto; }
+        .dark-break h2 {
+          font-family: var(--serif); font-size: clamp(36px, 4vw, 60px);
+          font-weight: 300; color: #fff; line-height: 1.1; margin-bottom: 12px;
+        }
+        .dark-break h2 em { font-style: italic; color: var(--gold2); }
+        .dark-break p { font-size: 14px; color: rgba(255,255,255,0.35); margin-bottom: 36px; font-weight: 300; }
+        .dark-break-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+        /* ── How it works ── */
+        .hiw-wrap { background: var(--cream2); border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); }
+        .hiw-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; padding-top: 48px; border-top: 0.5px solid var(--br); }
+        .hiw-role { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 32px; }
+        .step      { display: flex; gap: 20px; margin-bottom: 32px; }
+        .step-n    { font-family: var(--serif); font-size: 11px; color: var(--gold); width: 18px; flex-shrink: 0; padding-top: 3px; }
+        .step-t    { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+        .step-b    { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+
+        /* ── Join section — dark/light split ── */
+        .join-wrap { border-top: 0.5px solid var(--br); }
+        .join-grid { display: grid; grid-template-columns: 1fr 1fr; }
+        .join-col  { padding: 88px 64px; display: flex; flex-direction: column; }
+        .join-col.dark { background: var(--ink); }
+        .join-h    { font-family: var(--serif); font-size: clamp(32px,3vw,48px); font-weight: 300; line-height: 1.1; color: var(--ink); margin-bottom: 16px; }
+        .join-h em { font-style: italic; color: var(--gold); }
+        .join-col.dark .join-h { color: #fff; }
+        .join-col.dark .join-h em { color: var(--gold2); }
+        .join-p    { font-size: 14px; color: var(--muted); line-height: 1.8; font-weight: 300; margin-bottom: 36px; max-width: 360px; }
+        .join-col.dark .join-p { color: rgba(255,255,255,0.35); }
+        .feats     { margin-bottom: 40px; }
+        .feat      { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; color: var(--muted); font-weight: 300; line-height: 1.5; }
+        .join-col.dark .feat { color: rgba(255,255,255,0.35); }
+        .feat-dot  { width: 3px; height: 3px; border-radius: 50%; background: var(--gold); margin-top: 7px; flex-shrink: 0; }
+        .join-col.dark .feat-dot { background: var(--gold2); }
+
+        /* ── Footer ── */
+        footer { background: var(--ink); color: #fff; padding: 64px 48px 40px; }
+        .ft     { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr; gap: 48px; padding-bottom: 48px; border-bottom: 0.5px solid rgba(255,255,255,0.06); margin-bottom: 28px; }
+        .ft-logo{ font-family: var(--serif); font-size: 22px; font-weight: 300; color: #fff; margin-bottom: 10px; }
+        .ft-logo em { font-style: italic; color: var(--gold2); }
+        .ft-tag { font-size: 13px; color: rgba(255,255,255,0.25); font-weight: 300; line-height: 1.65; max-width: 180px; }
+        .ft-h   { font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 16px; font-weight: 500; }
+        .ft-lks { display: flex; flex-direction: column; gap: 10px; }
+        .ft-lks a { font-size: 13px; color: rgba(255,255,255,0.35); text-decoration: none; font-weight: 300; transition: color .15s; }
+        .ft-lks a:hover { color: rgba(255,255,255,0.7); }
+        .ft-btm { display: flex; align-items: center; justify-content: space-between; }
+        .ft-copy{ font-size: 11px; color: rgba(255,255,255,0.15); }
+        .ft-bl  { display: flex; gap: 20px; }
+        .ft-bl a{ font-size: 11px; color: rgba(255,255,255,0.15); text-decoration: none; }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+          nav { padding: 0 24px; }
+          .nav-mid { display: none; }
+          .hero-content { padding: 80px 24px; }
+          .section { padding: 72px 24px; }
+          .spotlight-inner { padding: 72px 24px; }
+          .spotlight-head { flex-direction: column; gap: 28px; }
+          .spotlight-portrait { width: 160px; height: 210px; }
+          .hiw-cols { grid-template-columns: 1fr; gap: 48px; }
+          .join-grid { grid-template-columns: 1fr; }
+          .join-col { padding: 64px 32px; }
+          .dark-break { padding: 72px 24px; }
+          .ft { grid-template-columns: 1fr 1fr; gap: 32px; }
+        }
+
+        @media (max-width: 640px) {
+          .hero-content { padding: 72px 20px; }
+          h1 { font-size: 44px; }
+          .display-heading { font-size: 40px; }
+          .section { padding: 60px 20px; }
+          .spotlight-inner { padding: 60px 20px; }
+          .rail-item { width: 140px; }
+          .ft { grid-template-columns: 1fr; }
+          .join-col { padding: 52px 20px; }
+        }
       `}</style>
 
-      {/* Profile header */}
-      <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
-        <div className="av-wrap" onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
-          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F0EDE8', border:'1.5px solid #C8C4BC', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, cursor:'pointer' }}>
-          {profile.avatar_url
-            ? <img src={profile.avatar_url} alt={profile.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-            : <span style={{ ...S, fontSize:40, fontWeight:400, color:'#B07D4A' }}>{profile.name?.[0]?.toUpperCase() || '?'}</span>}
-          <div className="av-overlay" style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', opacity: uploadingAvatar ? 1 : 0, transition:'opacity 0.15s' }}>
-            <span style={{ fontSize:10, color:'#fff', letterSpacing:'0.05em', textTransform:'uppercase' }}>{uploadingAvatar ? 'Uploading…' : 'Change photo'}</span>
+      {/* ── Nav ── */}
+      <nav>
+        <a href="/" className="logo">Curate<em>Kin</em></a>
+        <div className="nav-mid">
+          <a href="#curators">Curators</a>
+          <a href="#how">How it works</a>
+          <a href="/brands">For brands</a>
+        </div>
+        <div className="nav-right">
+          <a href="/login" className="btn-ghost">Sign in</a>
+          <Link href="/signup" className="btn-ink">Get started</Link>
+        </div>
+      </nav>
+
+      {/* ── Hero — full bleed dark ── */}
+      <div className="hero">
+        <div className="hero-bg" />
+        <div className="hero-line" />
+        <div className="hero-content">
+          <div className="hero-eyebrow">
+            <div className="hero-eyebrow-line" />
+            Trusted curation · Real people
+          </div>
+          <h1>Curated by<br/>people, not<br/><em>algorithms.</em></h1>
+          <p className="hero-sub">
+            The creators, doctors, and stylists you follow — sharing the products they genuinely use.
+            Discover everything in one place, and shop with real context.
+          </p>
+          <div className="hero-btns">
+            <Link href="/signup" className="btn-gold">Start your storefront</Link>
+            <a href="#curators" className="btn-ghost-dark">Browse curators</a>
+          </div>
+          <div className="hero-credit">
+            <div className="hero-credit-line" />
+            <span className="hero-credit-label">Founding Curator</span>
+            <a href="/navya" className="hero-credit-name">Navya — Delhi</a>
           </div>
         </div>
-        <input ref={avatarInputRef} type="file" accept="image/*" style={{ display:'none' }}
-          onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = '' }} />
-        <p style={{ fontSize:14, fontStyle:'italic', fontFamily:SERIF, color:'#5C5C5C', marginBottom:4 }}>Curated by</p>
-        <h1 style={{ ...S, fontSize:36, lineHeight:1.1, marginBottom:10 }}>{profile.name || 'Creator'}</h1>
-        <p style={{ fontSize:12, color:'#9B9B9B', letterSpacing:'0.04em' }}>@{profile.username} · {profile.followers.toLocaleString('en-IN')} followers</p>
       </div>
 
-      {/* Category tabs */}
-      <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', overflowX:'auto', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
-        {CATS.map(c => (
-          <button key={c} onClick={() => setTab(c)} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
-            {c==='WISHLIST' && '♥ '}{c} <span style={{ fontSize:10, opacity:0.5, marginLeft:2 }}>{count(c)}</span>
-          </button>
-        ))}
+      {/* ── Marquee ── */}
+      <div className="mq-wrap" aria-hidden="true">
+        <div className="mq-track">
+          {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+            <span key={i} className="mq-item">
+              {item} <span className="mq-sep">✦</span>
+            </span>
+          ))}
+        </div>
       </div>
 
-      {/* Content */}
-      <div style={{ background:'#F8F6F2', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24, flexWrap:'wrap', gap:12 }}>
-          <div>
-            <p style={{ fontSize:10, letterSpacing:'0.16em', color:'#B07D4A', textTransform:'uppercase', marginBottom:6 }}>YOUR WARDROBE, CURATED</p>
-            <h2 style={{ ...S, fontSize:48, lineHeight:1 }}>The Collection</h2>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:24 }}>
-            <button onClick={() => setModal(true)} className="addbtn">+ ADD PIECE</button>
-            {[{ n:products.length, l:'Pieces' },{ n:`₹${Math.round(totalValue).toLocaleString('en-IN')}`, l:'Closet value' },{ n:products.filter(p=>p.wishlisted).length, l:'Wishlisted' }].map(s => (
-              <div key={s.l} style={{ textAlign:'right' }}>
-                <p style={{ ...S, fontSize:28, lineHeight:1 }}>{s.n}</p>
-                <p style={{ fontSize:10, color:'#9B9B9B', marginTop:3, textTransform:'uppercase', letterSpacing:'0.08em' }}>{s.l}</p>
+      {/* ── Founding curator spotlight — real data, one real feature ── */}
+      {founder && (
+        <div id="curators" className="spotlight-wrap">
+          <div className="spotlight-inner">
+            <div className="spotlight-eyebrow">Founding Curator</div>
+            <div className="spotlight-head">
+              <div className="spotlight-portrait">
+                {founder.avatar_url
+                  ? <img src={founder.avatar_url} alt={founder.display_name} />
+                  : <span>{founder.display_name?.[0]?.toUpperCase()}</span>}
               </div>
-            ))}
+              <div>
+                <div className="spotlight-kicker">Curated by</div>
+                <h2 className="spotlight-name">{founder.display_name}</h2>
+                <div className="spotlight-meta">
+                  {founder.city && <span>{founder.city}</span>}
+                  {founderProducts.length > 0 && <span>{founderProducts.length} pieces curated</span>}
+                </div>
+                {founder.bio && <p className="spotlight-bio">{founder.bio}</p>}
+                <Link href={`/${founder.username}`} className="spotlight-cta">Visit the storefront →</Link>
+              </div>
+            </div>
+
+            {founderProducts.length > 0 && (
+              <>
+                <div className="spotlight-rail-label">The current edit</div>
+                <div className="spotlight-rail">
+                  {founderProducts.map(p => (
+                    <a key={p.id} href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer" className="rail-item">
+                      <div className="rail-img">
+                        {p.image_url
+                          ? <img src={p.image_url} alt={p.title} />
+                          : <div className="rail-ph">{p.title?.[0]}</div>}
+                      </div>
+                      <div className="rail-brand">{p.brand}</div>
+                      <div className="rail-price">{p.price}</div>
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
+      )}
 
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search your closet…"
-          style={{ width:'100%', maxWidth:360, padding:'9px 14px', border:'0.5px solid #DDDBD6', background:'#fff', fontSize:13, outline:'none', fontFamily:'inherit', color:'#0A0A0A', borderRadius:4, marginBottom:20 }} />
-
-        {filtered.length === 0 ? (
-          <div style={{ textAlign:'center', padding:'80px 20px' }}>
-            <p style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.08)', marginBottom:14 }}>{products.length===0 ? 'Your closet is empty.' : 'Nothing here.'}</p>
-            <p style={{ fontSize:13, color:'#9B9B9B', marginBottom:24 }}>{products.length===0 ? 'Start curating products you love.' : 'Try a different category.'}</p>
-            {products.length===0 && <button onClick={() => setModal(true)} className="addbtn">+ ADD YOUR FIRST PIECE</button>}
+      {/* ── Mid-page dark editorial break ── */}
+      <div className="dark-break">
+        <div className="dark-break-bg" />
+        <div className="dark-break-content">
+          <h2>Your taste is<br/>worth <em>sharing.</em></h2>
+          <p>Join India's first creator-led affiliate platform. Build your storefront in minutes.</p>
+          <div className="dark-break-btns">
+            <Link href="/signup" className="btn-gold">Apply as a creator</Link>
+            <Link href="/signup" className="btn-ghost-dark">Join as a shopper</Link>
           </div>
-        ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
-            {filtered.map(p => (
-              <div key={p.id} className="pcard">
-                <button className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
-                {openMenu===p.id && (
-                  <div className="dmenu" onClick={e => e.stopPropagation()}>
-                    <button className="ditem" onClick={() => { setEditProduct(p); setOpenMenu(null) }}><i className="ti ti-edit" aria-hidden="true"></i>Edit product</button>
-                    <button className="ditem" onClick={() => { navigator.clipboard.writeText(`curatekin.com/r/${p.id}`); setOpenMenu(null) }}><i className="ti ti-link" aria-hidden="true"></i>Copy shop link</button>
-                    <button className="ditem" onClick={() => { toggleWish(p.id); setOpenMenu(null) }}><i className="ti ti-heart" aria-hidden="true"></i>{p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}</button>
-                    <button className="ditem red" onClick={() => { remove(p.id); setOpenMenu(null) }}><i className="ti ti-trash" aria-hidden="true"></i>Remove from shop</button>
+        </div>
+      </div>
+
+      {/* ── How it works ── */}
+      <div className="hiw-wrap" id="how">
+        <div className="section">
+          <div className="display-eyebrow">Simple by design</div>
+          <div className="display-heading">How it works</div>
+          <div className="hiw-cols">
+            {([['For curators & creators', CREATOR_STEPS], ['For shoppers & buyers', SHOPPER_STEPS]] as const).map(([role, steps]) => (
+              <div key={role}>
+                <div className="hiw-role">{role}</div>
+                {steps.map(s => (
+                  <div className="step" key={s.n}>
+                    <div className="step-n">{s.n}</div>
+                    <div>
+                      <div className="step-t">{s.t}</div>
+                      <div className="step-b">{s.b}</div>
+                    </div>
                   </div>
-                )}
-                <div style={{ aspectRatio:'1/1', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', position:'relative' }}>
-                  <span style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.1)', position:'absolute' }}>{p.title?.[0]}</span>
-                  {p.image_url && (
-                    <img src={p.image_url} alt={p.title}
-                      style={{ width:'100%', height:'100%', objectFit:'cover', position:'relative', zIndex:1, background:'#F0EDE8' }}
-                      onError={e => { e.currentTarget.style.display = 'none' }} />
-                  )}
-                </div>
-                <div style={{ padding:'10px 12px 8px', display:'flex', flexDirection:'column', minHeight:96 }}>
-                  <p style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#9B9B9B', marginBottom:3 }}>{p.brand}</p>
-                  <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
-                  <p style={{ ...S, fontSize:15, marginTop:'auto' }}>{p.price}</p>
-                </div>
-                <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'block', margin:'0 12px 12px', padding:'7px', background:'#0A0A0A', color:'#fff', fontSize:10, letterSpacing:'0.1em', textAlign:'center', textDecoration:'none' }}>
-                  SHOP NOW
-                </a>
+                ))}
               </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
 
-      {modal       && <AddModal  onClose={() => setModal(false)}      onAdd={p => setProducts(prev => [p, ...prev])} />}
-      {editProduct && <EditModal onClose={() => setEditProduct(null)} product={editProduct} onSave={u => setProducts(prev => prev.map(p => p.id===u.id ? u : p))} />}
+      {/* ── Join — dark / light split ── */}
+      <div className="join-wrap">
+        <div className="join-grid">
+          <div className="join-col">
+            <div className="display-eyebrow" style={{color:'var(--muted)'}}>For curators</div>
+            <div className="join-h">Your taste<br/>is your <em>brand</em></div>
+            <p className="join-p">Turn products you already love into a storefront that earns. No follower minimum. No brand approvals.</p>
+            <div className="feats">
+              {CURATOR_FEATS.map(f => (
+                <div key={f} className="feat"><div className="feat-dot" />{f}</div>
+              ))}
+            </div>
+            <Link href="/signup" className="btn-ink" style={{alignSelf:'flex-start',letterSpacing:'0.06em',padding:'11px 28px'}}>
+              Apply as a curator
+            </Link>
+          </div>
+          <div className="join-col dark">
+            <div className="display-eyebrow" style={{color:'rgba(255,255,255,0.3)'}}>For shoppers</div>
+            <div className="join-h">Discover with<br/><em>real context</em></div>
+            <p className="join-p">Shop what the people you trust actually use. Every product comes with a personal note — not a sponsored caption.</p>
+            <div className="feats">
+              {SHOPPER_FEATS.map(f => (
+                <div key={f} className="feat"><div className="feat-dot" />{f}</div>
+              ))}
+            </div>
+            <Link href="/signup" className="btn-gold" style={{alignSelf:'flex-start'}}>
+              Join as a shopper
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Footer ── */}
+      <footer>
+        <div className="ft">
+          <div>
+            <div className="ft-logo">Curate<em>Kin</em></div>
+            <div className="ft-tag">Where India's tastemakers meet the products they love.</div>
+          </div>
+          {([['Platform', FOOTER_PLATFORM], ['Curators', FOOTER_CURATORS], ['Company', FOOTER_COMPANY]] as const).map(([heading, links]) => (
+            <div key={heading}>
+              <div className="ft-h">{heading}</div>
+              <div className="ft-lks">
+                {(links as string[][]).map(([label, href]) => (
+                  <a key={label} href={href}>{label}</a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="ft-btm">
+          <div className="ft-copy">© 2026 CurateKin. All rights reserved.</div>
+          <div className="ft-bl">
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="mailto:hello@curatekin.com">Contact</a>
+          </div>
+        </div>
+      </footer>
     </>
   )
 }
