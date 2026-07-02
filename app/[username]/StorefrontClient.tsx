@@ -112,14 +112,14 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
             style={{ width:200 }}
           />
           {isOwner && (
-            <a href="/dashboard/products"
+            <a href="/dashboard"
               style={{ padding:'9px 18px', background:'#8B1A1A', color:'#fff', fontSize:11, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600, whiteSpace:'nowrap' }}>
               + ADD PIECE
             </a>
           )}
         </div>
         {isOwner && (
-          <a href="/dashboard/products"
+          <a href="/dashboard"
             className="mobile-add-btn"
             style={{ display:'none', padding:'8px 14px', background:'#8B1A1A', color:'#fff', fontSize:10, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600 }}>
             + ADD

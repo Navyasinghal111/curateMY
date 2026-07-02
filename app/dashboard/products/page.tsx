@@ -29,7 +29,7 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
     if (!productUrl.trim()) return
     setScraping(true); setScrapeErr(''); setScraped(false)
     setName(''); setBrand(''); setPrice(''); setImageUrl(''); setImagePreview('')
-    setShopLink(productUrl.trim()) // always set shop link to the pasted URL
+    setShopLink(productUrl.trim())
     try {
       const res = await fetch('/api/product/preview', {
         method: 'POST',
@@ -38,11 +38,12 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
       })
       const d = await res.json()
       if (!res.ok) { setScrapeErr(d.error ?? 'Could not fetch product'); setScraping(false); return }
-      if (d.title)  setName(d.title)
-      if (d.brand)  setBrand(d.brand)
-      if (d.price)  setPrice(d.price.replace(/[₹$£€]/g, ''))
-      if (d.image)  { setImageUrl(d.image); setImagePreview(d.image) }
-      if (d.url)    setShopLink(d.url)
+      if (d.title)    setName(d.title)
+      if (d.brand)    setBrand(d.brand)
+      if (d.price)    setPrice(d.price.replace(/[₹$£€]/g, ''))
+      if (d.image)    { setImageUrl(d.image); setImagePreview(d.image) }
+      if (d.url)      setShopLink(d.url)
+      if (d.category) setCategory(d.category)
       setScraped(true)
     } catch { setScrapeErr('Something went wrong. Fill in the details manually.') }
     setScraping(false)
@@ -61,12 +62,10 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
   const fileRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
 
-  // When image URL is pasted, preview it
   useEffect(() => {
     if (imageUrl.trim()) setImagePreview(imageUrl.trim())
   }, [imageUrl])
 
-  // When file is selected, preview it
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -82,7 +81,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
 
     let finalImageUrl = imageUrl.trim()
 
-    // If file uploaded, upload to Supabase Storage
     if (imageFile && user) {
       const ext = imageFile.name.split('.').pop()
       const path = `${user.id}/${Date.now()}.${ext}`
@@ -95,10 +93,7 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
       }
     }
 
-    // Format price with ₹
     const formattedPrice = price ? (price.startsWith('₹') ? price : `₹${price}`) : ''
-
-    // Map category to match our DB format
     const dbCategory = category.toUpperCase().replace(/ & /g, ' & ')
 
     if (user) {
@@ -121,7 +116,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
       if (dbErr) { setError(dbErr.message); setSaving(false); return }
       onAdd(data)
     } else {
-      // Preview mode — create fake product
       onAdd({
         id:          String(Date.now()),
         title:       name.trim(),
@@ -142,13 +136,11 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
 
       <div style={{ background:'#FAFAF8', width:'100%', maxWidth:680, maxHeight:'92vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
-        {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'28px 32px 20px', borderBottom:'1px solid #E8E4DE' }}>
           <h2 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:400, color:'#1a1a1a' }}>Add to closet</h2>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:22, color:'#aaa', cursor:'pointer', lineHeight:1 }}>×</button>
         </div>
 
-        {/* URL paste bar */}
         <div style={{ padding:'16px 32px', borderBottom:'1px solid #E8E4DE', background:'#FAFAF8', display:'flex', gap:0 }}>
           <input
             value={productUrl}
@@ -165,10 +157,8 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
         {scrapeErr && <p style={{ padding:'8px 32px 0', fontSize:11, color:'#c0392b' }}>{scrapeErr}</p>}
         {scraped && <p style={{ padding:'8px 32px 0', fontSize:11, color:'#2ecc71' }}>✓ Product details filled in — review and confirm below</p>}
 
-        {/* Body */}
         <div style={{ display:'flex', gap:28, padding:'24px 32px', overflowY:'auto', flex:1 }}>
 
-          {/* Left — image upload */}
           <div style={{ width:220, flexShrink:0 }}>
             <div
               onClick={() => fileRef.current?.click()}
@@ -184,10 +174,8 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display:'none' }} />
           </div>
 
-          {/* Right — fields */}
           <div style={{ flex:1, display:'flex', flexDirection:'column', gap:16 }}>
 
-            {/* Image URL */}
             <div>
               <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Or paste an image link</label>
               <input
@@ -201,7 +189,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
               </p>
             </div>
 
-            {/* Name */}
             <div>
               <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Name</label>
               <input
@@ -212,7 +199,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
               />
             </div>
 
-            {/* Brand */}
             <div>
               <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Brand / Maison</label>
               <input
@@ -223,7 +209,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
               />
             </div>
 
-            {/* Price + Category */}
             <div style={{ display:'flex', gap:12 }}>
               <div style={{ flex:1 }}>
                 <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Price (₹)</label>
@@ -243,7 +228,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
               </div>
             </div>
 
-            {/* Shop link — auto set from URL, shown as read-only */}
             {shopLink && (
               <div>
                 <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Shop link</label>
@@ -253,7 +237,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
               </div>
             )}
 
-            {/* Notes */}
             <div>
               <label style={{ display:'block', fontSize:10, letterSpacing:'0.12em', color:'#8C867E', textTransform:'uppercase', marginBottom:6 }}>Notes (optional)</label>
               <textarea
@@ -267,7 +250,6 @@ function AddModal({ onClose, onAdd }: { onClose: () => void; onAdd: (p: Product)
 
             {error && <p style={{ fontSize:12, color:'#c0392b' }}>{error}</p>}
 
-            {/* Submit */}
             <button onClick={save} disabled={saving}
               style={{ width:'100%', padding:'14px', background:'#8B1A1A', color:'#fff', border:'none', fontSize:12, letterSpacing:'0.1em', cursor:'pointer', fontFamily:'inherit', opacity: saving ? 0.6 : 1, marginTop:4 }}>
               {saving ? 'ADDING...' : 'ADD PIECE'}
@@ -349,10 +331,10 @@ export default function ProductsPage() {
         .tab.on{color:#141210;border-bottom-color:#B07D4A;font-weight:600}
         .tab.wl{color:#B07D4A}
         .tab-n{font-size:10px;font-weight:400;color:#C4BEB6}
-        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
-        .card{background:#fff;border:0.5px solid rgba(20,18,16,0.07);overflow:hidden;transition:box-shadow 0.2s}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-items:start}
+        .card{background:#fff;border:0.5px solid rgba(20,18,16,0.07);overflow:hidden;transition:box-shadow 0.2s;display:flex;flex-direction:column}
         .card:hover{box-shadow:0 8px 28px rgba(20,18,16,0.1)}
-        .cimg{aspect-ratio:3/4;background:#F4F2EE;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .cimg{aspect-ratio:3/4;background:#F4F2EE;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
         .cimg img{width:100%;height:100%;object-fit:contain;padding:12px}
         .cph{font-family:'Cormorant Garamond',serif;font-size:60px;font-style:italic;color:rgba(20,18,16,0.1)}
         .cheart{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.95);border:0.5px solid rgba(20,18,16,0.12);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:#C4BEB6;z-index:2;transition:all 0.15s}
@@ -360,15 +342,14 @@ export default function ProductsPage() {
         .crem{position:absolute;top:10px;left:10px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.9);border:0.5px solid rgba(20,18,16,0.12);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#C4BEB6;z-index:2;opacity:0;transition:opacity 0.15s}
         .card:hover .crem{opacity:1}
         .crem:hover{color:#c0392b}
-        .cbody{padding:12px 14px 16px}
-        .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#C4BEB6;margin-bottom:4px}
-        .ctitle{font-size:13px;font-weight:500;color:#141210;line-height:1.4;margin-bottom:6px}
-        .cprice{font-family:'Cormorant Garamond',serif;font-size:17px;color:#141210}
+        .cbody{padding:12px 14px 16px;display:flex;flex-direction:column;height:116px;flex-shrink:0}
+        .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#C4BEB6;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ctitle{font-size:13px;font-weight:500;color:#141210;line-height:1.4;margin-bottom:6px;height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .cprice{font-family:'Cormorant Garamond',serif;font-size:17px;color:#141210;margin-top:auto}
       `}</style>
 
       <div style={{ background:'#fff', border:'0.5px solid rgba(20,18,16,0.07)', borderRadius:16, overflow:'hidden' }}>
 
-        {/* Inner nav — dark like reference */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 28px', background:'#141210', borderBottom:'none' }}>
           <span style={{ fontFamily:'Cormorant Garamond, serif', fontSize:24, fontWeight:300, color:'#fff' }}>Atelier</span>
           <div style={{ display:'flex', alignItems:'stretch', gap:0 }}>
@@ -381,7 +362,6 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Category tabs */}
         <div className="tab-row">
           <div style={{ display:'inline-flex', padding:'0 24px' }}>
             {CATS.map(c => {
@@ -395,7 +375,6 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Hero */}
         <div style={{ padding:'20px 28px', borderBottom:'0.5px solid rgba(20,18,16,0.07)', display:'flex', alignItems:'flex-end', justifyContent:'space-between' }}>
           <div>
             <p style={{ fontSize:9, letterSpacing:'0.18em', color:'#8B1A1A', marginBottom:6, fontWeight:600 }}>YOUR WARDROBE, CURATED</p>
@@ -417,7 +396,6 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Grid */}
         <div style={{ padding:'20px 24px 32px' }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign:'center', padding:'60px 20px' }}>
