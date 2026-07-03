@@ -39,7 +39,6 @@ export default function CreatorSignupPage() {
   const [password, setPass]                         = useState('')
   const [countryCode, setCountryCode]               = useState('+91')
   const [phone, setPhone]                           = useState('')
-  const [city, setCity]                             = useState('')
   const [ageOk, setAgeOk]                           = useState(false)
   const [primaryPlatform, setPrimaryPlatform]       = useState('')
   const [primaryHandle, setPrimaryHandle]           = useState('')
@@ -71,13 +70,13 @@ export default function CreatorSignupPage() {
   const prev = () => go(step - 1)
   const toggleNiche = (n: string) => setNiches(p => p.includes(n) ? p.filter(x => x !== n) : [...p, n])
 
-  const draftData = () => ({ name, email, password, countryCode, phone, city, ageOk, primaryPlatform, primaryHandle, primaryFollowers, secondaryPlatform, secondaryHandle, secondaryFollowers, engagementRate, niches, language, bio, source, referral })
+  const draftData = () => ({ name, email, password, countryCode, phone, ageOk, primaryPlatform, primaryHandle, primaryFollowers, secondaryPlatform, secondaryHandle, secondaryFollowers, engagementRate, niches, language, bio, source, referral })
 
   const restoreDraft = () => {
     const d = draftLoad<ReturnType<typeof draftData>>()
     if (!d) return false
     setName(d.name ?? ''); setEmail(d.email ?? ''); setPass(d.password ?? '')
-    setCountryCode(d.countryCode ?? '+91'); setPhone(d.phone ?? ''); setCity(d.city ?? '')
+    setCountryCode(d.countryCode ?? '+91'); setPhone(d.phone ?? '')
     setAgeOk(d.ageOk ?? false)
     setPrimaryPlatform(d.primaryPlatform ?? ''); setPrimaryHandle(d.primaryHandle ?? ''); setPrimaryFollowers(d.primaryFollowers ?? '')
     setSecondaryPlatform(d.secondaryPlatform ?? ''); setSecondaryHandle(d.secondaryHandle ?? ''); setSecondaryFollowers(d.secondaryFollowers ?? '')
@@ -113,7 +112,7 @@ export default function CreatorSignupPage() {
       if (authErr) throw authErr
       if (!data.user) throw new Error('Signup failed — please try again.')
       const { error: profileErr } = await supabase.from('profiles').insert({
-        id: data.user.id, display_name: name, phone: `${countryCode}${phone}`, city,
+        id: data.user.id, display_name: name, phone: `${countryCode}${phone}`,
         role: 'creator', status: 'pending',
         primary_platform: primaryPlatform, primary_handle: primaryHandle, primary_followers: primaryFollowers,
         secondary_platform: secondaryPlatform || null, secondary_handle: secondaryHandle || null,
@@ -219,7 +218,6 @@ export default function CreatorSignupPage() {
                 <input type="text"     placeholder="Full name*"                    value={name}     onChange={e => setName(e.target.value)}  style={winp} />
                 <input type="email"    placeholder="Email address*"               value={email}    onChange={e => setEmail(e.target.value)} style={winp} />
                 <input type="password" placeholder="Password (min 6 characters)*" value={password} onChange={e => setPass(e.target.value)}  minLength={6} style={winp} />
-                <input type="text"     placeholder="City*"                        value={city}     onChange={e => setCity(e.target.value)}  style={winp} />
                 <div style={{ display:'flex', gap:10 }}>
                   <select value={countryCode} onChange={e => setCountryCode(e.target.value)} style={{ ...wsel, width:90, flexShrink:0 }}>
                     {['+91','+1','+44','+971','+65'].map(c => <option key={c}>{c}</option>)}
@@ -235,7 +233,6 @@ export default function CreatorSignupPage() {
                     if (!name || !email || !password) return setError('Please fill all required fields')
                     if (password.length < 6) return setError('Password must be at least 6 characters')
                     if (phone.replace(/\D/g,'').length < 10) return setError('Phone number must be at least 10 digits')
-                    if (!city) return setError('Please enter your city')
                     if (!ageOk) return setError('You must confirm you are 18 or older')
                     next()
                   }} style={{ flex:2, padding:'14px', background:'#0A0A0A', color:'#fff', fontSize:12, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit', borderRadius:8 }}>

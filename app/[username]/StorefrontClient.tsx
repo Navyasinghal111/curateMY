@@ -75,8 +75,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .mobile-search { display: block }
           .nav-wrap { padding: 16px 20px !important }
           .nav-logo { font-size: 22px !important }
-          .bio-wrap { padding: 20px 20px 16px !important; flex-direction: column !important; align-items: flex-start !important; gap: 12px !important }
-          .bio-right { align-self: flex-start !important; text-align: left !important }
+          .bio-wrap { padding: 24px 20px 20px !important }
           .bio-name { font-size: 22px !important }
           .bio-meta { gap: 10px !important }
           .bio-avatar { width: 52px !important; height: 52px !important }
@@ -138,28 +137,26 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       </div>
 
       {/* ── Creator bio ── */}
-      <div className="bio-wrap" style={{ padding:'32px 48px 24px', borderBottom:'1px solid rgba(26,26,26,0.1)', display:'flex', alignItems:'center', gap:20 }}>
-        <div className="bio-avatar" style={{ width:64, height:64, borderRadius:'50%', background:'#D4B896', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+      <div className="bio-wrap" style={{ padding:'32px 48px 24px', borderBottom:'1px solid rgba(26,26,26,0.1)', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+        <div className="bio-avatar" style={{ width:64, height:64, borderRadius:'50%', background:'#D4B896', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', marginBottom:16 }}>
           {creator.avatar_url
             ? <img src={creator.avatar_url} alt={creator.display_name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
             : <span style={{ fontFamily:'Fanwood Text, serif', fontSize:22, fontStyle:'italic', color:'#fff' }}>{initials}</span>
           }
         </div>
-        <div style={{ flex:1, minWidth:0 }}>
-          <h1 className="bio-name" style={{ fontFamily:'Fanwood Text, serif', fontSize:28, fontWeight:400, color:'#1a1a1a', marginBottom:4 }}>{creator.display_name}</h1>
-          <div className="bio-meta" style={{ display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
-            {creator.city && <span style={{ fontSize:12, color:'#888' }}>{creator.city}</span>}
-            {creator.instagram_handle && (
-              <a href={`https://instagram.com/${creator.instagram_handle}`} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize:12, color:'#888', textDecoration:'none' }}>@{creator.instagram_handle}</a>
-            )}
-            {creator.primary_followers && (
-              <span style={{ fontSize:12, color:'#888' }}>{formatFollowers(creator.primary_followers)} followers</span>
-            )}
-          </div>
-          {creator.bio && <p className="bio-text" style={{ fontSize:13, color:'#666', marginTop:8, lineHeight:1.6, maxWidth:500 }}>{creator.bio}</p>}
+        <p style={{ fontSize:13, fontStyle:'italic', fontFamily:'Cormorant Garamond, serif', color:'#888', marginBottom:4 }}>Curated by</p>
+        <h1 className="bio-name" style={{ fontFamily:'Fanwood Text, serif', fontSize:28, fontWeight:400, color:'#1a1a1a', marginBottom:10 }}>{creator.display_name}</h1>
+        <div className="bio-meta" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, flexWrap:'wrap' }}>
+          {creator.instagram_handle && (
+            <a href={`https://instagram.com/${creator.instagram_handle}`} target="_blank" rel="noopener noreferrer"
+              style={{ fontSize:12, color:'#888', textDecoration:'none' }}>@{creator.instagram_handle}</a>
+          )}
+          {creator.primary_followers && (
+            <span style={{ fontSize:12, color:'#888' }}>{formatFollowers(creator.primary_followers)} followers</span>
+          )}
         </div>
-        <div className="bio-right" style={{ textAlign:'right', flexShrink:0 }}>
+        {creator.bio && <p className="bio-text" style={{ fontSize:13, color:'#666', marginTop:8, lineHeight:1.6, maxWidth:500 }}>{creator.bio}</p>}
+        <div className="bio-right" style={{ marginTop:16 }}>
           <span style={{ display:'block', fontFamily:'Cormorant Garamond, serif', fontSize:32, color:'#1a1a1a', lineHeight:1 }}>{initialProducts.length}</span>
           <span style={{ fontSize:9, letterSpacing:'0.14em', color:'#888', textTransform:'uppercase' }}>Pieces</span>
         </div>
