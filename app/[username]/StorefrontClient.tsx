@@ -33,6 +33,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       <link href="https://fonts.googleapis.com/css2?family=Fanwood+Text:ital@0;1&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
+        .bio-name, .bio-text, .bio-meta a{overflow-wrap:break-word;word-break:break-word}
 
         /* ── Tab bar ── */
         .tab-bar{overflow-x:auto;white-space:nowrap;border-top:1px solid rgba(26,26,26,0.1);border-bottom:1px solid rgba(26,26,26,0.1);background:#F0EDE8;-webkit-overflow-scrolling:touch}
@@ -156,7 +157,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
               <span style={{ fontSize:12, color:'#888' }}>{formatFollowers(creator.primary_followers)} followers</span>
             )}
           </div>
-          {creator.bio && <p style={{ fontSize:13, color:'#666', marginTop:8, lineHeight:1.6, maxWidth:500 }}>{creator.bio}</p>}
+          {creator.bio && <p className="bio-text" style={{ fontSize:13, color:'#666', marginTop:8, lineHeight:1.6, maxWidth:500 }}>{creator.bio}</p>}
         </div>
         <div className="bio-right" style={{ textAlign:'right', flexShrink:0 }}>
           <span style={{ display:'block', fontFamily:'Cormorant Garamond, serif', fontSize:32, color:'#1a1a1a', lineHeight:1 }}>{initialProducts.length}</span>

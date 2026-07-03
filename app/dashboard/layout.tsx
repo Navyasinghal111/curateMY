@@ -67,6 +67,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .nav-tab.active { color:#fff; font-weight:600; }
         .dropdown-item { display:block; padding:9px 16px; font-size:13px; color:#0A0A0A; text-decoration:none; transition:background 0.1s; }
         .dropdown-item:hover { background:#F5F5F5; }
+
+        @media (max-width: 768px) {
+          .dash-nav-logo { padding: 0 16px !important; }
+          .dash-nav-logo a { font-size: 18px !important; }
+          .dash-nav-search { display: none !important; }
+          .dash-nav-right { padding: 0 12px !important; gap: 8px !important; }
+        }
       `}</style>
 
       <div style={{ minHeight:'100vh' }}>
@@ -75,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav style={{ background:'#0A0A0A', height:52, display:'flex', alignItems:'stretch', position:'sticky', top:0, zIndex:100 }}>
 
           {/* Logo */}
-          <div style={{ display:'flex', alignItems:'center', padding:'0 28px', borderRight:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+          <div className="dash-nav-logo" style={{ display:'flex', alignItems:'center', padding:'0 28px', borderRight:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
             <a href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:22, fontWeight:300, color:'#fff', textDecoration:'none' }}>
               Curate<em style={{ fontStyle:'italic', color:'#C99A6A' }}>Kin</em>
             </a>
@@ -95,8 +102,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Right — search + avatar */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 16px', borderLeft:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
-            <input placeholder="Search your closet" style={{ background:'rgba(255,255,255,0.07)', border:'0.5px solid rgba(255,255,255,0.12)', color:'#fff', padding:'6px 14px', fontSize:12, outline:'none', fontFamily:'inherit', width:180, borderRadius:3 }} />
+          <div className="dash-nav-right" style={{ display:'flex', alignItems:'center', gap:10, padding:'0 16px', borderLeft:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
+            <input className="dash-nav-search" placeholder="Search your closet" style={{ background:'rgba(255,255,255,0.07)', border:'0.5px solid rgba(255,255,255,0.12)', color:'#fff', padding:'6px 14px', fontSize:12, outline:'none', fontFamily:'inherit', width:180, borderRadius:3 }} />
 
             {/* Avatar + dropdown */}
             <div style={{ position:'relative' }}>
