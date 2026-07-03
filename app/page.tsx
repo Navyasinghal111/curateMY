@@ -297,7 +297,7 @@ export default function Home() {
       <nav>
         <a href="/" className="logo">Curate<em>Kin</em></a>
         <div className="nav-mid">
-          <a href="#curators">Curators</a>
+          <a href="/creators">Curators</a>
           <a href="#how">How it works</a>
           <a href="/brands">For brands</a>
         </div>
@@ -323,7 +323,7 @@ export default function Home() {
           </p>
           <div className="hero-btns">
             <Link href="/signup" className="btn-gold">Start your storefront</Link>
-            <a href="#curators" className="btn-ghost-dark">Browse curators</a>
+            <a href="/creators" className="btn-ghost-dark">Browse curators</a>
           </div>
           <div className="hero-credit">
             <div className="hero-credit-line" />
