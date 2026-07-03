@@ -28,9 +28,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${inter.variable} h-full antialiased`}
+      className={`${cormorant.variable} ${inter.variable} h-full antialiased overflow-x-hidden`}
     >
-      <body className="min-h-full flex flex-col bg-[#FDFCFA]">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#FDFCFA] overflow-x-hidden">{children}</body>
     </html>
   );
 }
