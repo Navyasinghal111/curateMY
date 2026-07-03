@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 
 const ACCESS_KEY = 'billiondollarcompany'
 const COOKIE_NAME = 'ck_access'
-const SITE_LIVE = false
+const SITE_LIVE = true
 
 export function proxy(request: NextRequest) {
   if (SITE_LIVE) return NextResponse.next()
