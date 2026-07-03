@@ -299,7 +299,7 @@ export default function DashboardHome() {
       <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
       <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet" />
       <style>{`
-        .cat-tab{background:none;border:none;border-bottom:2px solid transparent;padding:12px 14px;font-size:11px;font-weight:500;letter-spacing:0.08em;color:#9B9B9B;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all 0.15s}
+        .cat-tab{background:none;border:none;border-bottom:2px solid transparent;padding:12px 14px;font-size:11px;font-weight:500;letter-spacing:0.08em;color:#9B9B9B;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all 0.15s;flex-shrink:0}
         .cat-tab:hover{color:#0A0A0A}
         .cat-tab.on{color:#0A0A0A;border-bottom-color:#0A0A0A}
         .cat-tab.wl{color:#C53030}
@@ -318,10 +318,33 @@ export default function DashboardHome() {
         .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
         .addbtn:hover{background:#333}
         .av-wrap:hover .av-overlay{opacity:1}
+        .dash-tabs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+        .dash-tabs-wrap::-webkit-scrollbar{display:none}
+        .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+        .dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+        .dash-actions{display:flex;align-items:center;gap:24px}
+
+        @media (max-width: 900px) {
+          .dash-grid{grid-template-columns:repeat(3,1fr) !important}
+        }
+        @media (max-width: 768px) {
+          .dash-header{padding:28px 20px 20px !important}
+          .dash-tabs-wrap{padding:0 20px !important}
+          .cat-tab{padding:10px 10px !important;font-size:10px !important}
+          .dash-content{padding:20px 16px !important}
+          .dash-title{font-size:34px !important}
+          .dash-grid{grid-template-columns:repeat(2,1fr) !important;gap:10px !important}
+          .dash-topbar{flex-direction:column !important;align-items:flex-start !important;gap:16px !important}
+          .dash-actions{width:100% !important;justify-content:space-between !important;flex-wrap:wrap !important;gap:12px !important}
+          .dash-stat-n{font-size:20px !important}
+        }
+        @media (max-width: 420px) {
+          .dash-actions .addbtn{order:-1;width:100%;justify-content:center}
+        }
       `}</style>
 
       {/* Profile header */}
-      <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+      <div className="dash-header" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
         <div className="av-wrap" onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
           style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F0EDE8', border:'1.5px solid #C8C4BC', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, cursor:'pointer' }}>
           {profile.avatar_url
@@ -339,7 +362,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Category tabs */}
-      <div style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', overflowX:'auto', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
+      <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
         {CATS.map(c => (
           <button key={c} onClick={() => setTab(c)} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
             {c==='WISHLIST' && '♥ '}{c} <span style={{ fontSize:10, opacity:0.5, marginLeft:2 }}>{count(c)}</span>
@@ -348,17 +371,17 @@ export default function DashboardHome() {
       </div>
 
       {/* Content */}
-      <div style={{ background:'#F8F6F2', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24, flexWrap:'wrap', gap:12 }}>
+      <div className="dash-content" style={{ background:'#F8F6F2', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
+        <div className="dash-topbar">
           <div>
             <p style={{ fontSize:10, letterSpacing:'0.16em', color:'#B07D4A', textTransform:'uppercase', marginBottom:6 }}>YOUR WARDROBE, CURATED</p>
-            <h2 style={{ ...S, fontSize:48, lineHeight:1 }}>The Collection</h2>
+            <h2 className="dash-title" style={{ ...S, fontSize:48, lineHeight:1 }}>The Collection</h2>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:24 }}>
+          <div className="dash-actions">
             <button onClick={() => setModal(true)} className="addbtn">+ ADD PIECE</button>
             {[{ n:products.length, l:'Pieces' },{ n:`₹${Math.round(totalValue).toLocaleString('en-IN')}`, l:'Closet value' },{ n:products.filter(p=>p.wishlisted).length, l:'Wishlisted' }].map(s => (
               <div key={s.l} style={{ textAlign:'right' }}>
-                <p style={{ ...S, fontSize:28, lineHeight:1 }}>{s.n}</p>
+                <p className="dash-stat-n" style={{ ...S, fontSize:28, lineHeight:1 }}>{s.n}</p>
                 <p style={{ fontSize:10, color:'#9B9B9B', marginTop:3, textTransform:'uppercase', letterSpacing:'0.08em' }}>{s.l}</p>
               </div>
             ))}
@@ -375,7 +398,7 @@ export default function DashboardHome() {
             {products.length===0 && <button onClick={() => setModal(true)} className="addbtn">+ ADD YOUR FIRST PIECE</button>}
           </div>
         ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+          <div className="dash-grid">
             {filtered.map(p => (
               <div key={p.id} className="pcard">
                 <button className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
