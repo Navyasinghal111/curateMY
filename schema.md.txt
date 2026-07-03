@@ -1,6 +1,6 @@
 # CurateKin — MVP Plan & Progress
 
-Last updated: today's session (auto-fill fix, storefront discovery, redirect fix)
+Last updated: end of session — full MVP loop complete, Cuelinks applied, site live, discovery page built
 
 ---
 
@@ -20,17 +20,17 @@ Everything else — follower counts, earnings dashboards, chat, gifting — is d
 |---|-------|--------|
 | 1 | Creator account + dashboard to manage products | ✅ Done |
 | 2 | Add product manually | ✅ Done |
-| 3 | Auto-fill product details from a pasted link | ✅ Fixed today (Nykaa, Myntra, Amazon, Flipkart, generic sites via ScraperAPI) |
-| 4 | Auto-detect product category | ✅ Fixed today |
-| 5 | Edit an existing product | ✅ Fixed today |
+| 3 | Auto-fill product details from a pasted link | ✅ Fixed (Nykaa, Myntra, Amazon, Flipkart, generic sites via ScraperAPI) |
+| 4 | Auto-detect product category | ✅ Fixed |
+| 5 | Edit an existing product | ✅ Fixed |
 | 6 | Creator profile (photo, name, bio) | ✅ Done |
-| 7 | Public storefront page per creator (`/username`) | ✅ Already built — confirmed working today |
-| 8 | "Shop Now" buttons take shoppers to the real product | ✅ Fixed today (was pointing to the wrong database table/column) |
-| 9 | Site accessible to real visitors (not gated) | ⏳ Currently gated behind an access-key "under construction" mode — needs a decision on when to open it |
-| 10 | Real affiliate commission tracking (Cuelinks) | ⏳ Blocked — application not yet submitted |
-| 11 | Way for shoppers to discover creators (directory/browse page) | ❌ Not built yet |
+| 7 | Public storefront page per creator (`/username`) | ✅ Confirmed working, card-height and broken-image bugs fixed |
+| 8 | "Shop Now" buttons take shoppers to the real product | ✅ Fixed (was pointing to the wrong database table/column) |
+| 9 | Site accessible to real visitors (not gated) | ✅ Live — `SITE_LIVE` flipped to `true`, no key needed |
+| 10 | Real affiliate commission tracking (Cuelinks) | ⏳ Applied — pending 48-hour approval |
+| 11 | Way for shoppers to discover creators (directory/browse page) | ✅ Built — `/creators`, pulls real approved creators |
 
-Rows 1–8 are the actual MVP loop, and they all work now. Rows 9–11 are what stands between "works when I test it" and "ready for real shoppers."
+Every row is done or in motion. The full MVP loop — creator curates, shopper discovers, browses, clicks through, reaches the real product — works end to end. Only real commission tracking is still pending, and that's an external approval, not something left to build.
 
 ---
 
@@ -44,17 +44,32 @@ Rows 1–8 are the actual MVP loop, and they all work now. Rows 9–11 are what 
 6. **Auto-category detection** — product category now guesses itself from the title/description (e.g. anything mentioning "hair" → Haircare)
 7. **Discovered the public storefront already existed** — `app/[username]/page.tsx` was already built in a previous session; confirmed it works correctly with real data
 8. **Found and fixed a critical bug in the buy-link redirect** — it was querying a table/column (`products` / `affiliate_url`) that don't exist; every "Shop Now" click was silently failing and sending shoppers back to the homepage. Fixed to use the real table/columns (`storefront_products` / `product_url`)
-9. **Found the access-key gate** — `proxy.ts` has `SITE_LIVE = false`, which blocks all visitors except those with `?key=billiondollarcompany` in the URL. This explains earlier confusion about pages "not working" — they were being gated, not broken
+9. **Found the access-key gate** — `proxy.ts` has `SITE_LIVE`, which blocks all visitors except those with `?key=billiondollarcompany` in the URL. This explains earlier confusion about pages "not working" — they were being gated, not broken
+10. **Fixed unequal product card heights** on both the storefront and dashboard — long scraped titles were pushing cards to different heights; titles now reserve a fixed 2-line space regardless of length
+11. **Fixed broken-image icons** — product/creator images that fail to load now cleanly reveal a centered placeholder letter instead of the browser's default broken-file icon
+12. **Discovered a third, duplicate product-management page** (`app/dashboard/products/page.tsx`, "Atelier" branded) that had never been touched by any fix — this is why some fixes seemed to "not work"; it was a different file entirely. Deleted it after confirming nothing else needed it, and fixed the one link on the storefront page that pointed to it
+13. **Fixed hair-product category detection** — "hair serum" was being caught by Skincare's generic "serum" match before ever reaching Haircare; reordered so anything mentioning "hair" (or shampoo/conditioner/scalp) goes to Haircare
+14. **Fixed HTML entities showing raw in scraped titles** (e.g. `&#x27;` instead of an apostrophe)
+15. **Rebuilt the homepage** — removed invented curator names and fake stats (2,400+ curators, 48K+ products, etc.), replaced with a real "Founding Curator" spotlight pulling Navya's actual profile and products live from the database
+16. **Applied to Cuelinks** — submitted, 48-hour approval window
+17. **Went live** — flipped `SITE_LIVE` to `true`; site now needs no access key for any visitor
+18. **Built the creator discovery page** (`/creators`) — real approved creators, searchable, links straight to their storefronts. Homepage nav/hero links now point here instead of nowhere
 
 ---
 
-## What's left before this is a real, public MVP
+## What's left — open items for next session
 
-**1. Apply to Cuelinks** (cuelinks.com, Publisher account) — takes ~10 min to apply, a few days to get approved. Once approved, "Shop Now" links get wrapped with real affiliate tracking instead of plain redirects.
+**1. Verify the "My Shop" dashboard tab still works.** The Atelier page (`app/dashboard/products/page.tsx`) was deleted this session. One link pointing to it was found and fixed (the storefront's "+ ADD PIECE" button), but the dashboard's own "My Shop" nav tab was never checked — if it also pointed to `/dashboard/products`, it now 404s. Quick check, not yet done.
 
-**2. Decide when to flip `SITE_LIVE` to `true`** in `proxy.ts` — this is the switch that takes the whole site out of "under construction" mode for real visitors. Until this flips, only people with the secret key can see anything.
+**2. Shopper accounts don't really exist yet.** There's a "Shopper" signup card, but no actual functionality behind it — no way to save favorites, follow a creator, or have a shopper-specific account experience. Right now the platform only really works for creators.
 
-**3. Build a creator discovery page** — right now, the only way to find a creator's storefront is to already know their username. There's no `curatekin.com/creators` or similar directory page yet. Without this, shoppers have no way to find anyone.
+**3. Real follower counts.** Still hardcoded to 0 everywhere. No `followers`/`follows` table exists, so there's no actual follow system behind the number.
+
+**4. Five dashboard nav tabs are still empty placeholders:** Links, Gifting & Codes, Opportunities, Chat, Latest. None have real pages built yet.
+
+**5. Earnings tab** — placeholder, no real payout tracking. Naturally blocked on Cuelinks approval anyway, since there's nothing to track commission on until that's live.
+
+**Already done, no longer open:** applying to Cuelinks, going live (no more access-key gate), and the creator discovery page — see checklist above.
 
 ---
 
