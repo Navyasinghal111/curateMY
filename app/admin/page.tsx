@@ -23,6 +23,8 @@ type Creator = {
   upi_id: string
   pan_number: string
   created_at: string
+  // profiles has no email column — signup never writes one, so this is
+  // always undefined until that's added. Approval email is skipped when absent.
   email?: string
 }
 
@@ -34,10 +36,22 @@ export default function AdminPage() {
   const [notes, setNotes]           = useState('')
   const [actionLoading, setAction]  = useState(false)
   const [toast, setToast]           = useState('')
+  const [access, setAccess]         = useState<'checking'|'denied'|'ok'>('checking')
   const supabase = createClient()
+  const router   = useRouter()
 
   useEffect(() => {
-    loadCreators()
+    const checkAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.email || !ADMIN_EMAILS.includes(user.email)) {
+        setAccess('denied')
+        router.replace('/')
+        return
+      }
+      setAccess('ok')
+      loadCreators()
+    }
+    checkAccess()
   }, [])
 
   const loadCreators = async () => {
@@ -61,33 +75,46 @@ export default function AdminPage() {
 
   const approve = async (creator: Creator) => {
     setAction(true)
-    await supabase.from('profiles').update({ status: 'approved', admin_notes: notes }).eq('id', creator.id)
+    const { error: updateErr } = await supabase.from('profiles').update({ status: 'approved' }).eq('id', creator.id)
+    if (updateErr) {
+      setAction(false)
+      showToast(`✗ Failed to approve: ${updateErr.message}`)
+      return
+    }
 
-    // Send approval email
-    try {
-      await fetch('/api/email/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: creator.email,
-          name: creator.display_name,
-          username: creator.username,
-        }),
-      })
-    } catch (e) {
-      console.error('Email failed:', e)
+    // Send approval email — skipped if there's no email on file (profiles has no email column yet)
+    if (creator.email) {
+      try {
+        const res = await fetch('/api/auth/instagram/email/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: creator.email,
+            name: creator.display_name,
+            username: creator.username,
+          }),
+        })
+        if (!res.ok) console.error('Approval email failed:', await res.text())
+      } catch (e) {
+        console.error('Approval email failed:', e)
+      }
     }
 
     setCreators(prev => prev.map(c => c.id === creator.id ? { ...c, status: 'approved' } : c))
     setSelected(null)
     setNotes('')
     setAction(false)
-    showToast(`✓ ${creator.display_name} approved`)
+    showToast(creator.email ? `✓ ${creator.display_name} approved` : `✓ ${creator.display_name} approved (no email on file — notify manually)`)
   }
 
   const reject = async (creator: Creator) => {
     setAction(true)
-    await supabase.from('profiles').update({ status: 'rejected', admin_notes: notes }).eq('id', creator.id)
+    const { error: updateErr } = await supabase.from('profiles').update({ status: 'rejected' }).eq('id', creator.id)
+    if (updateErr) {
+      setAction(false)
+      showToast(`✗ Failed to reject: ${updateErr.message}`)
+      return
+    }
     setCreators(prev => prev.map(c => c.id === creator.id ? { ...c, status: 'rejected' } : c))
     setSelected(null)
     setNotes('')
@@ -99,6 +126,12 @@ export default function AdminPage() {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
   }
+
+  if (access !== 'ok') return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#FAFAF8', fontFamily:'Cormorant Garamond, serif', fontSize:22, color:'#C4BEB6', fontStyle:'italic' }}>
+      {access === 'checking' ? 'Verifying access…' : 'Redirecting…'}
+    </div>
+  )
 
   if (loading) return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#FAFAF8', fontFamily:'Cormorant Garamond, serif', fontSize:22, color:'#C4BEB6', fontStyle:'italic' }}>
