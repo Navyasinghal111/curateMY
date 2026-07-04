@@ -12,6 +12,33 @@ type Role = 'shopper' | 'brand' | null
 const inp = 'w-full px-4 py-3 bg-white/5 border border-white/20 text-[12px] text-white placeholder:text-white/30 outline-none focus:border-white/60 transition-colors'
 const sel = 'w-full px-4 py-3 bg-[#111] border border-white/20 text-[12px] text-white outline-none focus:border-white/60 transition-colors appearance-none'
 
+const EyeIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+const EyeOffIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+)
+
+function PasswordInput({ value, onChange, placeholder }: { value:string; onChange:(v:string)=>void; placeholder?:string }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div style={{ position:'relative' }}>
+      <input type={show ? 'text' : 'password'} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)}
+        required minLength={6} className={inp} style={{ paddingRight:40 }} />
+      <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Hide password' : 'Show password'}
+        style={{ position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', padding:0, cursor:'pointer', color:'#8C867E', display:'flex', alignItems:'center' }}>
+        {show ? EyeOffIcon : EyeIcon}
+      </button>
+    </div>
+  )
+}
+
 const ROLE_CARDS = [
   { role: 'shopper', image:'/card-shopper.jpg', title:'Shopper', sub:'A destination for shopping, not scrolling.',                btn:'CREATE AN ACCOUNT' },
   { role: 'creator', image:'/card-creator.jpg', title:'Creator', sub:'Where great taste leads to great opportunities.',           btn:'APPLY' },
@@ -72,7 +99,7 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
             {error && <p style={{ fontSize:11, color:'#f87171', textAlign:'center' }}>{error}</p>}
             <input type="text"     placeholder="Full name"              value={name}     onChange={e => setName(e.target.value)}  required className={inp} />
             <input type="email"    placeholder="Email address"          value={email}    onChange={e => setEmail(e.target.value)} required className={inp} />
-            <input type="password" placeholder="Password (min 6 chars)" value={password} onChange={e => setPass(e.target.value)}  required minLength={6} className={inp} />
+            <PasswordInput placeholder="Password (min 6 chars)" value={password} onChange={setPass} />
             <button type="submit" disabled={loading} style={{ width:'100%', padding:'12px', background:'#fff', color:'#000', fontSize:11, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit', marginTop:8, opacity: loading ? 0.5 : 1 }}>
               {loading ? 'CREATING...' : 'CREATE AN ACCOUNT'}
             </button>
