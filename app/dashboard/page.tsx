@@ -108,11 +108,12 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       const r = await fetch('/api/product/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: url.trim() }) })
       const d = await r.json()
       if (!r.ok) { setMsg({ text: d.error ?? 'Could not fetch', type:'err' }); setScraping(false); return }
-      if (d.title) setName(d.title)
-      if (d.brand) setBrand(d.brand)
-      if (d.price) setPrice(d.price.replace(/[₹$£€]/g,''))
-      if (d.image) { setImg(d.image); setPreview(d.image) }
-      if (d.url)   setShopLink(d.url)
+      if (d.title)    setName(d.title)
+      if (d.brand)    setBrand(d.brand)
+      if (d.price)    setPrice(d.price.replace(/[₹$£€]/g,''))
+      if (d.image)    { setImg(d.image); setPreview(d.image) }
+      if (d.url)      setShopLink(d.url)
+      if (d.category) setCat(d.category)
       setMsg({ text:'Details filled — review below', type:'ok' })
     } catch { setMsg({ text:'Could not fetch. Fill manually.', type:'err' }) }
     setScraping(false)
