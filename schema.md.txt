@@ -54,6 +54,9 @@ Every row is done or in motion. The full MVP loop — creator curates, shopper d
 16. **Applied to Cuelinks** — submitted, 48-hour approval window
 17. **Went live** — flipped `SITE_LIVE` to `true`; site now needs no access key for any visitor
 18. **Built the creator discovery page** (`/creators`) — real approved creators, searchable, links straight to their storefronts. Homepage nav/hero links now point here instead of nowhere
+19. **Set up Claude Code** (desktop app version) for faster future development — reads/edits/tests files directly instead of copy-paste through chat
+20. **Fixed dashboard mobile layout** via Claude Code — product grid, category tabs, and stats row now work properly on phone-sized screens
+21. **Fixed mobile zoom/overflow issue** on both dashboard and storefront — a fixed-width nav bar (144px logo + 255px search/avatar block) was forcing the page wider than any phone screen; also added text-wrap protection for long creator names/bios on the storefront
 
 ---
 
@@ -69,7 +72,15 @@ Every row is done or in motion. The full MVP loop — creator curates, shopper d
 
 **5. Earnings tab** — placeholder, no real payout tracking. Naturally blocked on Cuelinks approval anyway, since there's nothing to track commission on until that's live.
 
-**Already done, no longer open:** applying to Cuelinks, going live (no more access-key gate), and the creator discovery page — see checklist above.
+**6. Show/hide password toggle on login and signup forms.** Right now there's no way to see what you've typed in a password field — a small eye icon to reveal/hide the entered password is a standard, expected feature and currently missing.
+
+**7. Email confirmation is currently disabled.** Confirmed via Supabase Auth settings (`mailer_autoconfirm: true`) — anyone can sign up with any email, real or fake, and get a fully working account instantly. Admin approval still gates whether someone becomes an active creator, but nothing checks they actually own the email they typed. Needs: the Supabase dashboard toggle, plus a "check your email to confirm" UI step added to both `app/signup/creator/page.tsx` and `app/signup/page.tsx`, since both currently assume the user is logged in immediately after signup.
+
+**8. Resolved — `/admin` auth check confirmed working.** A genuinely fresh incognito visit to `/admin` correctly redirects to the homepage every time — tested directly, not just reasoned about. Earlier reports of it "letting you in after a few tries" were almost certainly a reused browser window where a login happened in between, not a real bug.
+
+**9. Shopper signup form styling bug.** Found while adding the password toggle — the form's inputs (including untouched fields like "Full name") are rendering solid white/black instead of the intended dark "glass" theme (`bg-white/5`, `text-white`, etc). Confirmed pre-existing, unrelated to the password toggle change. Not fixed yet.
+
+**Already done, no longer open:** applying to Cuelinks, going live (no more access-key gate), the creator discovery page, the critical PAN/UPI/phone data leak (anon key could read and write sensitive `profiles` columns — fixed with RLS + column-level grants), admin MFA setup guidance, the "My Shop" tab (fixed + the stale Atelier page deleted for good), and the show/hide password toggle — see checklist above.
 
 ---
 
@@ -102,6 +113,8 @@ Supabase itself is a reasonable choice and isn't the core problem — but today'
 - Write SQL only when actually changing the database, always explained clearly before running
 
 ---
+
+## Process notes (things to keep doing / avoid)
 
 - **Check the actual file/database before writing new code.** Several bugs today (column names, the redirect table, the access key) were found by reading existing files first instead of guessing — this should stay the default move, not the exception.
 - **Test locally when possible**, using `npm run dev` and `localhost:3000`, before pushing to the live site.
