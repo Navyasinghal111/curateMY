@@ -159,10 +159,20 @@ export default function CreatorSignupPage() {
       if (!data.user) throw new Error('Signup failed — please try again.')
 
       if (!data.session) {
-        // Email confirmation is required — there's no session yet, so we
-        // can't write to profiles (RLS requires auth.uid() = id). The
-        // collected fields already rode along as auth user_metadata above;
-        // /signup/confirm creates the profile row once they click the link.
+        // Supabase returns this same "no session yet" shape for two very
+        // different cases: a genuine new signup awaiting confirmation, and
+        // an email that already has an account (deliberately disguised as
+        // a normal response to prevent email enumeration — no new email is
+        // sent in that second case). data.user.identities is how the two
+        // are told apart: empty means "already exists".
+        if (data.user.identities?.length === 0) {
+          throw new Error('This email is already registered. Try logging in instead, or use "Forgot password" if you don\'t remember your credentials.')
+        }
+        // Confirmation required for a genuinely new signup — there's no
+        // session yet, so we can't write to profiles (RLS requires
+        // auth.uid() = id). The collected fields already rode along as
+        // auth user_metadata above; /signup/confirm creates the profile
+        // row once they click the link.
         draftClear(); setAwaitingConfirm(true)
         return
       }

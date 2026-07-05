@@ -97,8 +97,18 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
       setLoading(false); return
     }
     if (!data.session) {
-      // Email confirmation required — no session yet, so profiles insert
-      // (RLS-gated to auth.uid() = id) has to wait for /signup/confirm.
+      // Supabase returns this same "no session yet" shape both for a
+      // genuine new signup and for an email that already has an account
+      // (deliberately disguised to prevent email enumeration — no email is
+      // actually sent in that second case). data.user.identities tells the
+      // two apart: empty means "already exists".
+      if (data.user?.identities?.length === 0) {
+        setError('This email is already registered. Try logging in instead, or use "Forgot password" if you don\'t remember your credentials.')
+        setLoading(false); return
+      }
+      // Confirmation required for a genuinely new signup — no session yet,
+      // so profiles insert (RLS-gated to auth.uid() = id) has to wait for
+      // /signup/confirm.
       setLoading(false); setAwaitingConfirm(true); return
     }
     if (data.user) await supabase.from('profiles').insert({ id: data.user.id, display_name: name, role: 'shopper', status: 'pending' })
