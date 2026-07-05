@@ -88,6 +88,7 @@ export default function CreatorSignupPage() {
   const [error, setError]                           = useState('')
   const [loading, setLoading]                       = useState(false)
   const [done, setDone]                             = useState(false)
+  const [awaitingConfirm, setAwaitingConfirm]        = useState(false)
 
   const supabase = createClient()
   const router   = useRouter()
@@ -135,12 +136,8 @@ export default function CreatorSignupPage() {
     }
     setLoading(true); setError('')
     try {
-      const { data, error: authErr } = await supabase.auth.signUp({ email, password })
-      if (authErr) throw authErr
-      if (!data.user) throw new Error('Signup failed — please try again.')
-      const { error: profileErr } = await supabase.from('profiles').insert({
-        id: data.user.id, display_name: name, phone: `${countryCode}${phone}`,
-        role: 'creator', status: 'pending',
+      const profileFields = {
+        role: 'creator', display_name: name, phone: `${countryCode}${phone}`,
         primary_platform: primaryPlatform, primary_handle: primaryHandle, primary_followers: primaryFollowers,
         secondary_platform: secondaryPlatform || null, secondary_handle: secondaryHandle || null,
         secondary_followers: secondaryFollowers || null, engagement_rate: engagementRate || null,
@@ -150,6 +147,28 @@ export default function CreatorSignupPage() {
         upi_id: upiId || null, pan_number: panNumber || null,
         agreed_tos: skipPayouts ? false : agreedTos,
         agreed_affiliate: skipPayouts ? false : agreedAffiliate,
+      }
+      const { data, error: authErr } = await supabase.auth.signUp({
+        email, password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/signup/confirm`,
+          data: profileFields,
+        },
+      })
+      if (authErr) throw authErr
+      if (!data.user) throw new Error('Signup failed — please try again.')
+
+      if (!data.session) {
+        // Email confirmation is required — there's no session yet, so we
+        // can't write to profiles (RLS requires auth.uid() = id). The
+        // collected fields already rode along as auth user_metadata above;
+        // /signup/confirm creates the profile row once they click the link.
+        draftClear(); setAwaitingConfirm(true)
+        return
+      }
+
+      const { error: profileErr } = await supabase.from('profiles').insert({
+        id: data.user.id, status: 'pending', ...profileFields,
       })
       if (profileErr) throw profileErr
       draftClear(); setDone(true)
@@ -157,6 +176,24 @@ export default function CreatorSignupPage() {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     } finally { setLoading(false) }
   }
+
+  if (awaitingConfirm) return (
+    <div style={{ minHeight:'100vh', background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'DM Sans, sans-serif' }}>
+      <link href="https://fonts.googleapis.com/css2?family=Fanwood+Text:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+      <div style={{ width:48, height:48, border:'1.5px solid #0A0A0A', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:24, fontSize:20 }}>✉</div>
+      <p style={{ fontSize:10, letterSpacing:'0.18em', color:'#9B9B9B', marginBottom:12, textTransform:'uppercase' }}>Check your email</p>
+      <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:36, fontWeight:300, color:'#0A0A0A', marginBottom:14, textAlign:'center', lineHeight:1.1 }}>Confirm your address to continue.</h1>
+      <p style={{ fontSize:14, color:'#6B6B6B', maxWidth:360, textAlign:'center', lineHeight:1.7, marginBottom:8 }}>
+        We've sent a confirmation link to <strong>{email}</strong>. Click it to activate your account — we'll then review your application within 3–5 days.
+      </p>
+      <p style={{ fontSize:12, color:'#9B9B9B', maxWidth:360, textAlign:'center', lineHeight:1.6, marginBottom:36 }}>
+        Don't see it? Check spam, or make sure {email} is correct.
+      </p>
+      <button onClick={() => router.push('/')} style={{ padding:'12px 36px', background:'#0A0A0A', color:'#fff', fontSize:12, letterSpacing:'0.1em', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
+        BACK TO CURATEKIN
+      </button>
+    </div>
+  )
 
   if (done) return (
     <div style={{ minHeight:'100vh', background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, fontFamily:'DM Sans, sans-serif' }}>

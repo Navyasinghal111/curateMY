@@ -75,16 +75,30 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone]       = useState(false)
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false)
   const supabase = createClient()
   const router   = useRouter()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setError('')
-    const { data, error: err } = await supabase.auth.signUp({ email, password })
+    const { data, error: err } = await supabase.auth.signUp({
+      email, password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/signup/confirm`,
+        data: { role: 'shopper', display_name: name },
+      },
+    })
     if (err) { setError(err.message); setLoading(false); return }
+    if (!data.session) {
+      // Email confirmation required — no session yet, so profiles insert
+      // (RLS-gated to auth.uid() = id) has to wait for /signup/confirm.
+      setLoading(false); setAwaitingConfirm(true); return
+    }
     if (data.user) await supabase.from('profiles').insert({ id: data.user.id, display_name: name, role: 'shopper', status: 'pending' })
     setLoading(false); setDone(true)
   }
+
+  if (awaitingConfirm) return <PendingScreen title="Check your email." sub={`We've sent a confirmation link to ${email}. Click it to activate your account.`} onHome={() => router.push('/')} />
 
   if (done) return <PendingScreen title="You're on the list." sub="We're setting up your account. Check back soon to start discovering." onHome={() => router.push('/')} />
 
