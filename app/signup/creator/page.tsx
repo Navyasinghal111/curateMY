@@ -173,7 +173,12 @@ export default function CreatorSignupPage() {
       if (profileErr) throw profileErr
       draftClear(); setDone(true)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const msg = err instanceof Error ? err.message : ''
+      setError(
+        msg.toLowerCase().includes('rate limit')
+          ? 'Too many signup attempts right now — please wait a few minutes and try again.'
+          : msg || 'Something went wrong. Please try again.'
+      )
     } finally { setLoading(false) }
   }
 

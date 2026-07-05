@@ -88,7 +88,14 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
         data: { role: 'shopper', display_name: name },
       },
     })
-    if (err) { setError(err.message); setLoading(false); return }
+    if (err) {
+      setError(
+        err.message.toLowerCase().includes('rate limit')
+          ? 'Too many signup attempts right now — please wait a few minutes and try again.'
+          : err.message
+      )
+      setLoading(false); return
+    }
     if (!data.session) {
       // Email confirmation required — no session yet, so profiles insert
       // (RLS-gated to auth.uid() = id) has to wait for /signup/confirm.
