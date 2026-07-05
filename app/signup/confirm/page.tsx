@@ -41,20 +41,24 @@ export default function SignupConfirmPage() {
           setStage('error')
           return
         }
-        const insertFields = role === 'creator'
-          ? {
-              id: user.id, status: 'pending', role: 'creator',
-              display_name: meta.display_name, phone: meta.phone,
-              primary_platform: meta.primary_platform, primary_handle: meta.primary_handle, primary_followers: meta.primary_followers,
-              secondary_platform: meta.secondary_platform ?? null, secondary_handle: meta.secondary_handle ?? null,
-              secondary_followers: meta.secondary_followers ?? null, engagement_rate: meta.engagement_rate ?? null,
-              niches: meta.niches ?? [], content_language: meta.content_language, bio: meta.bio,
-              referral_code: meta.referral_code ?? null, source: meta.source,
-              instagram_handle: meta.instagram_handle ?? null, instagram_verified: meta.instagram_verified ?? false,
-              upi_id: meta.upi_id ?? null, pan_number: meta.pan_number ?? null,
-              agreed_tos: meta.agreed_tos ?? false, agreed_affiliate: meta.agreed_affiliate ?? false,
-            }
-          : { id: user.id, status: 'pending', role: 'shopper', display_name: meta.display_name }
+        // Single shape for both roles — a shopper's metadata simply never set
+        // the creator-only fields, so they fall back to null/[]/false here
+        // rather than being absent, which is what was tripping up insert()'s
+        // typing (two branches with genuinely different keys = a union type
+        // Supabase's insert() rejects).
+        const insertFields = {
+          id: user.id, status: 'pending', role,
+          display_name: meta.display_name ?? null, phone: meta.phone ?? null,
+          primary_platform: meta.primary_platform ?? null, primary_handle: meta.primary_handle ?? null,
+          primary_followers: meta.primary_followers ?? null,
+          secondary_platform: meta.secondary_platform ?? null, secondary_handle: meta.secondary_handle ?? null,
+          secondary_followers: meta.secondary_followers ?? null, engagement_rate: meta.engagement_rate ?? null,
+          niches: meta.niches ?? [], content_language: meta.content_language ?? null, bio: meta.bio ?? null,
+          referral_code: meta.referral_code ?? null, source: meta.source ?? null,
+          instagram_handle: meta.instagram_handle ?? null, instagram_verified: meta.instagram_verified ?? false,
+          upi_id: meta.upi_id ?? null, pan_number: meta.pan_number ?? null,
+          agreed_tos: meta.agreed_tos ?? false, agreed_affiliate: meta.agreed_affiliate ?? false,
+        }
 
         const { error: insertErr } = await supabase.from('profiles').insert(insertFields)
         if (insertErr) {
