@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
@@ -122,6 +123,12 @@ export default function Home() {
           position: relative; z-index: 2;
           padding: 80px 48px;
           max-width: 680px;
+        }
+        .hero-image {
+          position: relative; z-index: 2;
+          flex: 1; align-self: stretch;
+          margin: 48px 48px 48px 0;
+          min-height: 400px;
         }
         .hero-eyebrow {
           display: inline-flex; align-items: center; gap: 10px;
@@ -269,7 +276,9 @@ export default function Home() {
         @media (max-width: 1024px) {
           nav { padding: 0 24px; }
           .nav-mid { display: none; }
+          .hero { flex-direction: column; align-items: stretch; }
           .hero-content { padding: 80px 24px; }
+          .hero-image { flex: none; align-self: auto; height: 320px; min-height: 0; margin: 0 24px 48px; }
           .section { padding: 72px 24px; }
           .spotlight-inner { padding: 72px 24px; }
           .spotlight-head { flex-direction: column; gap: 28px; }
@@ -330,6 +339,15 @@ export default function Home() {
             <span className="hero-credit-label">Founding Curator</span>
             <a href="/navya" className="hero-credit-name">Navya — Delhi</a>
           </div>
+        </div>
+        <div className="hero-image">
+          <Image
+            src="/images/p2.jpg"
+            alt=""
+            fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            style={{ objectFit: 'cover' }}
+          />
         </div>
       </div>
 
