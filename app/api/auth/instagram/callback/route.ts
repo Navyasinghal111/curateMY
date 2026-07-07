@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const error = request.nextUrl.searchParams.get('error')
 
   if (error || !code) {
-    return NextResponse.redirect(`${baseUrl}/signup?ig_error=denied`)
+    return NextResponse.redirect(`${baseUrl}/signup/creator?ig_error=denied`)
   }
 
   try {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     const tokenData = await tokenRes.json()
     if (!tokenData.access_token) {
-      return NextResponse.redirect(`${baseUrl}/signup?ig_error=token_failed`)
+      return NextResponse.redirect(`${baseUrl}/signup/creator?ig_error=token_failed`)
     }
 
     const shortToken = tokenData.access_token
@@ -55,10 +55,10 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.redirect(
-      `${baseUrl}/signup?ig_success=true&ig_handle=${profile.username}`
+      `${baseUrl}/signup/creator?ig_success=true&ig_handle=${profile.username}`
     )
   } catch (err) {
     console.error('Instagram OAuth error:', err)
-    return NextResponse.redirect(`${baseUrl}/signup?ig_error=server_error`)
+    return NextResponse.redirect(`${baseUrl}/signup/creator?ig_error=server_error`)
   }
 }
