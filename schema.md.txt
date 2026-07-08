@@ -1,6 +1,6 @@
 # CurateKin — MVP Plan & Progress
 
-Last updated: end of session — full MVP loop complete, Cuelinks applied, site live, discovery page built
+Last updated: end of this session — email confirmation bug fully fixed and tested end-to-end; creator signup flow flagged for a dedicated rework next session.
 
 ---
 
@@ -60,6 +60,18 @@ Every row is done or in motion. The full MVP loop — creator curates, shopper d
 
 ---
 
+## What got done this session — email confirmation, fully fixed
+
+1. **Found the real cause of confirmation links failing:** both app/signup/page.tsx and app/signup/creator/page.tsx build the confirmation redirect address dynamically from window.location.origin at the moment of signup — nothing hardcoded, no environment variable.
+2. **Discovered that curatekin.com (no www) forwards to https://www.curatekin.com** before the app's own code ever runs — meaning on the live site, the address actually sent to Supabase is always https://www.curatekin.com/signup/confirm, never the bare non-www version.
+3. **Checked Supabase's Redirect URLs allow-list directly and found it completely empty** — an earlier attempt to add an entry had never actually saved.
+4. **Added https://www.curatekin.com/signup/confirm to the Redirect URLs list** and saved it.
+5. **First retest showed an "invalid or expired link" error** — traced to clicking an old confirmation email from an earlier test sitting in the inbox, not a new bug.
+6. **Retested clean with a brand-new signup:** confirmation link now correctly lands on the live curatekin.com site and shows "Email confirmed." Verified via screenshot. This test went through the creator signup path specifically.
+7. **Not yet separately verified:** the shopper signup path uses the same code pattern and should behave identically, but hasn't been tested directly — added as an open item below.
+
+---
+
 ## What's left — open items for next session
 
 **1. Verify the "My Shop" dashboard tab still works.** The Atelier page (`app/dashboard/products/page.tsx`) was deleted this session. One link pointing to it was found and fixed (the storefront's "+ ADD PIECE" button), but the dashboard's own "My Shop" nav tab was never checked — if it also pointed to `/dashboard/products`, it now 404s. Quick check, not yet done.
@@ -74,13 +86,17 @@ Every row is done or in motion. The full MVP loop — creator curates, shopper d
 
 **6. Show/hide password toggle on login and signup forms.** Right now there's no way to see what you've typed in a password field — a small eye icon to reveal/hide the entered password is a standard, expected feature and currently missing.
 
-**7. Email confirmation is currently disabled.** Confirmed via Supabase Auth settings (`mailer_autoconfirm: true`) — anyone can sign up with any email, real or fake, and get a fully working account instantly. Admin approval still gates whether someone becomes an active creator, but nothing checks they actually own the email they typed. Needs: the Supabase dashboard toggle, plus a "check your email to confirm" UI step added to both `app/signup/creator/page.tsx` and `app/signup/page.tsx`, since both currently assume the user is logged in immediately after signup.
+**7. Resolved this session — email confirmation now fully working.** See "What got done this session" above for the fix and the test that confirmed it. Still open: the shopper signup path hasn't been separately tested with this fix (only creator signup was verified).
 
 **8. Resolved — `/admin` auth check confirmed working.** A genuinely fresh incognito visit to `/admin` correctly redirects to the homepage every time — tested directly, not just reasoned about. Earlier reports of it "letting you in after a few tries" were almost certainly a reused browser window where a login happened in between, not a real bug.
 
 **9. Shopper signup form styling bug.** Found while adding the password toggle — the form's inputs (including untouched fields like "Full name") are rendering solid white/black instead of the intended dark "glass" theme (`bg-white/5`, `text-white`, etc). Confirmed pre-existing, unrelated to the password toggle change. Not fixed yet.
 
-**Already done, no longer open:** applying to Cuelinks, going live (no more access-key gate), the creator discovery page, the critical PAN/UPI/phone data leak (anon key could read and write sensitive `profiles` columns — fixed with RLS + column-level grants), admin MFA setup guidance, the "My Shop" tab (fixed + the stale Atelier page deleted for good), and the show/hide password toggle — see checklist above.
+**10. Creator signup needs a real rework — a bigger issue, not a small polish.** After going through it multiple times while testing, both the flow and the actual content (questions, options, wording) were described as genuinely bad, not just styling. Separately, the signup-to-email-confirmation sequence feels disjointed: email collected on the first screen, confirmation happening much later as a disconnected step. Needs a dedicated session — review the real current page first, then decide what changes.
+
+**11. Minor, low-priority — tidy up two small loose ends from the email confirmation fix.** Supabase's Site URL is currently http://curatekin.com (no "s", no www) — safe to leave for now since it's only a fallback, but worth eventually matching it to https://www.curatekin.com for consistency. Also worth adding https://www.curatekin.com/** to the Redirect URLs list at some point, as a safety net covering any future auth pages (password reset, etc.) without needing to remember to add each one by hand.
+
+**Already done, no longer open:** applying to Cuelinks, going live (no more access-key gate), the creator discovery page, the critical PAN/UPI/phone data leak (anon key could read and write sensitive `profiles` columns — fixed with RLS + column-level grants), admin MFA setup guidance, the "My Shop" tab (fixed + the stale Atelier page deleted for good), the show/hide password toggle, and email confirmation (fixed and tested this session) — see checklist above.
 
 ---
 
