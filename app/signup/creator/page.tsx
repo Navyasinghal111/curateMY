@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
+import { logEvent } from '@/lib/logEvent'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -141,6 +142,10 @@ export default function CreatorSignupPage() {
   }
 
   useEffect(() => {
+    logEvent(supabase, 'signup_start', { metadata: { type: 'creator' } })
+  }, [])
+
+  useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     if (p.get('ig_success') === 'true') {
       if (restoreDraft()) { setIgConnected(true); setIgHandle(p.get('ig_handle') ?? ''); go(2) }
@@ -202,6 +207,7 @@ export default function CreatorSignupPage() {
         // auth.uid() = id). The collected fields already rode along as
         // auth user_metadata above; /signup/confirm creates the profile
         // row once they click the link.
+        logEvent(supabase, 'signup_complete', { metadata: { type: 'creator' } })
         draftClear(); setAwaitingConfirm(true)
         return
       }
@@ -210,6 +216,7 @@ export default function CreatorSignupPage() {
         id: data.user.id, status: 'pending', ...profileFields,
       })
       if (profileErr) throw profileErr
+      logEvent(supabase, 'signup_complete', { metadata: { type: 'creator' } })
       draftClear(); setDone(true)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''

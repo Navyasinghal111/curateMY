@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { logEvent } from '@/lib/logEvent'
 
 // ── Data ─────────────────────────────────────────────────────────
 type FoundingProduct = { id:string; title:string; brand:string; price:string; image_url:string }
@@ -35,6 +36,10 @@ export default function Home() {
   // products, rather than showing invented names and numbers.
   const [founder, setFounder] = useState<FoundingCurator | null>(null)
   const [founderProducts, setFounderProducts] = useState<FoundingProduct[]>([])
+
+  useEffect(() => {
+    logEvent(createClient(), 'homepage_visit')
+  }, [])
 
   useEffect(() => {
     const load = async () => {

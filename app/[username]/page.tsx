@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import StorefrontClient from './StorefrontClient'
+import { logEvent } from '@/lib/logEvent'
 
 type Props = { params: Promise<{ username: string }> }
 
@@ -43,6 +44,11 @@ export default async function StorefrontPage({ params }: Props) {
     .single()
 
   if (!creator) notFound()
+
+  // Awaited (not fire-and-forget) — in a serverless request handler the
+  // function can terminate as soon as the response is sent, so an
+  // un-awaited insert risks silently never completing.
+  await logEvent(supabase, 'storefront_view', { creatorId: creator.id })
 
   const { data: products } = await supabase
     .from('storefront_products')

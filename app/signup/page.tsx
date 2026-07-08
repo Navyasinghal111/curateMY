@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
+import { logEvent } from '@/lib/logEvent'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -109,9 +110,11 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
       // Confirmation required for a genuinely new signup — no session yet,
       // so profiles insert (RLS-gated to auth.uid() = id) has to wait for
       // /signup/confirm.
+      logEvent(supabase, 'signup_complete', { metadata: { type: 'shopper' } })
       setLoading(false); setAwaitingConfirm(true); return
     }
     if (data.user) await supabase.from('profiles').insert({ id: data.user.id, display_name: name, role: 'shopper', status: 'pending' })
+    logEvent(supabase, 'signup_complete', { metadata: { type: 'shopper' } })
     setLoading(false); setDone(true)
   }
 
@@ -198,6 +201,10 @@ export default function SignupPage() {
   const [role, setRole] = useState<Role>(null)
 
   const goHome = () => { window.history.length > 1 ? window.history.back() : window.location.href = '/' }
+
+  useEffect(() => {
+    logEvent(createClient(), 'signup_start', { metadata: { type: 'shopper' } })
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') goHome() }

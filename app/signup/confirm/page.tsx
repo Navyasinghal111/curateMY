@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { logEvent } from '@/lib/logEvent'
 import { useRouter } from 'next/navigation'
 
 type Stage = 'checking' | 'error' | 'creator-done' | 'shopper-done'
@@ -68,7 +69,9 @@ export default function SignupConfirmPage() {
         }
       }
 
-      setStage((existing?.role ?? role) === 'creator' ? 'creator-done' : 'shopper-done')
+      const finalRole = existing?.role ?? role
+      logEvent(supabase, 'email_confirmed', { creatorId: finalRole === 'creator' ? user.id : null, metadata: { type: finalRole } })
+      setStage(finalRole === 'creator' ? 'creator-done' : 'shopper-done')
     }
     run()
   }, [])

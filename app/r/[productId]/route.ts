@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { logEvent } from '@/lib/logEvent'
 
 export async function GET(
   request: Request,
@@ -16,7 +17,7 @@ export async function GET(
 
   const { data: product } = await supabase
     .from('storefront_products')
-    .select('product_url')
+    .select('product_url, creator_id')
     .eq('id', productId)
     .single()
 
@@ -29,6 +30,11 @@ export async function GET(
   try {
     await supabase.from('clicks').insert({ product_id: productId })
   } catch {}
+
+  // The storefront has no separate "view/expand product" interaction —
+  // the only click event a product gets is this redirect itself, so this
+  // is the one and only click-through event for a product.
+  await logEvent(supabase, 'redirect_click', { creatorId: product.creator_id, productId })
 
   return NextResponse.redirect(product.product_url)
 }
