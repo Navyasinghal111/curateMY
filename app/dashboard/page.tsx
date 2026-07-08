@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
+import { logEvent } from '@/lib/logEvent'
 
 const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
 const PRODUCT_CATS = ['Apparel','Coats & Outerwear','Footwear','Bags & Purses','Jewelry & Watches','Makeup','Skincare','Haircare']
@@ -61,7 +62,7 @@ function ProductForm({ state, set, fileRef }: { state:FormState; set:FormSet; fi
 }
 
 // ── modal shell ───────────────────────────────────────────────────
-function ModalShell({ title, onClose, onSubmit, submitLabel, children }: { title:string; onClose:()=>void; onSubmit:()=>void; submitLabel:string; children:React.ReactNode }) {
+function ModalShell({ title, onClose, onSubmit, submitLabel, disabled, children }: { title:string; onClose:()=>void; onSubmit:()=>void; submitLabel:string; disabled?:boolean; children:React.ReactNode }) {
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:300, padding:16 }}>
       <div style={{ background:'#FAFAF8', width:'100%', maxWidth:640, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', borderRadius:4 }}>
@@ -71,7 +72,7 @@ function ModalShell({ title, onClose, onSubmit, submitLabel, children }: { title
         </div>
         {children}
         <div style={{ padding:'0 28px 20px' }}>
-          <button onClick={onSubmit} style={{ width:'100%', padding:'13px', background:'#0A0A0A', color:'#fff', border:'none', fontSize:12, letterSpacing:'0.1em', cursor:'pointer', fontFamily:'inherit' }}>
+          <button onClick={onSubmit} disabled={disabled} style={{ width:'100%', padding:'13px', background:'#0A0A0A', color:'#fff', border:'none', fontSize:12, letterSpacing:'0.1em', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: disabled ? 0.6 : 1 }}>
             {submitLabel}
           </button>
         </div>
@@ -134,6 +135,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       description: notes.trim(), active: true,
     }).select().single()
     if (dbErr) { setError(dbErr.message); setLoading(false); return }
+    logEvent(supabase, 'dashboard_product_add', { creatorId: user.id, productId: data.id })
     onAdd(data); onClose()
   }
 
@@ -141,7 +143,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const formSet:   FormSet   = { img:setImg, name:setName, brand:setBrand, price:setPrice, cat:setCat, shopLink:setShopLink, notes:setNotes, preview:setPreview, file:setImgFile }
 
   return (
-    <ModalShell title="Add to closet" onClose={onClose} onSubmit={save} submitLabel={loading ? 'ADDING…' : 'ADD PIECE'}>
+    <ModalShell title="Add to closet" onClose={onClose} onSubmit={save} submitLabel={loading ? 'ADDING…' : 'ADD PIECE'} disabled={loading}>
       <div style={{ padding:'14px 28px', borderBottom:'1px solid #E8E4DE', display:'flex', gap:0 }}>
         <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key==='Enter' && scrape()} placeholder="Paste URL — Nykaa, Amazon, Myntra…" style={{ ...INP, borderRight:'none', flex:1 }} />
         <button onClick={scrape} disabled={scraping||!url.trim()} style={{ padding:'10px 18px', background:'#1a1a1a', color:'#fff', border:'none', fontSize:12, cursor:'pointer', fontFamily:'inherit', opacity: scraping||!url.trim() ? 0.5 : 1 }}>
@@ -195,7 +197,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
   const formSet:   FormSet   = { img:setImg, name:setName, brand:setBrand, price:setPrice, cat:setCat, shopLink:setShopLink, notes:setNotes, preview:setPreview, file:setImgFile }
 
   return (
-    <ModalShell title="Edit product" onClose={onClose} onSubmit={save} submitLabel={loading ? 'SAVING…' : 'SAVE CHANGES'}>
+    <ModalShell title="Edit product" onClose={onClose} onSubmit={save} submitLabel={loading ? 'SAVING…' : 'SAVE CHANGES'} disabled={loading}>
       <ProductForm state={formState} set={formSet} fileRef={fileRef} />
     </ModalShell>
   )
