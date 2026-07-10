@@ -57,8 +57,15 @@ export default function SignupConfirmPage() {
           niches: meta.niches ?? [], content_language: meta.content_language ?? null, bio: meta.bio ?? null,
           referral_code: meta.referral_code ?? null, source: meta.source ?? null,
           instagram_handle: meta.instagram_handle ?? null, instagram_verified: meta.instagram_verified ?? false,
-          upi_id: meta.upi_id ?? null, pan_number: meta.pan_number ?? null,
+          // Never collected at signup, regardless of what metadata might contain —
+          // payout details are gathered post-approval, from Dashboard > Settings.
+          // Hardcoded (not read from meta) so these can never carry a value.
+          upi_id: null, pan_number: null,
           agreed_tos: meta.agreed_tos ?? false, agreed_affiliate: meta.agreed_affiliate ?? false,
+          // brands_worked_with is collected in the creator signup form and rides
+          // along in auth user_metadata (meta.brands_worked_with), but profiles
+          // has no matching column yet — do not write it here until a schema
+          // migration adds one. Intentionally omitted, not forgotten.
         }
 
         const { error: insertErr } = await supabase.from('profiles').insert(insertFields)

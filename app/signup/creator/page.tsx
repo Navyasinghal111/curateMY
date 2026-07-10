@@ -6,11 +6,10 @@ import { logEvent } from '@/lib/logEvent'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-const SESSION_KEY = 'ck_creator_draft'
 const NICHES    = ['Beauty','Skincare','Fashion','Home Decor','Wellness','Jewellery','Food & Lifestyle','Travel','Fitness']
 const FOLLOWERS = ['Under 1,000','1,000–10,000','10,000–50,000','50,000–2,00,000','2,00,000+']
 const LANGUAGES = ['English','Hindi','Both English & Hindi','Tamil','Telugu','Kannada','Malayalam','Marathi','Bengali','Other']
-const STEPS     = ['Apply', 'Platforms', 'Content']
+const STEPS     = ['Apply', 'Social presence', 'Taste profile']
 
 const INK    = '#0A0A0A'
 const GOLD   = '#B07D4A'
@@ -19,10 +18,6 @@ const MUTED2 = '#9B9B9B'
 const BORDER = '#E5E5E5'
 const SERIF  = "'Fanwood Text', 'Cormorant Garamond', Georgia, serif"
 const SANS   = "'DM Sans', sans-serif"
-
-function draftSave(data: object) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(data)) } catch {} }
-function draftLoad<T>(): T | null { try { const r = sessionStorage.getItem(SESSION_KEY); return r ? JSON.parse(r) : null } catch { return null } }
-function draftClear() { try { sessionStorage.removeItem(SESSION_KEY) } catch {} }
 
 const winp: React.CSSProperties = { width:'100%', padding:'14px 18px', border:`1px solid ${BORDER}`, borderRadius:8, fontSize:14, color:INK, background:'#fff', outline:'none', fontFamily:SANS }
 const wsel: React.CSSProperties = { width:'100%', padding:'14px 18px', border:`1px solid ${BORDER}`, borderRadius:8, fontSize:14, color:INK, background:'#fff', outline:'none', fontFamily:SANS, appearance:'none' as const, cursor:'pointer' }
@@ -98,7 +93,6 @@ export default function CreatorSignupPage() {
   const [ageOk, setAgeOk]                     = useState(false)
   const [agreedTerms, setAgreedTerms]         = useState(false)
 
-  const [igConnected, setIgConnected]         = useState(false)
   const [igHandle, setIgHandle]               = useState('')
   const [pinterestHandle, setPinterestHandle] = useState('')
   const [youtubeHandle, setYoutubeHandle]     = useState('')
@@ -108,6 +102,7 @@ export default function CreatorSignupPage() {
   const [niches, setNiches]                   = useState<string[]>([])
   const [bio, setBio]                         = useState('')
   const [language, setLanguage]               = useState('')
+  const [brandsWorked, setBrandsWorked]       = useState('')
 
   const [error, setError]                     = useState('')
   const [loading, setLoading]                 = useState(false)
@@ -128,39 +123,12 @@ export default function CreatorSignupPage() {
     })
   }
 
-  const draftData = () => ({ firstName, lastName, email, password, countryCode, phone, ageOk, agreedTerms, pinterestHandle, youtubeHandle, largestPlatform, followerCount })
-
-  const restoreDraft = () => {
-    const d = draftLoad<ReturnType<typeof draftData>>()
-    if (!d) return false
-    setFirstName(d.firstName ?? ''); setLastName(d.lastName ?? ''); setEmail(d.email ?? ''); setPass(d.password ?? '')
-    setCountryCode(d.countryCode ?? '+91'); setPhone(d.phone ?? '')
-    setAgeOk(d.ageOk ?? false); setAgreedTerms(d.agreedTerms ?? false)
-    setPinterestHandle(d.pinterestHandle ?? ''); setYoutubeHandle(d.youtubeHandle ?? '')
-    setLargestPlatform(d.largestPlatform ?? ''); setFollowerCount(d.followerCount ?? '')
-    return true
-  }
-
   useEffect(() => {
     logEvent(supabase, 'signup_start', { metadata: { type: 'creator' } })
   }, [])
 
-  useEffect(() => {
-    const p = new URLSearchParams(window.location.search)
-    if (p.get('ig_success') === 'true') {
-      if (restoreDraft()) { setIgConnected(true); setIgHandle(p.get('ig_handle') ?? ''); go(2) }
-      else setError('Session expired. Please fill in your details again.')
-      window.history.replaceState({}, '', '/signup/creator')
-    } else if (p.get('ig_error')) {
-      restoreDraft(); setError('Instagram verification failed. Please try connecting again.'); go(2)
-      window.history.replaceState({}, '', '/signup/creator')
-    }
-  }, [])
-
-  const connectInstagram = () => { draftSave(draftData()); window.location.href = '/api/auth/instagram' }
-
   const applyValid = firstName.trim() !== '' && lastName.trim() !== '' && email.trim() !== '' && password.length >= 8 && phone.trim() !== '' && ageOk && agreedTerms
-  const platformsValid = igConnected && largestPlatform !== '' && followerCount !== ''
+  const platformsValid = igHandle.trim() !== '' && largestPlatform !== '' && followerCount !== ''
   const contentValid = niches.length > 0 && bio.trim() !== '' && language !== ''
 
   const submit = async () => {
@@ -177,8 +145,12 @@ export default function CreatorSignupPage() {
         secondary_platform: null, secondary_handle: null, secondary_followers: null, engagement_rate: null,
         niches, content_language: language, bio,
         referral_code: null, source: null,
-        instagram_handle: igHandle || null, instagram_verified: igConnected,
-        // UPI/PAN payout collection now happens post-approval, from Dashboard > Settings.
+        // Instagram is collected as a plain handle/link, not verified via OAuth
+        // in this flow — CurateKin reviews every application manually instead.
+        instagram_handle: igHandle || null, instagram_verified: false,
+        brands_worked_with: brandsWorked.trim() || null,
+        // UPI/PAN are never collected at signup — payout details are gathered
+        // post-approval, from Dashboard > Settings.
         upi_id: null, pan_number: null,
         agreed_tos: agreedTerms, agreed_affiliate: agreedTerms,
       }
@@ -208,7 +180,7 @@ export default function CreatorSignupPage() {
         // auth user_metadata above; /signup/confirm creates the profile
         // row once they click the link.
         logEvent(supabase, 'signup_complete', { metadata: { type: 'creator' } })
-        draftClear(); setAwaitingConfirm(true)
+        setAwaitingConfirm(true)
         return
       }
 
@@ -217,7 +189,7 @@ export default function CreatorSignupPage() {
       })
       if (profileErr) throw profileErr
       logEvent(supabase, 'signup_complete', { metadata: { type: 'creator' } })
-      draftClear(); setDone(true)
+      setDone(true)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''
       setError(
@@ -293,7 +265,7 @@ export default function CreatorSignupPage() {
               <h1 style={{ fontFamily:SERIF, fontSize:40, fontWeight:400, color:INK, textAlign:'center', lineHeight:1.1, marginBottom:12 }}>
                 Apply to be a Curate<em style={{ fontStyle:'italic', color:GOLD }}>Kin</em> Creator
               </h1>
-              <p style={{ fontSize:14, color:MUTED, textAlign:'center', lineHeight:1.7, marginBottom:36 }}>Curate with your taste and build relationships with brands.</p>
+              <p style={{ fontSize:14, color:MUTED, textAlign:'center', lineHeight:1.7, marginBottom:36 }}>Tell us who you are. We review every creator before approval.</p>
               <div style={fs}>
                 <input type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} style={winp} />
                 <input type="text" placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} style={winp} />
@@ -305,16 +277,6 @@ export default function CreatorSignupPage() {
                   </select>
                   <input type="tel" placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g,''))} maxLength={10} style={{ ...winp, flex:1 }} />
                 </div>
-
-                <div style={{ display:'flex', alignItems:'center', gap:12, margin:'4px 0' }}>
-                  <div style={{ flex:1, height:1, background:BORDER }} />
-                  <span style={{ fontSize:12, color:MUTED2, whiteSpace:'nowrap' }}>or</span>
-                  <div style={{ flex:1, height:1, background:BORDER }} />
-                </div>
-                <button type="button" style={{ width:'100%', padding:'14px', borderRadius:8, border:`1px solid ${BORDER}`, background:'#fff', color:INK, fontSize:14, fontWeight:500, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', justifyContent:'center', gap:10 }}>
-                  <span style={{ width:20, height:20, borderRadius:'50%', border:`1px solid ${BORDER}`, color:INK, fontSize:12, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>G</span>
-                  Sign up with Google
-                </button>
 
                 <WCheck checked={ageOk} onChange={() => setAgeOk(a => !a)}>I confirm I&apos;m 18 or older</WCheck>
                 <WCheck checked={agreedTerms} onChange={() => setAgreedTerms(a => !a)}>
@@ -340,31 +302,13 @@ export default function CreatorSignupPage() {
           {step === 2 && (
             <div style={{ background:'#fff', padding:'40px 36px', borderRadius:12, border:`0.5px solid ${BORDER}` }}>
               <h1 style={{ fontFamily:SERIF, fontSize:40, fontWeight:400, color:INK, textAlign:'center', lineHeight:1.1, marginBottom:12 }}>
-                Socials
+                Social presence
               </h1>
-              <p style={{ fontSize:14, color:MUTED, textAlign:'center', lineHeight:1.7, marginBottom:36 }}>Your socials show us how you show up across platforms, so we can support your growth more strategically.</p>
+              <p style={{ fontSize:14, color:MUTED, textAlign:'center', lineHeight:1.7, marginBottom:36 }}>We use this to understand your content, not to judge only by follower count.</p>
               <div style={fs}>
                 <div>
                   <label style={{ display:'block', fontSize:15, fontWeight:500, color:INK, marginBottom:10 }}>Instagram*</label>
-                  {igConnected ? (
-                    <div style={{ ...winp, display:'flex', alignItems:'center', gap:10 }}>
-                      <span style={{ width:28, height:28, borderRadius:8, background:'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4)', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>IG</span>
-                      <span style={{ color:INK, fontSize:14, flex:1 }}>@{igHandle}</span>
-                      <span style={{ color:GOLD, fontSize:13, fontWeight:500, display:'flex', alignItems:'center', gap:4 }}>
-                        ✓ Instagram verified
-                      </span>
-                    </div>
-                  ) : (
-                    <div>
-                      <button type="button" onClick={connectInstagram}
-                        style={{ width:'100%', padding:'14px', borderRadius:8, border:'none', background:'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4)', color:'#fff', fontSize:14, fontWeight:500, cursor:'pointer', fontFamily:'inherit' }}>
-                        Connect Instagram
-                      </button>
-                      <p style={{ fontSize:12, color:MUTED2, marginTop:8, lineHeight:1.6 }}>
-                        Connect Instagram to continue — this is what actually proves the account is yours.
-                      </p>
-                    </div>
-                  )}
+                  <input type="text" placeholder="@handle or profile link" value={igHandle} onChange={e => setIgHandle(e.target.value)} style={winp} />
                 </div>
                 <div>
                   <label style={{ display:'block', fontSize:15, fontWeight:500, color:INK, marginBottom:10 }}>Pinterest (optional)</label>
@@ -393,7 +337,7 @@ export default function CreatorSignupPage() {
                 </div>
 
                 <p style={{ fontSize:12, color:MUTED2, lineHeight:1.6 }}>
-                  Please be honest, as we fact-check. Follower count is just one factor we consider — our review process takes a holistic approach, valuing authenticity, content quality, and engagement.
+                  We review every application by hand, so there&apos;s nothing to connect or verify right now — just tell us where to find you.
                 </p>
 
                 <div style={{ display:'flex', gap:12, marginTop:6 }}>
@@ -412,9 +356,9 @@ export default function CreatorSignupPage() {
           {step === 3 && (
             <div style={{ background:'#fff', padding:'40px 36px', borderRadius:12, border:`0.5px solid ${BORDER}` }}>
               <h1 style={{ fontFamily:SERIF, fontSize:40, fontWeight:400, color:INK, textAlign:'center', lineHeight:1.1, marginBottom:12 }}>
-                Your content
+                Taste profile
               </h1>
-              <p style={{ fontSize:14, color:MUTED, textAlign:'center', lineHeight:1.7, marginBottom:36 }}>Tell us what makes your taste unique.</p>
+              <p style={{ fontSize:14, color:MUTED, textAlign:'center', lineHeight:1.7, marginBottom:36 }}>What do you recommend, and why do people trust your taste?</p>
               <div style={fs}>
                 <div>
                   <label style={{ display:'block', fontSize:15, fontWeight:500, color:INK, marginBottom:10 }}>Your niche (pick up to 3)*</label>
@@ -444,6 +388,11 @@ export default function CreatorSignupPage() {
                     <option value="">Select language</option>
                     {LANGUAGES.map(l => <option key={l}>{l}</option>)}
                   </select>
+                </div>
+
+                <div>
+                  <label style={{ display:'block', fontSize:15, fontWeight:500, color:INK, marginBottom:10 }}>Brands you&apos;ve worked with (optional)</label>
+                  <input type="text" placeholder="e.g. Nykaa, Sugar Cosmetics" value={brandsWorked} onChange={e => setBrandsWorked(e.target.value)} style={winp} />
                 </div>
 
                 <div style={{ display:'flex', gap:12, marginTop:6 }}>

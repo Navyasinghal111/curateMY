@@ -10,32 +10,32 @@ import { logEvent } from '@/lib/logEvent'
 type FoundingProduct = { id:string; title:string; brand:string; price:string; image_url:string }
 type FoundingCurator  = { id:string; username:string; display_name:string; avatar_url:string; bio:string; city?:string }
 
-const CREATOR_STEPS = [
-  { n:'01', t:'Apply & get verified',   b:'Anyone with a trusted point of view — creator, doctor, stylist, icon. Apply once, get your curator badge and storefront URL.' },
-  { n:'02', t:'Add products you love',  b:'Add any product from any brand instantly. Write why you trust it. Group into collections. No approval process.' },
-  { n:'03', t:'Earn 80% on every sale', b:'When your followers shop through your storefront you earn 80% commission. Tracked automatically, paid monthly.' },
-]
-
 const SHOPPER_STEPS = [
-  { n:'01', t:'Follow who you trust',       b:'Find the dermatologist you follow, the stylist you love, the chef you admire. All their picks in one place.' },
-  { n:'02', t:'Discover with real context', b:'Every product has a curator note — why they use it, how long, what it does. No anonymous reviews.' },
-  { n:'03', t:'Shop directly from brands',  b:'Click through to the brand website. No middlemen, no markups. Trusted picks, straight to checkout.' },
+  { n:'01', t:'Find curators you trust',                    b:'Search for the creators, doctors, and stylists whose taste you already follow.' },
+  { n:'02', t:'Browse their real recommendations',           b:'See what they actually use, in their own words — not a sponsored feed.' },
+  { n:'03', t:'Click through to shop from the original source', b:'Every product links straight to where it’s sold. No CurateKin checkout, no markup.' },
 ]
 
-const MARQUEE_ITEMS = ['Skincare','Fashion','Wellness','Dermatologist Picks','Home & Living','Beauty','Nutrition','Fitness','Jewellery','Tech']
+const CREATOR_STEPS = [
+  { n:'01', t:'Apply to join',                                        b:'Tell us about your platforms and the kind of taste you bring.' },
+  { n:'02', t:'Build your curated storefront',                        b:'Add products you already recommend, organized the way you’d want to browse them.' },
+  { n:'03', t:'Share products you genuinely use',                     b:'Write why you trust each pick — that context is the whole point.' },
+  { n:'04', t:'Earn commission on eligible purchases when tracking is active', b:'Commission tracking rolls out as affiliate partnerships come online for your storefront.' },
+]
 
-const CURATOR_FEATS = ['Your storefront at curatekin.com/you','Add any product from any brand instantly','Earn 80% commission on every sale','Direct brand collaboration opportunities']
-const SHOPPER_FEATS = ['Follow curators whose taste you trust','Verified picks from doctors & experts','Shop directly from brand websites','Save picks and build your wishlist']
-
-const FOOTER_PLATFORM = [['Browse curators','/curators'],['Categories','/categories'],['For brands','/brands'],['About','/about']]
-const FOOTER_CURATORS = [['Apply to join','/signup'],['Dashboard','/dashboard'],['Earnings','/dashboard/earnings'],['Help','/help']]
-const FOOTER_COMPANY  = [['Privacy','/privacy'],['Terms','/terms'],['Contact','mailto:hello@curatekin.com'],['Affiliate policy','/affiliate-policy']]
+const WHY_POINTS = [
+  { t:'Human taste over algorithmic feeds',       b:'Every pick comes from a real person’s judgment, not a recommendation engine.' },
+  { t:'Quality over quantity',                    b:'A smaller, curated collection beats an endless scroll.' },
+  { t:'Real context, not anonymous reviews',      b:'Each product carries a name and a reason — never a star rating from a stranger.' },
+  { t:'Premium storefronts for trusted creators', b:'A storefront that looks and feels as considered as the taste behind it.' },
+]
 
 export default function Home() {
   // Founding curator spotlight — pulls one real creator + their real
   // products, rather than showing invented names and numbers.
   const [founder, setFounder] = useState<FoundingCurator | null>(null)
   const [founderProducts, setFounderProducts] = useState<FoundingProduct[]>([])
+  const [founderLoaded, setFounderLoaded] = useState(false)
 
   useEffect(() => {
     logEvent(createClient(), 'homepage_visit')
@@ -48,9 +48,10 @@ export default function Home() {
         .from('profiles')
         .select('id, username, display_name, avatar_url, bio, city')
         .eq('username', 'navya')
+        .eq('status', 'approved')
         .maybeSingle()
 
-      if (!creator) return
+      if (!creator) { setFounderLoaded(true); return }
       setFounder(creator)
 
       const { data: products } = await supabase
@@ -62,6 +63,7 @@ export default function Home() {
         .limit(5)
 
       setFounderProducts(products ?? [])
+      setFounderLoaded(true)
     }
     load()
   }, [])
@@ -72,19 +74,16 @@ export default function Home() {
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-          --cream: #F0EDE8;
+          --cream:  #F0EDE8;
           --cream2: #E8E4DE;
-          --ink:   #141210;
-          --ink2:  #3A3630;
-          --muted: #8C867E;
-          --dim:   #B4AEA8;
-          --gold:  #B07D4A;
-          --gold2: #C99A6A;
-          --burg:  #8B1A1A;
-          --br:    rgba(20,18,16,0.08);
-          --br-w:  rgba(255,255,255,0.1);
-          --serif: 'Fanwood Text', 'Cormorant Garamond', Georgia, serif;
-          --sans:  'DM Sans', system-ui, sans-serif;
+          --ink:    #141210;
+          --ink2:   #3A3630;
+          --muted:  #8C867E;
+          --gold:   #B07D4A;
+          --gold2:  #C99A6A;
+          --br:     rgba(20,18,16,0.08);
+          --serif:  'Fanwood Text', 'Cormorant Garamond', Georgia, serif;
+          --sans:   'DM Sans', system-ui, sans-serif;
         }
         html  { scroll-behavior: smooth; }
         body  { background: var(--cream); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
@@ -92,420 +91,329 @@ export default function Home() {
         /* ── Nav ── */
         nav {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-          height: 60px; display: flex; align-items: center; justify-content: space-between;
+          height: 64px; display: flex; align-items: center; justify-content: space-between;
           padding: 0 48px;
           background: rgba(240,237,232,0.92); backdrop-filter: blur(20px);
           border-bottom: 0.5px solid var(--br);
         }
-        .logo     { font-family: var(--serif); font-size: 22px; font-weight: 300; color: var(--ink); text-decoration: none; }
-        .logo em  { font-style: italic; color: var(--burg); }
+        .logo     { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--ink); text-decoration: none; }
+        .logo em  { font-style: italic; color: var(--gold); }
         .nav-mid  { display: flex; gap: 36px; }
         .nav-mid a{ font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
         .nav-mid a:hover { color: var(--ink); }
         .nav-right{ display: flex; gap: 8px; align-items: center; }
         .btn-ghost{ font-size: 13px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: var(--sans); padding: 6px 14px; text-decoration: none; }
-        .btn-ink  { font-size: 12px; font-weight: 500; font-family: var(--sans); background: var(--ink); color: var(--cream); border: none; padding: 9px 22px; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; }
+        .btn-ghost:hover { color: var(--ink); }
+        .btn-ink  { font-size: 12px; font-weight: 500; font-family: var(--sans); background: var(--ink); color: var(--cream); border: none; padding: 10px 22px; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; }
         .btn-ink:hover { opacity: 0.85; }
+        .btn-gold { font-size: 12px; letter-spacing: 0.06em; font-family: var(--sans); font-weight: 500; background: var(--gold); color: #fff; border: none; padding: 12px 28px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-gold:hover { background: var(--gold2); }
+        .btn-outline { font-size: 12px; letter-spacing: 0.06em; font-family: var(--sans); font-weight: 500; color: var(--ink); background: none; border: 1px solid var(--ink); padding: 11px 27px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-outline:hover { background: var(--ink); color: var(--cream); }
 
-        /* ── Hero — full bleed dark ── */
+        /* ── Hero — editorial, cream, no dark gradient ── */
         .hero {
-          min-height: 100vh; padding-top: 60px;
-          position: relative; display: flex; align-items: center;
-          background: var(--ink);
-          overflow: hidden;
-        }
-        .hero-bg {
-          position: absolute; inset: 0;
-          background:
-            radial-gradient(ellipse 80% 60% at 70% 50%, rgba(176,125,74,0.08) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 80% at 20% 30%, rgba(139,26,26,0.06) 0%, transparent 60%);
-        }
-        .hero-line {
-          position: absolute; right: 0; top: 0; bottom: 0; width: 45%;
-          border-left: 0.5px solid rgba(255,255,255,0.06);
-        }
-        .hero-content {
-          position: relative; z-index: 2;
-          padding: 80px 48px;
-          max-width: 680px;
-        }
-        .hero-image {
-          position: relative; z-index: 2;
-          flex: 1; align-self: stretch;
-          margin: 48px 48px 48px 0;
-          min-height: 400px;
+          padding: 148px 48px 96px;
+          display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+          max-width: 1280px; margin: 0 auto;
         }
         .hero-eyebrow {
           display: inline-flex; align-items: center; gap: 10px;
           font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-          color: var(--gold); font-weight: 500; margin-bottom: 36px;
+          color: var(--gold); font-weight: 500; margin-bottom: 32px;
         }
         .hero-eyebrow-line { width: 24px; height: 0.5px; background: var(--gold); }
         h1 {
-          font-family: var(--serif); font-size: clamp(52px, 6vw, 88px);
-          font-weight: 300; line-height: 1.04; color: #fff;
-          margin-bottom: 28px; letter-spacing: -0.01em;
+          font-family: var(--serif); font-size: clamp(44px, 5vw, 68px);
+          font-weight: 300; line-height: 1.08; color: var(--ink);
+          margin-bottom: 24px; letter-spacing: -0.01em;
         }
-        h1 em { font-style: italic; color: var(--gold2); }
+        h1 em { font-style: italic; color: var(--gold); }
         .hero-sub {
-          font-size: 15px; font-weight: 300; color: rgba(255,255,255,0.45);
-          line-height: 1.8; max-width: 440px; margin-bottom: 48px;
+          font-size: 15px; font-weight: 300; color: var(--ink2);
+          line-height: 1.8; max-width: 440px; margin-bottom: 40px;
         }
-        .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 56px; }
-        .btn-gold  { font-size: 12px; letter-spacing: 0.08em; font-family: var(--sans); font-weight: 500; background: var(--gold); color: #fff; border: none; padding: 12px 28px; cursor: pointer; text-decoration: none; }
-        .btn-gold:hover { background: var(--gold2); }
-        .btn-ghost-dark { font-size: 12px; letter-spacing: 0.08em; font-family: var(--sans); color: rgba(255,255,255,0.5); background: none; border: 0.5px solid rgba(255,255,255,0.2); padding: 12px 28px; text-decoration: none; }
-        .btn-ghost-dark:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.8); }
-
-        /* Honest founding-curator credit line — replaces invented stats */
-        .hero-credit { display: flex; align-items: center; gap: 14px; padding-top: 32px; border-top: 0.5px solid rgba(255,255,255,0.08); }
-        .hero-credit-line  { width: 24px; height: 0.5px; background: var(--gold); flex-shrink: 0; }
-        .hero-credit-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.32); }
-        .hero-credit-name  { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--gold2); text-decoration: none; }
-        .hero-credit-name:hover { color: #fff; }
-
-        /* ── Marquee ── */
-        .mq-wrap { border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); padding: 14px 0; overflow: hidden; background: var(--cream); }
-        .mq-track { display: inline-block; white-space: nowrap; animation: mq 32s linear infinite; }
-        @keyframes mq { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-        .mq-item { display: inline-flex; align-items: center; gap: 12px; margin-right: 48px; font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); }
-        .mq-sep { color: var(--gold); font-style: normal; font-size: 8px; }
+        .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+        .hero-visual {
+          position: relative; aspect-ratio: 4/5; border: 1px solid var(--br);
+          background: var(--cream2); overflow: hidden;
+        }
 
         /* ── Section shell ── */
         .section { max-width: 1200px; margin: 0 auto; padding: 96px 48px; }
-        .display-eyebrow { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); margin-bottom: 4px; }
-        .display-heading { font-family: var(--serif); font-size: clamp(48px,5vw,80px); font-weight: 300; color: var(--ink); line-height: 1; margin-bottom: 48px; }
+        .display-eyebrow { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); font-weight: 500; margin-bottom: 20px; }
+        .display-heading { font-family: var(--serif); font-size: clamp(36px,4vw,56px); font-weight: 300; color: var(--ink); line-height: 1.1; margin-bottom: 48px; }
+        .display-heading em { font-style: italic; color: var(--gold); }
 
-        /* ── Founding curator spotlight — one real feature, not a grid ── */
-        .spotlight-wrap {
-          background: var(--cream2);
-          border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br);
-          animation: spotFade 0.7s ease;
-        }
-        @media (prefers-reduced-motion: reduce) { .spotlight-wrap { animation: none; } }
-        @keyframes spotFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        /* ── Founding curator spotlight ── */
+        .spotlight-wrap { background: var(--cream2); border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); }
         .spotlight-inner { max-width: 1200px; margin: 0 auto; padding: 96px 48px; }
-        .spotlight-eyebrow {
-          font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
-          color: var(--gold); font-weight: 500; margin-bottom: 28px;
-        }
         .spotlight-head { display: flex; gap: 48px; align-items: flex-start; margin-bottom: 56px; }
         .spotlight-portrait {
-          width: 240px; height: 320px; flex-shrink: 0;
-          border: 1px solid rgba(176,125,74,0.35);
-          background: linear-gradient(160deg,#2A2420,#1A1410);
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden;
+          width: 220px; height: 290px; flex-shrink: 0;
+          border: 1px solid var(--br); background: #fff;
+          display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
         .spotlight-portrait img { width: 100%; height: 100%; object-fit: cover; }
-        .spotlight-portrait span { font-family: var(--serif); font-style: italic; font-size: 56px; color: rgba(255,255,255,0.4); }
-        .spotlight-kicker { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--muted); margin-bottom: 6px; }
-        .spotlight-name   { font-family: var(--serif); font-weight: 300; font-size: clamp(40px,4.2vw,64px); color: var(--ink); line-height: 1.05; margin-bottom: 16px; }
-        .spotlight-meta   { display: flex; gap: 14px; font-size: 12px; color: var(--muted); letter-spacing: 0.03em; margin-bottom: 18px; }
+        .spotlight-portrait span { font-family: var(--serif); font-style: italic; font-size: 56px; color: var(--gold); }
+        .spotlight-kicker { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--muted); margin-bottom: 6px; }
+        .spotlight-name   { font-family: var(--serif); font-weight: 300; font-size: clamp(32px,3.6vw,48px); color: var(--ink); line-height: 1.1; margin-bottom: 14px; }
+        .spotlight-meta   { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-bottom: 16px; }
         .spotlight-meta span + span { padding-left: 14px; border-left: 0.5px solid var(--br); }
-        .spotlight-bio    { font-size: 14px; color: var(--ink2); line-height: 1.8; font-weight: 300; max-width: 420px; margin-bottom: 24px; }
-        .spotlight-cta    { font-size: 12px; letter-spacing: 0.06em; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--gold); padding-bottom: 2px; }
+        .spotlight-bio    { font-size: 14px; color: var(--ink2); line-height: 1.8; font-weight: 300; max-width: 420px; margin-bottom: 22px; }
+        .spotlight-cta    { font-size: 12px; letter-spacing: 0.04em; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--gold); padding-bottom: 2px; }
         .spotlight-cta:hover { color: var(--gold); }
 
         .spotlight-rail-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
         .spotlight-rail { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 4px; }
-        .rail-item { flex-shrink: 0; width: 180px; text-decoration: none; color: inherit; }
+        .rail-item { flex-shrink: 0; width: 170px; text-decoration: none; color: inherit; }
         .rail-img { aspect-ratio: 3/4; background: #fff; border: 0.5px solid var(--br); display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 8px; transition: box-shadow 0.2s; }
-        .rail-item:hover .rail-img { box-shadow: 0 8px 24px rgba(20,18,16,0.12); }
+        .rail-item:hover .rail-img { box-shadow: 0 8px 24px rgba(20,18,16,0.1); }
         .rail-img img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
-        .rail-ph { font-family: var(--serif); font-style: italic; font-size: 32px; color: rgba(20,18,16,0.1); }
+        .rail-ph { font-family: var(--serif); font-style: italic; font-size: 30px; color: rgba(20,18,16,0.1); }
         .rail-brand { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
         .rail-price { font-family: var(--serif); font-size: 15px; color: var(--ink); }
 
-        /* ── Mid-page dark editorial break ── */
-        .dark-break {
-          position: relative; overflow: hidden;
-          background: var(--ink); padding: 96px 48px;
-          text-align: center;
-        }
-        .dark-break-bg {
-          position: absolute; inset: 0;
-          background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(176,125,74,0.07) 0%, transparent 70%);
-        }
-        .dark-break-content { position: relative; z-index: 2; max-width: 600px; margin: 0 auto; }
-        .dark-break h2 {
-          font-family: var(--serif); font-size: clamp(36px, 4vw, 60px);
-          font-weight: 300; color: #fff; line-height: 1.1; margin-bottom: 12px;
-        }
-        .dark-break h2 em { font-style: italic; color: var(--gold2); }
-        .dark-break p { font-size: 14px; color: rgba(255,255,255,0.35); margin-bottom: 36px; font-weight: 300; }
-        .dark-break-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .spotlight-empty { text-align: center; padding: 40px 20px; }
+        .spotlight-empty-line { font-family: var(--serif); font-size: 26px; font-weight: 300; color: var(--ink); margin-bottom: 8px; }
+        .spotlight-empty-sub  { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
 
         /* ── How it works ── */
-        .hiw-wrap { background: var(--cream2); border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); }
-        .hiw-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; padding-top: 48px; border-top: 0.5px solid var(--br); }
+        .hiw-wrap { background: var(--cream); }
+        .hiw-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
         .hiw-role { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 32px; }
-        .step      { display: flex; gap: 20px; margin-bottom: 32px; }
-        .step-n    { font-family: var(--serif); font-size: 11px; color: var(--gold); width: 18px; flex-shrink: 0; padding-top: 3px; }
-        .step-t    { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
-        .step-b    { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+        .step   { display: flex; gap: 20px; margin-bottom: 30px; }
+        .step-n { font-family: var(--serif); font-size: 12px; color: var(--gold); width: 20px; flex-shrink: 0; padding-top: 3px; }
+        .step-t { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 6px; line-height: 1.5; }
+        .step-b { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; }
 
-        /* ── Join section — dark/light split ── */
-        .join-wrap { border-top: 0.5px solid var(--br); }
-        .join-grid { display: grid; grid-template-columns: 1fr 1fr; }
-        .join-col  { padding: 88px 64px; display: flex; flex-direction: column; }
-        .join-col.dark { background: var(--ink); }
-        .join-h    { font-family: var(--serif); font-size: clamp(32px,3vw,48px); font-weight: 300; line-height: 1.1; color: var(--ink); margin-bottom: 16px; }
-        .join-h em { font-style: italic; color: var(--gold); }
-        .join-col.dark .join-h { color: #fff; }
-        .join-col.dark .join-h em { color: var(--gold2); }
-        .join-p    { font-size: 14px; color: var(--muted); line-height: 1.8; font-weight: 300; margin-bottom: 36px; max-width: 360px; }
-        .join-col.dark .join-p { color: rgba(255,255,255,0.35); }
-        .feats     { margin-bottom: 40px; }
-        .feat      { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 13px; color: var(--muted); font-weight: 300; line-height: 1.5; }
-        .join-col.dark .feat { color: rgba(255,255,255,0.35); }
-        .feat-dot  { width: 3px; height: 3px; border-radius: 50%; background: var(--gold); margin-top: 7px; flex-shrink: 0; }
-        .join-col.dark .feat-dot { background: var(--gold2); }
+        /* ── Why CurateKin ── */
+        .why-wrap { background: var(--cream2); border-top: 0.5px solid var(--br); border-bottom: 0.5px solid var(--br); }
+        .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px 64px; }
+        .why-item { padding-top: 20px; border-top: 1px solid var(--gold); }
+        .why-t { font-family: var(--serif); font-size: 22px; font-weight: 300; color: var(--ink); margin-bottom: 8px; line-height: 1.3; }
+        .why-b { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; max-width: 340px; }
+
+        /* ── CTA bands (creator + shopper) ── */
+        .cta-wrap { border-top: 0.5px solid var(--br); }
+        .cta-band { max-width: 1200px; margin: 0 auto; padding: 88px 48px; }
+        .cta-band.split { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+        .cta-h { font-family: var(--serif); font-size: clamp(30px,3.4vw,48px); font-weight: 300; color: var(--ink); line-height: 1.1; margin-bottom: 16px; max-width: 520px; }
+        .cta-p { font-size: 14px; color: var(--muted); line-height: 1.8; font-weight: 300; max-width: 420px; margin-bottom: 32px; }
+        .cta-band.center { text-align: center; }
+        .cta-band.center .cta-h { max-width: none; margin-left: auto; margin-right: auto; }
 
         /* ── Footer ── */
-        footer { background: var(--ink); color: #fff; padding: 64px 48px 40px; }
-        .ft     { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr; gap: 48px; padding-bottom: 48px; border-bottom: 0.5px solid rgba(255,255,255,0.06); margin-bottom: 28px; }
-        .ft-logo{ font-family: var(--serif); font-size: 22px; font-weight: 300; color: #fff; margin-bottom: 10px; }
+        footer { background: var(--ink); color: #fff; padding: 48px 48px 32px; }
+        .ft-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+        .ft-logo { font-family: var(--serif); font-size: 18px; font-weight: 400; color: #fff; }
         .ft-logo em { font-style: italic; color: var(--gold2); }
-        .ft-tag { font-size: 13px; color: rgba(255,255,255,0.25); font-weight: 300; line-height: 1.65; max-width: 180px; }
-        .ft-h   { font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(255,255,255,0.2); margin-bottom: 16px; font-weight: 500; }
-        .ft-lks { display: flex; flex-direction: column; gap: 10px; }
-        .ft-lks a { font-size: 13px; color: rgba(255,255,255,0.35); text-decoration: none; font-weight: 300; transition: color .15s; }
-        .ft-lks a:hover { color: rgba(255,255,255,0.7); }
-        .ft-btm { display: flex; align-items: center; justify-content: space-between; }
-        .ft-copy{ font-size: 11px; color: rgba(255,255,255,0.15); }
-        .ft-bl  { display: flex; gap: 20px; }
-        .ft-bl a{ font-size: 11px; color: rgba(255,255,255,0.15); text-decoration: none; }
+        .ft-links { display: flex; gap: 28px; flex-wrap: wrap; }
+        .ft-links a { font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color .15s; }
+        .ft-links a:hover { color: #fff; }
+        .ft-copy { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 24px; }
 
         /* ── Responsive ── */
         @media (max-width: 1024px) {
           nav { padding: 0 24px; }
           .nav-mid { display: none; }
-          .hero { flex-direction: column; align-items: stretch; }
-          .hero-content { padding: 80px 24px; }
-          .hero-image { flex: none; align-self: auto; height: 320px; min-height: 0; margin: 0 24px 48px; }
+          .hero { grid-template-columns: 1fr; padding: 128px 24px 64px; gap: 40px; }
+          .hero-visual { order: -1; aspect-ratio: 16/10; }
           .section { padding: 72px 24px; }
           .spotlight-inner { padding: 72px 24px; }
           .spotlight-head { flex-direction: column; gap: 28px; }
           .spotlight-portrait { width: 160px; height: 210px; }
           .hiw-cols { grid-template-columns: 1fr; gap: 48px; }
-          .join-grid { grid-template-columns: 1fr; }
-          .join-col { padding: 64px 32px; }
-          .dark-break { padding: 72px 24px; }
-          .ft { grid-template-columns: 1fr 1fr; gap: 32px; }
+          .why-grid { grid-template-columns: 1fr; gap: 32px; }
+          .cta-band { padding: 64px 24px; }
+          .cta-band.split { flex-direction: column; align-items: flex-start; }
         }
 
         @media (max-width: 640px) {
-          .hero-content { padding: 72px 20px; }
-          h1 { font-size: 44px; }
-          .display-heading { font-size: 40px; }
-          .section { padding: 60px 20px; }
-          .spotlight-inner { padding: 60px 20px; }
+          .display-heading { font-size: 34px; }
+          .section { padding: 56px 20px; }
+          .spotlight-inner { padding: 56px 20px; }
           .rail-item { width: 140px; }
-          .ft { grid-template-columns: 1fr; }
-          .join-col { padding: 52px 20px; }
+          .ft-inner { flex-direction: column; align-items: flex-start; }
         }
       `}</style>
 
-      {/* ── Nav ── */}
+      {/* ── 1. Navigation ── */}
       <nav>
-        <a href="/" className="logo">Curate<em>Kin</em></a>
+        <Link href="/" className="logo">Curate<em>Kin</em></Link>
         <div className="nav-mid">
-          <a href="/creators">Curators</a>
+          <Link href="/creators">Curators</Link>
           <a href="#how">How it works</a>
-          <a href="/brands">For brands</a>
+          <Link href="/brands">For brands</Link>
         </div>
         <div className="nav-right">
-          <a href="/login" className="btn-ghost">Sign in</a>
+          <Link href="/login" className="btn-ghost">Sign in</Link>
           <Link href="/signup" className="btn-ink">Get started</Link>
         </div>
       </nav>
 
-      {/* ── Hero — full bleed dark ── */}
+      {/* ── 2. Hero ── */}
       <div className="hero">
-        <div className="hero-bg" />
-        <div className="hero-line" />
-        <div className="hero-content">
+        <div>
           <div className="hero-eyebrow">
             <div className="hero-eyebrow-line" />
             Trusted curation · Real people
           </div>
-          <h1>Curated by<br/>people, not<br/><em>algorithms.</em></h1>
+          <h1>Curated by people,<br/>not <em>algorithms.</em></h1>
           <p className="hero-sub">
-            The creators, doctors, and stylists you follow — sharing the products they genuinely use.
-            Discover everything in one place, and shop with real context.
+            The creators, doctors, stylists, and tastemakers you trust — sharing the products they genuinely use.
           </p>
           <div className="hero-btns">
-            <Link href="/signup" className="btn-gold">Start your storefront</Link>
-            <a href="/creators" className="btn-ghost-dark">Browse curators</a>
-          </div>
-          <div className="hero-credit">
-            <div className="hero-credit-line" />
-            <span className="hero-credit-label">Founding Curator</span>
-            <a href="/navya" className="hero-credit-name">Navya — Delhi</a>
+            <Link href="/creators" className="btn-gold">Browse curators</Link>
+            <Link href="/signup" className="btn-outline">Apply as a creator</Link>
           </div>
         </div>
-        <div className="hero-image">
+        <div className="hero-visual">
           <Image
             src="/images/p2.jpg"
             alt=""
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
             style={{ objectFit: 'cover' }}
+            priority
           />
         </div>
       </div>
 
-      {/* ── Marquee ── */}
-      <div className="mq-wrap" aria-hidden="true">
-        <div className="mq-track">
-          {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
-            <span key={i} className="mq-item">
-              {item} <span className="mq-sep">✦</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Founding curator spotlight — real data, one real feature ── */}
-      {founder && (
-        <div id="curators" className="spotlight-wrap">
-          <div className="spotlight-inner">
-            <div className="spotlight-eyebrow">Founding Curator</div>
-            <div className="spotlight-head">
-              <div className="spotlight-portrait">
-                {founder.avatar_url
-                  ? <img src={founder.avatar_url} alt={founder.display_name} />
-                  : <span>{founder.display_name?.[0]?.toUpperCase()}</span>}
-              </div>
-              <div>
-                <div className="spotlight-kicker">Curated by</div>
-                <h2 className="spotlight-name">{founder.display_name}</h2>
-                <div className="spotlight-meta">
-                  {founder.city && <span>{founder.city}</span>}
-                  {founderProducts.length > 0 && <span>{founderProducts.length} pieces curated</span>}
+      {/* ── 3. Founding curator / real curation section ── */}
+      <div id="curators" className="spotlight-wrap">
+        <div className="spotlight-inner">
+          <div className="display-eyebrow">Founding Curator</div>
+          {founder ? (
+            <>
+              <div className="spotlight-head">
+                <div className="spotlight-portrait">
+                  {founder.avatar_url
+                    ? <img src={founder.avatar_url} alt={founder.display_name} />
+                    : <span>{founder.display_name?.[0]?.toUpperCase()}</span>}
                 </div>
-                {founder.bio && <p className="spotlight-bio">{founder.bio}</p>}
-                <Link href={`/${founder.username}`} className="spotlight-cta">Visit the storefront →</Link>
+                <div>
+                  <div className="spotlight-kicker">Curated by</div>
+                  <h2 className="spotlight-name">{founder.display_name}</h2>
+                  <div className="spotlight-meta">
+                    {founder.city && <span>{founder.city}</span>}
+                    {founderProducts.length > 0 && <span>{founderProducts.length} pieces curated</span>}
+                  </div>
+                  {founder.bio && <p className="spotlight-bio">{founder.bio}</p>}
+                  <Link href={`/${founder.username}`} className="spotlight-cta">Visit the storefront →</Link>
+                </div>
               </div>
+
+              {founderProducts.length > 0 && (
+                <>
+                  <div className="spotlight-rail-label">The current edit</div>
+                  <div className="spotlight-rail">
+                    {founderProducts.map(p => (
+                      <a key={p.id} href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer" className="rail-item">
+                        <div className="rail-img">
+                          {p.image_url
+                            ? <img src={p.image_url} alt={p.title} />
+                            : <div className="rail-ph">{p.title?.[0]}</div>}
+                        </div>
+                        <div className="rail-brand">{p.brand}</div>
+                        <div className="rail-price">{p.price}</div>
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : founderLoaded ? (
+            <div className="spotlight-empty">
+              <p className="spotlight-empty-line">Our first curators are building their storefronts.</p>
+              <p className="spotlight-empty-sub">Check back soon — or be one of the first to apply.</p>
+              <Link href="/signup" className="btn-outline">Apply as a creator</Link>
             </div>
-
-            {founderProducts.length > 0 && (
-              <>
-                <div className="spotlight-rail-label">The current edit</div>
-                <div className="spotlight-rail">
-                  {founderProducts.map(p => (
-                    <a key={p.id} href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer" className="rail-item">
-                      <div className="rail-img">
-                        {p.image_url
-                          ? <img src={p.image_url} alt={p.title} />
-                          : <div className="rail-ph">{p.title?.[0]}</div>}
-                      </div>
-                      <div className="rail-brand">{p.brand}</div>
-                      <div className="rail-price">{p.price}</div>
-                    </a>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Mid-page dark editorial break ── */}
-      <div className="dark-break">
-        <div className="dark-break-bg" />
-        <div className="dark-break-content">
-          <h2>Your taste is<br/>worth <em>sharing.</em></h2>
-          <p>Join India's first creator-led affiliate platform. Build your storefront in minutes.</p>
-          <div className="dark-break-btns">
-            <Link href="/signup" className="btn-gold">Apply as a creator</Link>
-            <Link href="/signup" className="btn-ghost-dark">Join as a shopper</Link>
-          </div>
+          ) : null}
         </div>
       </div>
 
-      {/* ── How it works ── */}
+      {/* ── 4. How it works ── */}
       <div className="hiw-wrap" id="how">
         <div className="section">
           <div className="display-eyebrow">Simple by design</div>
           <div className="display-heading">How it works</div>
           <div className="hiw-cols">
-            {([['For curators & creators', CREATOR_STEPS], ['For shoppers & buyers', SHOPPER_STEPS]] as const).map(([role, steps]) => (
-              <div key={role}>
-                <div className="hiw-role">{role}</div>
-                {steps.map(s => (
-                  <div className="step" key={s.n}>
-                    <div className="step-n">{s.n}</div>
-                    <div>
-                      <div className="step-t">{s.t}</div>
-                      <div className="step-b">{s.b}</div>
-                    </div>
+            <div>
+              <div className="hiw-role">For shoppers</div>
+              {SHOPPER_STEPS.map(s => (
+                <div className="step" key={s.n}>
+                  <div className="step-n">{s.n}</div>
+                  <div>
+                    <div className="step-t">{s.t}</div>
+                    <div className="step-b">{s.b}</div>
                   </div>
-                ))}
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="hiw-role">For creators</div>
+              {CREATOR_STEPS.map(s => (
+                <div className="step" key={s.n}>
+                  <div className="step-n">{s.n}</div>
+                  <div>
+                    <div className="step-t">{s.t}</div>
+                    <div className="step-b">{s.b}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 5. Why CurateKin ── */}
+      <div className="why-wrap">
+        <div className="section">
+          <div className="display-eyebrow">Why CurateKin</div>
+          <div className="display-heading">A different kind<br/>of <em>discovery.</em></div>
+          <div className="why-grid">
+            {WHY_POINTS.map(w => (
+              <div className="why-item" key={w.t}>
+                <div className="why-t">{w.t}</div>
+                <div className="why-b">{w.b}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── Join — dark / light split ── */}
-      <div className="join-wrap">
-        <div className="join-grid">
-          <div className="join-col">
-            <div className="display-eyebrow" style={{color:'var(--muted)'}}>For curators</div>
-            <div className="join-h">Your taste<br/>is your <em>brand</em></div>
-            <p className="join-p">Turn products you already love into a storefront that earns. No follower minimum. No brand approvals.</p>
-            <div className="feats">
-              {CURATOR_FEATS.map(f => (
-                <div key={f} className="feat"><div className="feat-dot" />{f}</div>
-              ))}
-            </div>
-            <Link href="/signup" className="btn-ink" style={{alignSelf:'flex-start',letterSpacing:'0.06em',padding:'11px 28px'}}>
-              Apply as a curator
-            </Link>
+      {/* ── 6. Creator CTA ── */}
+      <div className="cta-wrap">
+        <div className="cta-band split">
+          <div>
+            <div className="cta-h">Your taste deserves a home.</div>
+            <p className="cta-p">Apply to build a curated storefront around the products you actually use, recommend, and stand behind.</p>
           </div>
-          <div className="join-col dark">
-            <div className="display-eyebrow" style={{color:'rgba(255,255,255,0.3)'}}>For shoppers</div>
-            <div className="join-h">Discover with<br/><em>real context</em></div>
-            <p className="join-p">Shop what the people you trust actually use. Every product comes with a personal note — not a sponsored caption.</p>
-            <div className="feats">
-              {SHOPPER_FEATS.map(f => (
-                <div key={f} className="feat"><div className="feat-dot" />{f}</div>
-              ))}
-            </div>
-            <Link href="/signup" className="btn-gold" style={{alignSelf:'flex-start'}}>
-              Join as a shopper
-            </Link>
-          </div>
+          <Link href="/signup" className="btn-gold">Apply as a creator</Link>
         </div>
       </div>
 
-      {/* ── Footer ── */}
-      <footer>
-        <div className="ft">
-          <div>
-            <div className="ft-logo">Curate<em>Kin</em></div>
-            <div className="ft-tag">Where India's tastemakers meet the products they love.</div>
-          </div>
-          {([['Platform', FOOTER_PLATFORM], ['Curators', FOOTER_CURATORS], ['Company', FOOTER_COMPANY]] as const).map(([heading, links]) => (
-            <div key={heading}>
-              <div className="ft-h">{heading}</div>
-              <div className="ft-lks">
-                {(links as string[][]).map(([label, href]) => (
-                  <a key={label} href={href}>{label}</a>
-                ))}
-              </div>
-            </div>
-          ))}
+      {/* ── 7. Shopper CTA ── */}
+      <div className="cta-wrap">
+        <div className="cta-band center">
+          <div className="cta-h">Shop through people you trust.</div>
+          <Link href="/creators" className="btn-outline">Browse curators</Link>
         </div>
-        <div className="ft-btm">
-          <div className="ft-copy">© 2026 CurateKin. All rights reserved.</div>
-          <div className="ft-bl">
-            <a href="/privacy">Privacy</a>
-            <a href="/terms">Terms</a>
+      </div>
+
+      {/* ── 8. Footer ── */}
+      <footer>
+        <div className="ft-inner">
+          <div className="ft-logo">Curate<em>Kin</em></div>
+          <div className="ft-links">
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
             <a href="mailto:hello@curatekin.com">Contact</a>
           </div>
+        </div>
+        <div className="ft-inner">
+          <div className="ft-copy">© 2026 CurateKin. All rights reserved.</div>
         </div>
       </footer>
     </>
