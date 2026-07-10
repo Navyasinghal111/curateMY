@@ -77,6 +77,36 @@ export default function SignupConfirmPage() {
       }
 
       const finalRole = existing?.role ?? role
+
+      // Independent of whether a profiles row already existed above (idempotent
+      // re-confirmation, or a profile that already existed some other way) —
+      // every confirmed creator gets an application row. onConflict +
+      // ignoreDuplicates means this is safe to run again if the confirmation
+      // link is clicked twice.
+      if (finalRole === 'creator') {
+        const applicationFields = {
+          user_id: user.id, email: user.email ?? null, status: 'pending',
+          display_name: meta.display_name ?? null, phone: meta.phone ?? null,
+          primary_platform: meta.primary_platform ?? null, primary_handle: meta.primary_handle ?? null,
+          primary_followers: meta.primary_followers ?? null,
+          secondary_platform: meta.secondary_platform ?? null, secondary_handle: meta.secondary_handle ?? null,
+          secondary_followers: meta.secondary_followers ?? null, engagement_rate: meta.engagement_rate ?? null,
+          niches: meta.niches ?? [], content_language: meta.content_language ?? null, bio: meta.bio ?? null,
+          instagram_handle: meta.instagram_handle ?? null, instagram_verified: meta.instagram_verified ?? false,
+          brands_worked_with: meta.brands_worked_with ?? null,
+          // No upi_id/pan_number — creator_applications has no payout columns;
+          // those are still collected post-approval, from Dashboard > Settings.
+        }
+        const { error: applicationErr } = await supabase
+          .from('creator_applications')
+          .upsert(applicationFields, { onConflict: 'user_id', ignoreDuplicates: true })
+        if (applicationErr) {
+          setErrorMsg(`Your email is confirmed, but we couldn't finish setting up your application: ${applicationErr.message}`)
+          setStage('error')
+          return
+        }
+      }
+
       logEvent(supabase, 'email_confirmed', { creatorId: finalRole === 'creator' ? user.id : null, metadata: { type: finalRole } })
       setStage(finalRole === 'creator' ? 'creator-done' : 'shopper-done')
     }
