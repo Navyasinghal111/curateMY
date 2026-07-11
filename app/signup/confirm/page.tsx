@@ -34,7 +34,19 @@ export default function SignupConfirmPage() {
       const meta = user.user_metadata ?? {}
       const role = meta.role === 'creator' || meta.role === 'shopper' ? meta.role : null
 
-      const { data: existing } = await supabase.from('profiles').select('id, role').eq('id', user.id).maybeSingle()
+      const { data: existing } = await supabase.from('profiles').select('id, role, display_name').eq('id', user.id).maybeSingle()
+
+      // Guaranteed non-empty — creator_applications.display_name is not
+      // nullable, and a signup can reach this page with meta.display_name
+      // unset (e.g. only first/last name collected). Fallback order:
+      // metadata display_name -> metadata first+last name -> an already-
+      // existing profile's display_name -> the email's local part -> "Creator".
+      const resolvedDisplayName =
+        meta.display_name?.trim() ||
+        [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
+        existing?.display_name ||
+        (user.email ? user.email.split('@')[0] : '') ||
+        'Creator'
 
       if (!existing) {
         if (!role) {
@@ -49,7 +61,7 @@ export default function SignupConfirmPage() {
         // Supabase's insert() rejects).
         const insertFields = {
           id: user.id, status: 'pending', role,
-          display_name: meta.display_name ?? null, phone: meta.phone ?? null,
+          display_name: role === 'creator' ? resolvedDisplayName : (meta.display_name ?? null), phone: meta.phone ?? null,
           primary_platform: meta.primary_platform ?? null, primary_handle: meta.primary_handle ?? null,
           primary_followers: meta.primary_followers ?? null,
           secondary_platform: meta.secondary_platform ?? null, secondary_handle: meta.secondary_handle ?? null,
@@ -86,7 +98,7 @@ export default function SignupConfirmPage() {
       if (finalRole === 'creator') {
         const applicationFields = {
           user_id: user.id, email: user.email ?? null, status: 'pending',
-          display_name: meta.display_name ?? null, phone: meta.phone ?? null,
+          display_name: resolvedDisplayName, phone: meta.phone ?? null,
           primary_platform: meta.primary_platform ?? null, primary_handle: meta.primary_handle ?? null,
           primary_followers: meta.primary_followers ?? null,
           secondary_platform: meta.secondary_platform ?? null, secondary_handle: meta.secondary_handle ?? null,
