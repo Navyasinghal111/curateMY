@@ -23,21 +23,41 @@ export default function AnalyticsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setLoading(false); return }
 
-      // Total clicks per product
-      const { data: clickData } = await supabase
-        .from('product_clicks')
-        .select('product_id, storefront_products(title, brand)')
+      // clicks has no creator_id column (only product_id — see the insert
+      // in app/r/[productId]/route.ts), so ownership has to be established
+      // via this creator's own products, not a direct filter on clicks.
+      const { data: products } = await supabase
+        .from('storefront_products')
+        .select('id, title, brand')
         .eq('creator_id', user.id)
+
+      const productIds = (products ?? []).map(p => p.id)
+      if (productIds.length === 0) {
+        setClicks([]); setTotal(0); setToday(0); setWeek(0)
+        setLoading(false)
+        return
+      }
+      const productInfo = new Map((products ?? []).map(p => [p.id, { title: p.title, brand: p.brand }]))
+
+      // The canonical, actually-populated click log — same table the
+      // redirect route writes to. public.clicks columns: id, product_id,
+      // clicked_at (no created_at) — clicked_at is set by a table default,
+      // not explicitly on insert.
+      const { data: clickData } = await supabase
+        .from('clicks')
+        .select('product_id, clicked_at')
+        .in('product_id', productIds)
 
       if (clickData) {
         // Count clicks per product
         const counts: Record<string, ClickData> = {}
-        clickData.forEach((c: any) => {
+        clickData.forEach(c => {
           if (!counts[c.product_id]) {
+            const info = productInfo.get(c.product_id)
             counts[c.product_id] = {
               product_id: c.product_id,
-              title: c.storefront_products?.title ?? 'Unknown',
-              brand: c.storefront_products?.brand ?? '',
+              title: info?.title ?? 'Unknown',
+              brand: info?.brand ?? '',
               clicks: 0,
             }
           }
@@ -47,25 +67,13 @@ export default function AnalyticsPage() {
         setClicks(sorted)
         setTotal(clickData.length)
 
-        // Today's clicks
         const today = new Date()
         today.setHours(0,0,0,0)
-        const { count: todayCount } = await supabase
-          .from('product_clicks')
-          .select('*', { count: 'exact', head: true })
-          .eq('creator_id', user.id)
-          .gte('clicked_at', today.toISOString())
-        setToday(todayCount ?? 0)
+        setToday(clickData.filter(c => c.clicked_at && new Date(c.clicked_at) >= today).length)
 
-        // This week
         const week = new Date()
         week.setDate(week.getDate() - 7)
-        const { count: weekCount } = await supabase
-          .from('product_clicks')
-          .select('*', { count: 'exact', head: true })
-          .eq('creator_id', user.id)
-          .gte('clicked_at', week.toISOString())
-        setWeek(weekCount ?? 0)
+        setWeek(clickData.filter(c => c.clicked_at && new Date(c.clicked_at) >= week).length)
       }
 
       setLoading(false)
