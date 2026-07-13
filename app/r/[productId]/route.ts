@@ -27,9 +27,21 @@ export async function GET(
 
   // Log the click, but never let a logging failure block the redirect —
   // the shopper reaching the product matters more than the click record.
+  // Supabase resolves query failures (e.g. an RLS denial) rather than
+  // throwing, so the error has to be read from the result, not just
+  // caught — a bare try/catch around the insert would silently miss it.
+  let clickErr: { code?: string } | null = null
   try {
-    await supabase.from('clicks').insert({ product_id: productId })
-  } catch {}
+    const result = await supabase
+      .from('clicks')
+      .insert({ product_id: productId, clicked_at: new Date().toISOString() })
+    clickErr = result.error
+  } catch (err) {
+    clickErr = err as { code?: string }
+  }
+  // Only the error code — never the message/details/hint, which can echo
+  // query internals, and never the raw error object.
+  if (clickErr) console.error('Click insert failed', productId, clickErr.code)
 
   // The storefront has no separate "view/expand product" interaction —
   // the only click event a product gets is this redirect itself, so this
