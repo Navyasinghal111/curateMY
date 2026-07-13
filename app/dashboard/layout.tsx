@@ -10,6 +10,7 @@ const NAV = [
   { label: 'Gifting & Codes', href: '/dashboard/gifting' },
   { label: 'Opportunities',   href: '/dashboard/opportunities' },
   { label: 'Earnings',        href: '/dashboard/earnings' },
+  { label: 'Analytics',       href: '/dashboard/analytics' },
   { label: 'Chat',            href: '/dashboard/chat' },
   { label: 'Latest',          href: '/dashboard/latest' },
 ]
