@@ -25,16 +25,6 @@ function Shell({ children }: { children: React.ReactNode }) {
   )
 }
 
-const IG_ERROR_COPY: Record<string, string> = {
-  denied: "Instagram connection didn't complete — no problem, your entered handle is still submitted.",
-  ineligible_account_type: "That Instagram account isn't a Business or Creator account, so we can't confirm it automatically — your entered handle is still on file.",
-  invalid_state: 'That connection attempt could not be verified — please try connecting again.',
-  no_session: 'Please log in and try connecting again.',
-  application_not_found: "We couldn't find your application to attach this connection to.",
-  token_failed: 'Instagram connection ran into an issue — your entered handle is still submitted, and you can try again anytime.',
-  server_error: 'Instagram connection ran into an issue — your entered handle is still submitted, and you can try again anytime.',
-}
-
 function PendingContent() {
   const supabase = createClient()
   const router = useRouter()
@@ -42,10 +32,8 @@ function PendingContent() {
 
   const [checking, setChecking] = useState(true)
   const [application, setApplication] = useState<Application | null>(null)
-  const [connecting, setConnecting] = useState(false)
 
   const igSuccess = searchParams.get('ig_success') === 'true'
-  const igError = searchParams.get('ig_error')
   const igHandle = searchParams.get('ig_handle')
 
   useEffect(() => {
@@ -67,11 +55,6 @@ function PendingContent() {
     }
     load()
   }, [])
-
-  const connectInstagram = () => {
-    setConnecting(true)
-    window.location.href = '/api/auth/instagram'
-  }
 
   const signOut = async () => {
     await supabase.auth.signOut()
@@ -111,20 +94,10 @@ function PendingContent() {
             <p style={{ fontSize:13, color:ACCENT, marginTop:8 }}>
               ✓ Connected via Instagram{connectedUsername ? ` — @${connectedUsername.replace(/^@/, '')}` : ''}
             </p>
-          ) : igError ? (
-            <p style={{ fontSize:12, color:MUTED, lineHeight:1.6, marginTop:8 }}>
-              {IG_ERROR_COPY[igError] ?? 'Instagram connection ran into an issue — your entered handle is still submitted, and you can try again anytime.'}
-            </p>
           ) : isPending ? (
-            <>
-              <p style={{ fontSize:12, color:MUTED, lineHeight:1.6, marginTop:8, marginBottom:14 }}>
-                Optional. The handle you entered is already submitted — connecting just lets us confirm it&apos;s really you.
-              </p>
-              <button onClick={connectInstagram} disabled={connecting}
-                style={{ width:'100%', padding:'11px 20px', background:'#fff', border:`1px solid ${INK}`, borderRadius:6, fontSize:12, letterSpacing:'0.04em', color:INK, cursor: connecting ? 'default' : 'pointer', fontFamily:'inherit', opacity: connecting ? 0.6 : 1 }}>
-                {connecting ? 'REDIRECTING…' : 'CONNECT INSTAGRAM FOR FASTER REVIEW'}
-              </button>
-            </>
+            <p style={{ fontSize:12, color:MUTED, lineHeight:1.6, marginTop:8 }}>
+              Your Instagram handle has been submitted for manual review. Instagram connection will be available in a future phase.
+            </p>
           ) : null}
         </div>
       )}
