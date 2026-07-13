@@ -4,7 +4,7 @@ import { useState } from 'react'
 
 const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
 
-type Product = { id: string; title: string; brand: string; price: string; image: string; url: string; category: string }
+type Product = { id: string; title: string; brand: string; price: string; image: string; url: string; category: string; description?: string }
 type Creator = { id: string; username: string; display_name: string; avatar_url?: string; city?: string; bio?: string; instagram_handle?: string; instagram_verified?: boolean; primary_platform?: string; primary_followers?: number }
 
 function formatFollowers(n?: number) {
@@ -55,9 +55,10 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .cimg-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
         .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;padding:12px}
         .cph{font-family:'Fanwood Text',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
-        .cbody{padding:12px 14px 16px;display:flex;flex-direction:column;height:118px}
+        .cbody{padding:12px 14px 16px;display:flex;flex-direction:column;height:156px}
         .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#aaa;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .ctitle{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.4;margin-bottom:6px;height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .cwhy{font-family:'Fanwood Text',serif;font-style:italic;font-size:11px;line-height:1.4;color:#8a8478;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
         .cprice{font-family:'Cormorant Garamond',serif;font-size:17px;color:#1a1a1a;margin-top:auto}
         .cbuy{display:block;margin:0 14px 14px;padding:9px;background:#1a1a1a;color:#fff;font-size:11px;letter-spacing:0.08em;text-align:center;text-decoration:none;border:none;cursor:pointer;font-family:inherit;transition:background 0.15s}
         .cbuy:hover{background:#333}
@@ -83,9 +84,10 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .tab { padding: 12px 14px !important; font-size: 10px !important }
           .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important }
           .grid-wrap { padding: 20px 16px 60px !important }
-          .cbody { padding: 8px 10px 10px !important; height: 108px !important }
+          .cbody { padding: 8px 10px 10px !important; height: 144px !important }
           .ctitle { font-size: 12px !important }
           .cbrand { font-size: 8px !important }
+          .cwhy { font-size: 10px !important }
           .cprice { font-size: 15px !important }
           .cbuy { margin: 6px 10px 10px !important; padding: 8px !important; font-size: 10px !important }
           .empty-state { padding: 60px 20px !important }
@@ -198,6 +200,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                 <div className="cbody">
                   <p className="cbrand">{p.brand}</p>
                   <p className="ctitle">{p.title}</p>
+                  {p.description && <p className="cwhy">{p.description}</p>}
                   <p className="cprice">{p.price}</p>
                 </div>
                 <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer" className="cbuy">

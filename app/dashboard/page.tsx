@@ -54,7 +54,7 @@ function ProductForm({ state, set, fileRef }: { state:FormState; set:FormSet; fi
           </div>
         </div>
         <div><label style={LBL}>Shop link</label><input value={shopLink} onChange={e => set.shopLink(e.target.value)} placeholder="https://…" style={INP} /></div>
-        <div><label style={LBL}>Notes (optional)</label><textarea value={notes} onChange={e => set.notes(e.target.value)} placeholder="Why you love it…" rows={2} style={{ ...INP, resize:'vertical' }} /></div>
+        <div><label style={LBL}>Why I picked this</label><textarea value={notes} onChange={e => set.notes(e.target.value)} placeholder="Tell shoppers why this is worth considering — how you use it, why you trust it, what makes it worth their money." rows={2} style={{ ...INP, resize:'vertical' }} /></div>
         {error && <p style={{ fontSize:12, color:'#c0392b' }}>{error}</p>}
       </div>
     </div>
