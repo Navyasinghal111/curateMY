@@ -48,12 +48,12 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
         /* ── Product card — fixed body height so titles of any length
                produce equal cards. The image area is already equal
-               (aspect-ratio:3/4); .cbody now locks the same way. ── */
+               (aspect-ratio:4/5); .cbody now locks the same way. ── */
         .card{background:#fff;overflow:hidden;transition:box-shadow 0.2s;text-decoration:none;color:inherit;display:flex;flex-direction:column}
         .card:hover{box-shadow:0 8px 32px rgba(26,26,26,0.12)}
-        .cimg{aspect-ratio:3/4;background:#E8E4DE;position:relative;overflow:hidden}
+        .cimg{aspect-ratio:4/5;background:#E8E4DE;position:relative;overflow:hidden}
         .cimg-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-        .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;padding:12px}
+        .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;object-position:center;padding:12px}
         .cph{font-family:'Fanwood Text',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
         .cbody{padding:12px 14px 16px;display:flex;flex-direction:column;height:174px}
         .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#aaa;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
