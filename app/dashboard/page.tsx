@@ -105,6 +105,11 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const scrape = async () => {
     if (!url.trim()) return
     setScraping(true); setMsg(undefined); setShopLink(url.trim())
+    // Clear any preview details left from a previous URL immediately —
+    // otherwise a failed fetch for a newly-pasted link can leave stale,
+    // mismatched name/brand/price/image on screen that still looks like
+    // a successful fill, even though it belongs to a different product.
+    setName(''); setBrand(''); setPrice(''); setImg(''); setPreview('')
     try {
       const r = await fetch('/api/product/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: url.trim() }) })
       const d = await r.json()
