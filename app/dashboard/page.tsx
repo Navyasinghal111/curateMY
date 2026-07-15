@@ -173,13 +173,17 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     let finalImg = img.trim()
     try {
       if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
-      if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
-        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
-        if (!crop.ok) throw new Error('framing')
-        finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
-      }
     }
     catch { setError('Image upload failed'); setLoading(false); return }
+    // Framing improves the saved image, but it must never block a creator
+    // from adding a valid product when a retailer CDN rejects server-side
+    // image processing. Fall back to the original image in that case.
+    if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
+      try {
+        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
+        if (crop.ok) finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
+      } catch {}
+    }
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
       creator_id: user.id, title: name.trim(), brand: brand.trim(),
       price: price ? `₹${price}` : '', image_url: finalImg,
@@ -235,13 +239,14 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
     let finalImg = img.trim()
     try {
       if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
-      if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
-        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
-        if (!crop.ok) throw new Error('framing')
-        finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
-      }
     }
     catch { setError('Image upload failed'); setLoading(false); return }
+    if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
+      try {
+        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
+        if (crop.ok) finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
+      } catch {}
+    }
     const updates = {
       title: name.trim(), brand: brand.trim(),
       price: price ? `₹${price}` : '', image_url: finalImg,
