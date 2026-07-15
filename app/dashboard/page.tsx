@@ -95,7 +95,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const [imgFile,  setImgFile]  = useState<File|null>(null)
   const [loading,  setLoading]  = useState(false)
   const [scraping, setScraping] = useState(false)
-  const [msg,      setMsg]      = useState<{text:string;type:'ok'|'err'}>()
+  const [msg,      setMsg]      = useState<{text:string;type:'ok'|'err'|'warn'|'info'}>()
   const [error,    setError]    = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const supabase = db()
@@ -104,12 +104,14 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
 
   const scrape = async () => {
     if (!url.trim()) return
-    setScraping(true); setMsg(undefined); setShopLink(url.trim())
-    // Clear any preview details left from a previous URL immediately —
-    // otherwise a failed fetch for a newly-pasted link can leave stale,
-    // mismatched name/brand/price/image on screen that still looks like
-    // a successful fill, even though it belongs to a different product.
-    setName(''); setBrand(''); setPrice(''); setImg(''); setPreview('')
+    setScraping(true); setShopLink(url.trim())
+    // Clear every previous preview field immediately, before the new
+    // fetch even starts — a failed or partial fetch for a newly-pasted
+    // URL must never leave stale, mismatched details from a different
+    // product on screen looking like a successful fill. The pasted URL
+    // itself (the `url` field) is deliberately left untouched.
+    setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setCat('Skincare')
+    setMsg({ text:'Fetching product…', type:'info' })
     try {
       const r = await fetch('/api/product/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: url.trim() }) })
       const d = await r.json()
@@ -120,7 +122,11 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       if (d.image)    { setImg(d.image); setPreview(d.image) }
       if (d.url)      setShopLink(d.url)
       if (d.category) setCat(d.category)
-      setMsg({ text:'Details filled — review below', type:'ok' })
+      // A successful fetch can still be missing a field (e.g. an
+      // out-of-stock listing with no current price) — that's a warning
+      // to review, not a failure, and the fields it did find stay filled.
+      if (d.warnings?.length) setMsg({ text: d.warnings.join(' '), type:'warn' })
+      else setMsg({ text:'Details filled — review below', type:'ok' })
     } catch { setMsg({ text:'Could not fetch. Fill manually.', type:'err' }) }
     setScraping(false)
   }
@@ -129,6 +135,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     const { data:{ user } } = await supabase.auth.getUser()
     if (!user) { setError('Please log in.'); return }
     if (!name.trim()) { setError('Please enter a product name'); return }
+    if (!price.trim()) { setError('Please enter a price'); return }
     setLoading(true); setError('')
     let finalImg = img.trim()
     try { if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images') }
@@ -148,14 +155,14 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const formSet:   FormSet   = { img:setImg, name:setName, brand:setBrand, price:setPrice, cat:setCat, shopLink:setShopLink, notes:setNotes, preview:setPreview, file:setImgFile }
 
   return (
-    <ModalShell title="Add to closet" onClose={onClose} onSubmit={save} submitLabel={loading ? 'ADDING…' : 'ADD PIECE'} disabled={loading}>
+    <ModalShell title="Add to closet" onClose={onClose} onSubmit={save} submitLabel={loading ? 'ADDING…' : 'ADD PIECE'} disabled={loading || !name.trim() || !price.trim()}>
       <div style={{ padding:'14px 28px', borderBottom:'1px solid #E8E4DE', display:'flex', gap:0 }}>
         <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key==='Enter' && scrape()} placeholder="Paste URL — Nykaa, Amazon, Myntra…" style={{ ...INP, borderRight:'none', flex:1 }} />
         <button onClick={scrape} disabled={scraping||!url.trim()} style={{ padding:'10px 18px', background:'#1a1a1a', color:'#fff', border:'none', fontSize:12, cursor:'pointer', fontFamily:'inherit', opacity: scraping||!url.trim() ? 0.5 : 1 }}>
           {scraping ? 'Fetching…' : 'Auto-fill ↓'}
         </button>
       </div>
-      {msg && <p style={{ padding:'6px 28px 0', fontSize:11, color: msg.type==='ok' ? '#27ae60' : '#c0392b' }}>{msg.text}</p>}
+      {msg && <p style={{ padding:'6px 28px 0', fontSize:11, color: msg.type==='ok' ? '#27ae60' : msg.type==='warn' ? '#b7791f' : msg.type==='info' ? '#888' : '#c0392b' }}>{msg.text}</p>}
       <ProductForm state={formState} set={formSet} fileRef={fileRef} />
     </ModalShell>
   )
