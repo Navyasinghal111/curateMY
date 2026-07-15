@@ -23,22 +23,51 @@ async function uploadImage(supabase: ReturnType<typeof db>, userId: string, file
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
 }
 
+async function uploadFramedImage(supabase: ReturnType<typeof db>, userId: string, image: Blob, bucket: string) {
+  const path = `${userId}/${Date.now()}-framed.jpg`
+  const { error } = await supabase.storage.from(bucket).upload(path, image, { contentType: 'image/jpeg', upsert: true })
+  if (error) throw error
+  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
+}
+
 // ── shared product form ───────────────────────────────────────────
 type FormState = { img:string; name:string; brand:string; price:string; cat:string; shopLink:string; notes:string; preview:string; error:string; loading:boolean }
 type FormSet   = { img:(v:string)=>void; name:(v:string)=>void; brand:(v:string)=>void; price:(v:string)=>void; cat:(v:string)=>void; shopLink:(v:string)=>void; notes:(v:string)=>void; preview:(v:string)=>void; file:(f:File)=>void }
+type Framing = { zoom:number; x:number; y:number }
 
-function ProductForm({ state, set, fileRef }: { state:FormState; set:FormSet; fileRef:{ current:HTMLInputElement|null } }) {
+const DEFAULT_FRAMING: Framing = { zoom: 1, x: 0, y: 0 }
+
+function ImageFraming({ preview, framing, onChange }: { preview:string; framing:Framing; onChange:(next:Framing)=>void }) {
+  const update = (key:keyof Framing, value:number) => onChange({ ...framing, [key]: value })
+
+  return (
+    <div style={{ marginTop:12, borderTop:'1px solid #E8E4DE', paddingTop:12 }}>
+      <p style={{ ...LBL, marginBottom:8 }}>Image framing</p>
+      <p style={{ fontSize:11, color:'#8C867E', lineHeight:1.45, marginBottom:10 }}>Zoom or reposition the product before you save it.</p>
+      <label style={{ ...LBL, display:'flex', justifyContent:'space-between', marginBottom:4 }}><span>Zoom</span><span>{framing.zoom.toFixed(1)}x</span></label>
+      <input aria-label="Zoom image" type="range" min="1" max="2.5" step="0.1" value={framing.zoom} onChange={e => update('zoom', Number(e.target.value))} style={{ width:'100%', accentColor:'#1a1a1a' }} />
+      <label style={{ ...LBL, marginTop:8, marginBottom:4 }}>Move left or right</label>
+      <input aria-label="Move image left or right" type="range" min="-100" max="100" value={framing.x} onChange={e => update('x', Number(e.target.value))} style={{ width:'100%', accentColor:'#1a1a1a' }} />
+      <label style={{ ...LBL, marginTop:8, marginBottom:4 }}>Move up or down</label>
+      <input aria-label="Move image up or down" type="range" min="-100" max="100" value={framing.y} onChange={e => update('y', Number(e.target.value))} style={{ width:'100%', accentColor:'#1a1a1a' }} />
+      <button type="button" onClick={() => onChange(DEFAULT_FRAMING)} style={{ marginTop:8, background:'none', border:'none', padding:0, color:'#6C6255', fontSize:11, textDecoration:'underline', cursor:'pointer', fontFamily:'inherit' }}>Reset framing</button>
+    </div>
+  )
+}
+
+function ProductForm({ state, set, fileRef, framing, onFramingChange }: { state:FormState; set:FormSet; fileRef:{ current:HTMLInputElement|null }; framing:Framing; onFramingChange:(next:Framing)=>void }) {
   const { img, name, brand, price, cat, shopLink, notes, preview, error } = state
   return (
     <div style={{ display:'flex', gap:24, padding:'20px 28px', overflowY:'auto', flex:1 }}>
       <div style={{ width:180, flexShrink:0 }}>
-        <div onClick={() => fileRef.current?.click()} style={{ width:'100%', aspectRatio:'3/4', border:'1px dashed #C8C4BC', background:'#F0EDE8', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden' }}>
+        <div onClick={() => fileRef.current?.click()} style={{ width:'100%', aspectRatio:'4/5', border:'1px dashed #C8C4BC', background:'#F0EDE8', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', position:'relative' }}>
           {preview
-            ? <img src={preview} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
+            ? <img src={preview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', transform:`translate(${framing.x}%, ${framing.y}%) scale(${framing.zoom})` }} />
             : <><span style={{ fontSize:22, color:'#C8C4BC' }}>+</span><span style={{ fontSize:11, color:'#C8C4BC', marginTop:4 }}>Add photo</span></>}
         </div>
         <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) { set.file(f); set.preview(URL.createObjectURL(f)) } }} />
+        {preview && <ImageFraming preview={preview} framing={framing} onChange={onFramingChange} />}
       </div>
       <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
         <div><label style={LBL}>Or paste image URL</label><input value={img} onChange={e => set.img(e.target.value)} placeholder="https://…/photo.jpg" style={INP} /></div>
@@ -93,6 +122,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const [notes,    setNotes]    = useState('')
   const [preview,  setPreview]  = useState('')
   const [imgFile,  setImgFile]  = useState<File|null>(null)
+  const [framing,  setFraming]  = useState<Framing>(DEFAULT_FRAMING)
   const [loading,  setLoading]  = useState(false)
   const [scraping, setScraping] = useState(false)
   const [msg,      setMsg]      = useState<{text:string;type:'ok'|'err'|'warn'|'info'}>()
@@ -112,7 +142,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     // successful fill. The pasted URL itself (the `url` field) is
     // deliberately left untouched. Re-run on every failure path below too,
     // so a partial response can never leave old price/category behind.
-    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setCat('Skincare') }
+    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat('Skincare') }
     clearFields()
     setMsg({ text:'Fetching product…', type:'info' })
     try {
@@ -141,7 +171,14 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     if (!price.trim()) { setError('Please enter a price'); return }
     setLoading(true); setError('')
     let finalImg = img.trim()
-    try { if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images') }
+    try {
+      if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
+      if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
+        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
+        if (!crop.ok) throw new Error('framing')
+        finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
+      }
+    }
     catch { setError('Image upload failed'); setLoading(false); return }
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
       creator_id: user.id, title: name.trim(), brand: brand.trim(),
@@ -166,7 +203,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
         </button>
       </div>
       {msg && <p style={{ padding:'6px 28px 0', fontSize:11, color: msg.type==='ok' ? '#27ae60' : msg.type==='warn' ? '#b7791f' : msg.type==='info' ? '#888' : '#c0392b' }}>{msg.text}</p>}
-      <ProductForm state={formState} set={formSet} fileRef={fileRef} />
+      <ProductForm state={formState} set={formSet} fileRef={fileRef} framing={framing} onFramingChange={setFraming} />
     </ModalShell>
   )
 }
@@ -182,6 +219,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
   const [notes,    setNotes]    = useState(product.description || '')
   const [preview,  setPreview]  = useState(product.image_url || '')
   const [imgFile,  setImgFile]  = useState<File|null>(null)
+  const [framing,  setFraming]  = useState<Framing>(DEFAULT_FRAMING)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -195,7 +233,14 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
     if (!name.trim()) { setError('Please enter a product name'); return }
     setLoading(true); setError('')
     let finalImg = img.trim()
-    try { if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images') }
+    try {
+      if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
+      if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
+        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
+        if (!crop.ok) throw new Error('framing')
+        finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
+      }
+    }
     catch { setError('Image upload failed'); setLoading(false); return }
     const updates = {
       title: name.trim(), brand: brand.trim(),
@@ -213,7 +258,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
 
   return (
     <ModalShell title="Edit product" onClose={onClose} onSubmit={save} submitLabel={loading ? 'SAVING…' : 'SAVE CHANGES'} disabled={loading}>
-      <ProductForm state={formState} set={formSet} fileRef={fileRef} />
+      <ProductForm state={formState} set={formSet} fileRef={fileRef} framing={framing} onFramingChange={setFraming} />
     </ModalShell>
   )
 }
