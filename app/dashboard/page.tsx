@@ -413,14 +413,14 @@ export default function DashboardHome() {
                     <button className="ditem red" onClick={() => { remove(p.id); setOpenMenu(null) }}><i className="ti ti-trash" aria-hidden="true"></i>Remove from shop</button>
                   </div>
                 )}
-                <div style={{ aspectRatio:'1/1', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                <div style={{ aspectRatio:'4/5', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', padding:12 }}>
                   {p.image_url
-                    ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                    ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
                     : <span style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.1)' }}>{p.title?.[0]}</span>}
                 </div>
-                <div style={{ padding:'10px 12px 8px', display:'flex', flexDirection:'column', minHeight:96 }}>
-                  <p style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#9B9B9B', marginBottom:3 }}>{p.brand}</p>
-                  <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
+                <div style={{ padding:'10px 12px 8px', display:'flex', flexDirection:'column', height:96, overflow:'hidden' }}>
+                  <p style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#9B9B9B', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.brand}</p>
+                  <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:5, height:'2.8em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
                   <p style={{ ...S, fontSize:15, marginTop:'auto' }}>{p.price}</p>
                 </div>
                 <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer"
