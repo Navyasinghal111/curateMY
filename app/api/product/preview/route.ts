@@ -151,9 +151,69 @@ const BAD_IMAGE_PATTERN = /(sprite|placeholder|blank[-_.]|1x1|pixel|spacer|loadi
 function resolveProductImage(candidate: string | undefined | null, base: URL): string | null {
   if (!candidate || BAD_IMAGE_PATTERN.test(candidate)) return null
   try {
-    const resolved = new URL(candidate, base).href
+    const cleaned = candidate.replace(/&amp;/gi, '&').replace(/\\u0026/g, '&').replace(/\\\//g, '/')
+    const resolved = new URL(cleaned, base).href
     return BAD_IMAGE_PATTERN.test(resolved) ? null : resolved
   } catch { return null }
+}
+
+type ImageCandidate = { url: string; score: number }
+
+function normalizeRetailImage(url: string, domain: string) {
+  if (!domain.includes('amazon')) return url
+
+  try {
+    const image = new URL(url)
+    // Amazon's URL suffix is a display-size transform, not the source image.
+    image.pathname = image.pathname.replace(/\._[^/]+(?=\.(?:jpe?g|png|webp)$)/i, '')
+    return image.href
+  } catch {
+    return url
+  }
+}
+
+function addImageCandidate(candidates: ImageCandidate[], value: string, score: number, page: URL) {
+  const resolved = resolveProductImage(value, page)
+  if (!resolved || /\.svg(?:$|[?#])/i.test(resolved)) return
+  candidates.push({ url: normalizeRetailImage(resolved, page.hostname), score })
+}
+
+function collectMarkupImageCandidates(html: string, candidates: ImageCandidate[], page: URL) {
+  const addMatches = (pattern: RegExp, score: number) => {
+    for (const match of html.matchAll(pattern)) addImageCandidate(candidates, match[1], score, page)
+  }
+
+  addMatches(/"(?:hiRes|large)":"(https[^"\\]+)"/gi, 125)
+  addMatches(/(?:data-zoom-image|data-large-image|data-original)=["']([^"']+)["']/gi, 115)
+  addMatches(/property=["']og:image(?::secure_url)?["'][^>]*content=["']([^"']+)["']/gi, 80)
+  addMatches(/content=["']([^"']+)["'][^>]*property=["']og:image(?::secure_url)?["']/gi, 80)
+  addMatches(/name=["']twitter:image(?::src)?["'][^>]*content=["']([^"']+)["']/gi, 65)
+}
+
+function embeddedImageSize(url: string) {
+  const values = Array.from(url.matchAll(/(?:[?&](?:w|width|h|height)=|_(?:SX|SY|SL|AC_UF))(\d{2,4})/gi))
+    .map(match => Number.parseInt(match[1], 10))
+  return values.length ? Math.max(...values) : 0
+}
+
+function chooseProductImage(candidates: ImageCandidate[]) {
+  const weakImage = /(?:icon|avatar|swatch|variant|thumbnail|thumb|banner|hero|carousel|social|share|review)/i
+  const editorialImage = /(?:hires|hi-res|original|zoom|large|full|studio|packshot|white|product)/i
+  const best = new Map<string, number>()
+
+  for (const candidate of candidates) {
+    const size = embeddedImageSize(candidate.url)
+    let score = candidate.score
+    if (size >= 1200) score += 22
+    else if (size >= 800) score += 14
+    else if (size > 0 && size <= 400) score -= 28
+    if (editorialImage.test(candidate.url)) score += 8
+    if (weakImage.test(candidate.url)) score -= 70
+    best.set(candidate.url, Math.max(best.get(candidate.url) ?? -Infinity, score))
+  }
+
+  return [...best.entries()]
+    .sort(([, left], [, right]) => right - left)[0]?.[0] || null
 }
 
 // ── Data-integrity checks — never silently accept a bot-block page,
@@ -221,16 +281,20 @@ function extract(html: string, domain: string, parsed: URL) {
   let brand = jsonLdBrand(ld?.brand) || ogSiteName || ''
   const { price: ldPrice, outOfStock } = jsonLdOffer(ld?.offers)
   let rawPrice = ldPrice || (outOfStock ? '' : ogPrice)
+  const site = extractSiteSpecific(html, domain)
 
-  const imageCandidates = [...jsonLdImages(ld?.image), ogImage, twitterImage]
-  let image: string | null = null
-  for (const c of imageCandidates) {
-    const resolved = resolveProductImage(c, parsed)
-    if (resolved) { image = resolved; break }
-  }
+  // Retail pages commonly expose several image versions. Collect them all,
+  // then choose the canonical/high-resolution product shot instead of blindly
+  // accepting the first social-preview or thumbnail URL in the document.
+  const imageCandidates: ImageCandidate[] = []
+  jsonLdImages(ld?.image).forEach(image => addImageCandidate(imageCandidates, image, 120, parsed))
+  if (site.image) addImageCandidate(imageCandidates, site.image, 125, parsed)
+  if (ogImage) addImageCandidate(imageCandidates, ogImage, 80, parsed)
+  if (twitterImage) addImageCandidate(imageCandidates, twitterImage, 65, parsed)
+  collectMarkupImageCandidates(html, imageCandidates, parsed)
+  let image = chooseProductImage(imageCandidates)
 
   if (!title || !brand || (!rawPrice && !outOfStock) || !image) {
-    const site = extractSiteSpecific(html, domain)
     if (!title) title = site.title
     if (!brand) brand = site.brand
     if (!rawPrice && !outOfStock) rawPrice = site.price
