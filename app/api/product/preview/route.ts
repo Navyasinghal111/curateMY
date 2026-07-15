@@ -6,14 +6,25 @@ const scrapeUrl = (url: string, render = false) =>
   `https://api.scraperapi.com?api_key=${KEY}&url=${encodeURIComponent(url)}&render=${render}&country_code=in`
 
 type Provider = 'scraperapi' | 'direct' | 'proxy'
-type FetchResult = { html: string | null; providerUsed: Provider | null; providerResponseStatus: number | null }
+// Distinct from Provider: ScraperAPI is actually tried twice (plain, then
+// JS-rendered) — this labels each individual network attempt so neither
+// one's outcome can be swallowed by the other under a shared 'scraperapi'
+// label.
+type AttemptLabel = 'scraperapi' | 'scraperapi-render' | 'direct' | 'proxy'
+type AttemptOutcome = { attempt: AttemptLabel; status: number | null; error: string | null }
+type FetchResult = {
+  html: string | null
+  providerUsed: Provider | null
+  providerResponseStatus: number | null
+  attempts: AttemptOutcome[]
+}
 
 // TEMP DEBUG — remove once the live "Could not fetch product" reports are
 // root-caused. Surfaces which upstream attempt ran and what it returned so
 // a bare fetch failure can be traced to a specific provider/status instead
 // of staying opaque. Never includes the key, HTML, or scraped product data.
-function diagLog(domain: string, providerUsed: Provider | null, providerResponseStatus: number | null, errorCode: string) {
-  const diagnostics = { providerUsed, scraperConfigured, providerResponseStatus, errorCode }
+function diagLog(domain: string, providerUsed: Provider | null, providerResponseStatus: number | null, errorCode: string, attempts: AttemptOutcome[]) {
+  const diagnostics = { providerUsed, scraperConfigured, providerResponseStatus, errorCode, attempts }
   console.log('[product-preview]', { domain, ...diagnostics })
   return diagnostics
 }
@@ -23,12 +34,12 @@ async function fetchHtml(url: string): Promise<FetchResult> {
   // fast-changing third-party pages (and their bot-check/error
   // responses); Next.js's fetch cache must never replay a stale
   // success or a stale block indefinitely across requests.
-  const attempts: { provider: Provider; fn: () => Promise<Response> }[] = [
+  const attempts: { attempt: AttemptLabel; provider: Provider; fn: () => Promise<Response> }[] = [
     ...(KEY ? [
-      { provider: 'scraperapi' as const, fn: () => fetch(scrapeUrl(url), { cache: 'no-store' as const, signal: AbortSignal.timeout(15000) }) },
-      { provider: 'scraperapi' as const, fn: () => fetch(scrapeUrl(url, true), { cache: 'no-store' as const, signal: AbortSignal.timeout(20000) }) },
+      { attempt: 'scraperapi' as const, provider: 'scraperapi' as const, fn: () => fetch(scrapeUrl(url), { cache: 'no-store' as const, signal: AbortSignal.timeout(15000) }) },
+      { attempt: 'scraperapi-render' as const, provider: 'scraperapi' as const, fn: () => fetch(scrapeUrl(url, true), { cache: 'no-store' as const, signal: AbortSignal.timeout(20000) }) },
     ] : []),
-    { provider: 'direct' as const, fn: () => fetch(url, {
+    { attempt: 'direct' as const, provider: 'direct' as const, fn: () => fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept-Language': 'en-IN,en;q=0.9',
@@ -36,27 +47,33 @@ async function fetchHtml(url: string): Promise<FetchResult> {
       cache: 'no-store' as const,
       signal: AbortSignal.timeout(8000),
     }) },
-    { provider: 'proxy' as const, fn: () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { cache: 'no-store' as const, signal: AbortSignal.timeout(10000) }) },
+    { attempt: 'proxy' as const, provider: 'proxy' as const, fn: () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { cache: 'no-store' as const, signal: AbortSignal.timeout(10000) }) },
   ]
 
   let lastProvider: Provider | null = null
   let lastStatus: number | null = null
+  // Per-attempt outcome log — status if the request completed, or just the
+  // error's name (e.g. "AbortError", "TypeError") if it threw. Never the
+  // error message, which can echo the request URL/key on some runtimes.
+  const log: AttemptOutcome[] = []
 
-  for (const { provider, fn } of attempts) {
+  for (const { attempt, provider, fn } of attempts) {
     try {
       const res = await fn()
       lastProvider = provider
       lastStatus = res.status
+      log.push({ attempt, status: res.status, error: null })
       if (!res.ok) continue
       const isAllOrigins = res.url?.includes('allorigins')
       const text = isAllOrigins ? (await res.json())?.contents : await res.text()
-      if (text?.length > 500) return { html: text, providerUsed: provider, providerResponseStatus: res.status }
-    } catch {
+      if (text?.length > 500) return { html: text, providerUsed: provider, providerResponseStatus: res.status, attempts: log }
+    } catch (err) {
       lastProvider = provider
       lastStatus = null
+      log.push({ attempt, status: null, error: err instanceof Error ? err.name : 'UnknownError' })
     }
   }
-  return { html: null, providerUsed: lastProvider, providerResponseStatus: lastStatus }
+  return { html: null, providerUsed: lastProvider, providerResponseStatus: lastStatus, attempts: log }
 }
 
 const g = (html: string, patterns: RegExp[]): string => {
@@ -259,26 +276,28 @@ export async function POST(req: NextRequest) {
   let domain = ''
   let providerUsed: Provider | null = null
   let providerResponseStatus: number | null = null
+  let attemptLog: AttemptOutcome[] = []
   try {
     const { url } = await req.json()
     if (!url?.trim()) {
-      return NextResponse.json({ error: 'URL required', diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'MISSING_URL') }, { status: 400 })
+      return NextResponse.json({ error: 'URL required', diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'MISSING_URL', attemptLog) }, { status: 400 })
     }
 
     let parsed: URL
     try { parsed = new URL(url.trim()) }
     catch {
-      return NextResponse.json({ error: 'Invalid URL', diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'INVALID_URL') }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid URL', diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'INVALID_URL', attemptLog) }, { status: 400 })
     }
 
     domain = parsed.hostname.replace('www.', '')
     const fetched = await fetchHtml(parsed.href)
     providerUsed = fetched.providerUsed
     providerResponseStatus = fetched.providerResponseStatus
+    attemptLog = fetched.attempts
     if (!fetched.html) {
       return NextResponse.json({
         error: 'Could not fetch product. Fill in manually.', url: parsed.href,
-        diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'FETCH_FAILED'),
+        diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'FETCH_FAILED', attemptLog),
       }, { status: 422 })
     }
 
@@ -291,7 +310,7 @@ export async function POST(req: NextRequest) {
     if (!raw.title || looksSuspicious(raw.title)) {
       return NextResponse.json({
         error: 'Could not read this page. Try pasting the image URL manually.', url: parsed.href,
-        diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'SUSPICIOUS_CONTENT'),
+        diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'SUSPICIOUS_CONTENT', attemptLog),
       }, { status: 422 })
     }
 
@@ -304,7 +323,7 @@ export async function POST(req: NextRequest) {
         if (!domainsRelated(canonicalHost, domain)) {
           return NextResponse.json({
             error: 'This link did not match the expected retailer page. Please check the URL.', url: parsed.href,
-            diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'DOMAIN_MISMATCH'),
+            diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'DOMAIN_MISMATCH', attemptLog),
           }, { status: 422 })
         }
       } catch {}
@@ -333,12 +352,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       title: raw.title, description, image: raw.image, price, brand: raw.brand,
       category, url: parsed.href, domain, warnings,
-      diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'OK'),
+      diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'OK', attemptLog),
     })
   } catch {
     return NextResponse.json({
       error: 'Something went wrong. Please try again.',
-      diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'SERVER_ERROR'),
+      diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'SERVER_ERROR', attemptLog),
     }, { status: 500 })
   }
 }
