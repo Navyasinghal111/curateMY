@@ -1,35 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const KEY = process.env.SCRAPER_API_KEY
+const scraperConfigured = !!KEY
 const scrapeUrl = (url: string, render = false) =>
   `https://api.scraperapi.com?api_key=${KEY}&url=${encodeURIComponent(url)}&render=${render}&country_code=in`
 
-async function fetchHtml(url: string): Promise<string | null> {
-  const attempts: (() => Promise<Response>)[] = [
+type Provider = 'scraperapi' | 'direct' | 'proxy'
+type FetchResult = { html: string | null; providerUsed: Provider | null; providerResponseStatus: number | null }
+
+// TEMP DEBUG — remove once the live "Could not fetch product" reports are
+// root-caused. Surfaces which upstream attempt ran and what it returned so
+// a bare fetch failure can be traced to a specific provider/status instead
+// of staying opaque. Never includes the key, HTML, or scraped product data.
+function diagLog(domain: string, providerUsed: Provider | null, providerResponseStatus: number | null, errorCode: string) {
+  const diagnostics = { providerUsed, scraperConfigured, providerResponseStatus, errorCode }
+  console.log('[product-preview]', { domain, ...diagnostics })
+  return diagnostics
+}
+
+async function fetchHtml(url: string): Promise<FetchResult> {
+  // cache: 'no-store' on every attempt — this route proxies live,
+  // fast-changing third-party pages (and their bot-check/error
+  // responses); Next.js's fetch cache must never replay a stale
+  // success or a stale block indefinitely across requests.
+  const attempts: { provider: Provider; fn: () => Promise<Response> }[] = [
     ...(KEY ? [
-      () => fetch(scrapeUrl(url), { signal: AbortSignal.timeout(15000) }),
-      () => fetch(scrapeUrl(url, true), { signal: AbortSignal.timeout(20000) }),
+      { provider: 'scraperapi' as const, fn: () => fetch(scrapeUrl(url), { cache: 'no-store' as const, signal: AbortSignal.timeout(15000) }) },
+      { provider: 'scraperapi' as const, fn: () => fetch(scrapeUrl(url, true), { cache: 'no-store' as const, signal: AbortSignal.timeout(20000) }) },
     ] : []),
-    () => fetch(url, {
+    { provider: 'direct' as const, fn: () => fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept-Language': 'en-IN,en;q=0.9',
       },
+      cache: 'no-store' as const,
       signal: AbortSignal.timeout(8000),
-    }),
-    () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(10000) }),
+    }) },
+    { provider: 'proxy' as const, fn: () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { cache: 'no-store' as const, signal: AbortSignal.timeout(10000) }) },
   ]
 
-  for (const attempt of attempts) {
+  let lastProvider: Provider | null = null
+  let lastStatus: number | null = null
+
+  for (const { provider, fn } of attempts) {
     try {
-      const res = await attempt()
+      const res = await fn()
+      lastProvider = provider
+      lastStatus = res.status
       if (!res.ok) continue
       const isAllOrigins = res.url?.includes('allorigins')
       const text = isAllOrigins ? (await res.json())?.contents : await res.text()
-      if (text?.length > 500) return text
-    } catch {}
+      if (text?.length > 500) return { html: text, providerUsed: provider, providerResponseStatus: res.status }
+    } catch {
+      lastProvider = provider
+      lastStatus = null
+    }
   }
-  return null
+  return { html: null, providerUsed: lastProvider, providerResponseStatus: lastStatus }
 }
 
 const g = (html: string, patterns: RegExp[]): string => {
@@ -229,26 +256,43 @@ function detectCategory(title: string, description: string, url: string): string
 }
 
 export async function POST(req: NextRequest) {
+  let domain = ''
+  let providerUsed: Provider | null = null
+  let providerResponseStatus: number | null = null
   try {
     const { url } = await req.json()
-    if (!url?.trim()) return NextResponse.json({ error: 'URL required' }, { status: 400 })
+    if (!url?.trim()) {
+      return NextResponse.json({ error: 'URL required', diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'MISSING_URL') }, { status: 400 })
+    }
 
     let parsed: URL
     try { parsed = new URL(url.trim()) }
-    catch { return NextResponse.json({ error: 'Invalid URL' }, { status: 400 }) }
+    catch {
+      return NextResponse.json({ error: 'Invalid URL', diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'INVALID_URL') }, { status: 400 })
+    }
 
-    const domain = parsed.hostname.replace('www.', '')
-    const html = await fetchHtml(parsed.href)
-    if (!html) return NextResponse.json({ error: 'Could not fetch product. Fill in manually.', url: parsed.href }, { status: 422 })
+    domain = parsed.hostname.replace('www.', '')
+    const fetched = await fetchHtml(parsed.href)
+    providerUsed = fetched.providerUsed
+    providerResponseStatus = fetched.providerResponseStatus
+    if (!fetched.html) {
+      return NextResponse.json({
+        error: 'Could not fetch product. Fill in manually.', url: parsed.href,
+        diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'FETCH_FAILED'),
+      }, { status: 422 })
+    }
 
-    const raw = extract(html, domain, parsed)
+    const raw = extract(fetched.html, domain, parsed)
 
     // Data integrity: a missing or suspicious (bot-block / login /
     // error page) title means we didn't actually land on a real
     // product page — fail closed rather than let a shopper-facing
     // card get saved with the wrong content.
     if (!raw.title || looksSuspicious(raw.title)) {
-      return NextResponse.json({ error: 'Could not read this page. Try pasting the image URL manually.', url: parsed.href }, { status: 422 })
+      return NextResponse.json({
+        error: 'Could not read this page. Try pasting the image URL manually.', url: parsed.href,
+        diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'SUSPICIOUS_CONTENT'),
+      }, { status: 422 })
     }
 
     // Never silently accept a page that isn't actually the pasted
@@ -258,7 +302,10 @@ export async function POST(req: NextRequest) {
       try {
         const canonicalHost = new URL(raw.canonicalUrl).hostname.replace('www.', '')
         if (!domainsRelated(canonicalHost, domain)) {
-          return NextResponse.json({ error: 'This link did not match the expected retailer page. Please check the URL.', url: parsed.href }, { status: 422 })
+          return NextResponse.json({
+            error: 'This link did not match the expected retailer page. Please check the URL.', url: parsed.href,
+            diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'DOMAIN_MISMATCH'),
+          }, { status: 422 })
         }
       } catch {}
     }
@@ -267,7 +314,7 @@ export async function POST(req: NextRequest) {
     const isIndian = domain.endsWith('.in') || ['nykaa','myntra','flipkart','ajio','meesho','tirabeauty'].some(s => domain.includes(s))
     const price = priceNum ? `${isIndian ? '₹' : '$'}${priceNum}` : ''
 
-    const description = decodeEntities(g(html, [
+    const description = decodeEntities(g(fetched.html, [
       /property="og:description"[\s\S]{0,20}content="([^"]+)"/i,
       /name="description"[\s\S]{0,20}content="([^"]+)"/i,
     ]))
@@ -286,8 +333,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       title: raw.title, description, image: raw.image, price, brand: raw.brand,
       category, url: parsed.href, domain, warnings,
+      diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'OK'),
     })
   } catch {
-    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+    return NextResponse.json({
+      error: 'Something went wrong. Please try again.',
+      diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'SERVER_ERROR'),
+    }, { status: 500 })
   }
 }

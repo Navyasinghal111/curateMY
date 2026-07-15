@@ -105,17 +105,20 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const scrape = async () => {
     if (!url.trim()) return
     setScraping(true); setShopLink(url.trim())
-    // Clear every previous preview field immediately, before the new
-    // fetch even starts — a failed or partial fetch for a newly-pasted
-    // URL must never leave stale, mismatched details from a different
-    // product on screen looking like a successful fill. The pasted URL
-    // itself (the `url` field) is deliberately left untouched.
-    setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setCat('Skincare')
+    // Clear every previous preview field (and any leftover warning/error
+    // message) immediately, before the new fetch even starts — a failed or
+    // partial fetch for a newly-pasted URL must never leave stale,
+    // mismatched details from a different product on screen looking like a
+    // successful fill. The pasted URL itself (the `url` field) is
+    // deliberately left untouched. Re-run on every failure path below too,
+    // so a partial response can never leave old price/category behind.
+    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setCat('Skincare') }
+    clearFields()
     setMsg({ text:'Fetching product…', type:'info' })
     try {
       const r = await fetch('/api/product/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url: url.trim() }) })
       const d = await r.json()
-      if (!r.ok) { setMsg({ text: d.error ?? 'Could not fetch', type:'err' }); setScraping(false); return }
+      if (!r.ok) { clearFields(); setMsg({ text: d.error ?? 'Could not fetch', type:'err' }); setScraping(false); return }
       if (d.title)    setName(d.title)
       if (d.brand)    setBrand(d.brand)
       if (d.price)    setPrice(d.price.replace(/[₹$£€]/g,''))
@@ -127,7 +130,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       // to review, not a failure, and the fields it did find stay filled.
       if (d.warnings?.length) setMsg({ text: d.warnings.join(' '), type:'warn' })
       else setMsg({ text:'Details filled — review below', type:'ok' })
-    } catch { setMsg({ text:'Could not fetch. Fill manually.', type:'err' }) }
+    } catch { clearFields(); setMsg({ text:'Could not fetch. Fill manually.', type:'err' }) }
     setScraping(false)
   }
 
