@@ -23,7 +23,7 @@ async function uploadImage(supabase: ReturnType<typeof db>, userId: string, file
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
 }
 
-async function uploadFramedImage(supabase: ReturnType<typeof db>, userId: string, image: Blob, bucket: string) {
+async function uploadFramedImage(supabase: ReturnType<typeof db>, userId: string, image: File, bucket: string) {
   const path = `${userId}/${Date.now()}-framed.jpg`
   const { error } = await supabase.storage.from(bucket).upload(path, image, { contentType: 'image/jpeg', upsert: true })
   if (error) throw error
@@ -181,7 +181,10 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
       try {
         const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
-        if (crop.ok) finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
+        if (crop.ok) {
+          const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
+          finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
+        }
       } catch {}
     }
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
@@ -244,7 +247,10 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
     if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
       try {
         const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
-        if (crop.ok) finalImg = await uploadFramedImage(supabase, user.id, await crop.blob(), 'product-images')
+        if (crop.ok) {
+          const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
+          finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
+        }
       } catch {}
     }
     const updates = {
