@@ -7,7 +7,7 @@ import { logEvent } from '@/lib/logEvent'
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','NAILS','HOME DECOR','WISHLIST']
 const MAKEUP_SUBCATS = [
   'Foundation & Concealer', 'Primer, Powder & Setting', 'Blush, Bronzer & Highlighter',
-  'Lipstick, Gloss & Liner', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
+  'Lipstick, Gloss & Liner', 'Lip & Cheek Tint', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
   'Brushes, Sponges & Tools', 'Makeup Remover',
 ]
 const PRODUCT_CATS = ['Apparel','Activewear','Coats & Outerwear','Footwear','Bags & Purses','Jewelry','Watches','Eyewear','Makeup', ...MAKEUP_SUBCATS.map(c => `Makeup - ${c}`), 'Skincare','Bath & Body','Haircare','Nails','Home Decor']

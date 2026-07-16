@@ -5,7 +5,7 @@ import { useState } from 'react'
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','NAILS','HOME DECOR','WISHLIST']
 const MAKEUP_SUBCATS = [
   'Foundation & Concealer', 'Primer, Powder & Setting', 'Blush, Bronzer & Highlighter',
-  'Lipstick, Gloss & Liner', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
+  'Lipstick, Gloss & Liner', 'Lip & Cheek Tint', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
   'Brushes, Sponges & Tools', 'Makeup Remover',
 ]
 
