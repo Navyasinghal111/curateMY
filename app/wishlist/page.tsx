@@ -100,8 +100,9 @@ export default function WishlistPage() {
         *{box-sizing:border-box}
         .wishlist-page{min-height:100vh;background:#F0EDE8;color:#1a1a1a;font-family:'DM Sans',system-ui,sans-serif}
         .wishlist-nav{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 48px;background:#1a1a1a;color:#fff}
-        .wishlist-logo{font-family:'Fanwood Text',Georgia,serif;font-size:28px;text-decoration:none;color:#fff}
-        .wishlist-logo em{color:#C99A6A;font-style:italic}
+        .wishlist-logo{display:inline-flex;align-items:baseline;font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-style:italic;font-weight:400;line-height:1;text-decoration:none;color:#fff;white-space:nowrap}
+        .wishlist-logo .logo-cap{display:inline-block;font-size:1.18em;line-height:.8}
+        .wishlist-logo .logo-kin{color:#C99A6A}
         .wishlist-back{color:rgba(255,255,255,0.72);font-size:12px;text-decoration:none;letter-spacing:0.04em}
         .wishlist-back:hover{color:#fff}
         .wishlist-content{padding:58px 48px 88px;max-width:1500px;margin:0 auto}
@@ -144,7 +145,7 @@ export default function WishlistPage() {
       `}</style>
 
       <nav className="wishlist-nav">
-        <Link href="/" className="wishlist-logo">Curate<em>Kin</em></Link>
+        <Link href="/" className="wishlist-logo"><span><span className="logo-cap">C</span>urate</span><span className="logo-kin"><span className="logo-cap">K</span>in</span></Link>
         <Link href="/creators" className="wishlist-back">BACK TO BROWSING</Link>
       </nav>
 

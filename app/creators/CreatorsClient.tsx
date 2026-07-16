@@ -28,8 +28,10 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         .nav{display:flex;align-items:center;justify-content:space-between;padding:20px 48px;border-bottom:0.5px solid rgba(20,18,16,0.08)}
-        .logo{font-family:'Fanwood Text',serif;font-size:22px;color:#141210;text-decoration:none}
-        .logo em{font-style:italic;color:#8B1A1A}
+        .logo{display:inline-flex;align-items:baseline;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-style:italic;font-weight:400;line-height:1;color:#141210;text-decoration:none;white-space:nowrap}
+        .logo-word{display:inline-block}
+        .logo-kin{color:#7A1028}
+        .logo-cap{display:inline-block;font-size:1.18em;line-height:.8}
         .search-input{padding:9px 16px;border:1px solid rgba(20,18,16,0.15);background:#fff;font-size:12px;outline:none;color:#141210;font-family:inherit;width:220px}
         .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;max-width:1100px}
         .ccard{background:#fff;border:0.5px solid rgba(20,18,16,0.08);padding:24px;text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;text-align:center;transition:box-shadow 0.2s}
@@ -46,7 +48,7 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
       `}</style>
 
       <nav className="nav">
-        <a href="/" className="logo">Curate<em>Kin</em></a>
+        <a href="/" className="logo"><span className="logo-word"><span className="logo-cap">C</span>urate</span><span className="logo-word logo-kin"><span className="logo-cap">K</span>in</span></a>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search curators…" className="search-input" />
       </nav>
 

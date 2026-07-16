@@ -96,8 +96,10 @@ export default function Home() {
           background: rgba(240,237,232,0.92); backdrop-filter: blur(20px);
           border-bottom: 0.5px solid var(--br);
         }
-        .logo     { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--ink); text-decoration: none; }
-        .logo em  { font-style: italic; color: var(--gold); }
+        .logo { display:inline-flex; align-items:baseline; font-family:'Cormorant Garamond', Georgia, serif; font-size:24px; font-style:italic; font-weight:400; line-height:1; color:var(--ink); text-decoration:none; white-space:nowrap; }
+        .logo-word { display:inline-block; }
+        .logo-kin { color:#7A1028; }
+        .logo-cap { display:inline-block; font-size:1.18em; line-height:.8; }
         .nav-mid  { display: flex; gap: 36px; }
         .nav-mid a{ font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
         .nav-mid a:hover { color: var(--ink); }
@@ -206,8 +208,10 @@ export default function Home() {
         /* ── Footer ── */
         footer { background: var(--ink); color: #fff; padding: 48px 48px 32px; }
         .ft-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
-        .ft-logo { font-family: var(--serif); font-size: 18px; font-weight: 400; color: #fff; }
-        .ft-logo em { font-style: italic; color: var(--gold2); }
+        .ft-logo { display:inline-flex; align-items:baseline; font-family:'Cormorant Garamond', Georgia, serif; font-size:20px; font-style:italic; font-weight:400; line-height:1; color:#fff; white-space:nowrap; }
+        .ft-logo .logo-word { display:inline-block; }
+        .ft-logo .logo-kin { color:var(--gold2); }
+        .ft-logo .logo-cap { display:inline-block; font-size:1.18em; line-height:.8; }
         .ft-links { display: flex; gap: 28px; flex-wrap: wrap; }
         .ft-links a { font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color .15s; }
         .ft-links a:hover { color: #fff; }
@@ -240,7 +244,7 @@ export default function Home() {
 
       {/* ── 1. Navigation ── */}
       <nav>
-        <Link href="/" className="logo">Curate<em>Kin</em></Link>
+        <Link href="/" className="logo"><span className="logo-word"><span className="logo-cap">C</span>urate</span><span className="logo-word logo-kin"><span className="logo-cap">K</span>in</span></Link>
         <div className="nav-mid">
           <Link href="/creators">Curators</Link>
           <a href="#how">How it works</a>
@@ -405,7 +409,7 @@ export default function Home() {
       {/* ── 8. Footer ── */}
       <footer>
         <div className="ft-inner">
-          <div className="ft-logo">Curate<em>Kin</em></div>
+          <div className="ft-logo"><span className="logo-word"><span className="logo-cap">C</span>urate</span><span className="logo-word logo-kin"><span className="logo-cap">K</span>in</span></div>
           <div className="ft-links">
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>

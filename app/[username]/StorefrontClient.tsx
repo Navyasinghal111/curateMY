@@ -156,7 +156,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .nav-desktop-search { display: none !important }
           .mobile-search { display: block }
           .nav-wrap { padding: 16px 20px !important }
-          .nav-logo { font-size: 22px !important }
+          .nav-logo { font-size: 24px !important }
           .bio-wrap { padding: 24px 20px 20px !important }
           .bio-name { font-size: 22px !important }
           .bio-meta { gap: 10px !important }
@@ -189,8 +189,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
       {/* ── Nav ── */}
       <nav className="nav-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 48px', background:'#F0EDE8' }}>
-        <a href="/" className="nav-logo" style={{ fontFamily:'Fanwood Text, serif', fontSize:26, fontWeight:400, color:'#1a1a1a', textDecoration:'none' }}>
-          Curate<em style={{ fontStyle:'italic', color:'#8B1A1A' }}>Kin</em>
+        <a href="/" className="nav-logo" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:28, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#1a1a1a', textDecoration:'none', whiteSpace:'nowrap' }}>
+          <span style={{ display:'inline-block' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ display:'inline-block', color:'#7A1028' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span>
         </a>
         <div className="nav-desktop-search" style={{ display:'flex', alignItems:'center', gap:12 }}>
           <input
@@ -342,7 +342,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         <div style={{ display:'flex', gap:20 }}>
           <a href="/terms" style={{ fontSize:11, color:'#bbb', textDecoration:'none' }}>Terms</a>
           <a href="/privacy" style={{ fontSize:11, color:'#bbb', textDecoration:'none' }}>Privacy</a>
-          <a href="/" style={{ fontSize:11, color:'#bbb', textDecoration:'none' }}>CurateKin</a>
+          <a href="/" style={{ fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:14, fontStyle:'italic', color:'#bbb', textDecoration:'none' }}>Curate<span style={{ color:'#C99A6A' }}>Kin</span></a>
         </div>
       </footer>
     </div>

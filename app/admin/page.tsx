@@ -231,7 +231,7 @@ export default function AdminPage() {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 32px', height:64, borderBottom:`0.5px solid ${BORDER}`, flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'baseline', gap:12 }}>
             <span style={{ fontFamily:SERIF, fontSize:22, fontWeight:400, color:INK }}>
-              Curate<em style={{ fontStyle:'italic', color:GOLD }}>Kin</em>
+<span style={{ fontFamily:'Cormorant Garamond, Georgia, serif', fontStyle:'italic', fontWeight:400, whiteSpace:'nowrap' }}><span><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ color:GOLD }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span></span>
             </span>
             <span style={{ fontSize:11, letterSpacing:'0.14em', color:MUTED2, textTransform:'uppercase' }}>Creator review</span>
           </div>

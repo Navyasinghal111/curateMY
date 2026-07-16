@@ -69,8 +69,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .dropdown-item:hover { background:#F5F5F5; }
 
         @media (max-width: 768px) {
-          .dash-nav-logo { padding: 0 16px !important; }
-          .dash-nav-logo a { font-size: 18px !important; }
+        .dash-nav-logo { padding: 0 16px !important; }
+          .dash-nav-logo a { font-size: 20px !important; }
           .dash-nav-search { display: none !important; }
           .dash-nav-right { padding: 0 12px !important; gap: 8px !important; }
         }
@@ -83,8 +83,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Logo */}
           <div className="dash-nav-logo" style={{ display:'flex', alignItems:'center', padding:'0 28px', borderRight:'0.5px solid rgba(255,255,255,0.07)', flexShrink:0 }}>
-            <a href="/" style={{ fontFamily:'Cormorant Garamond, serif', fontSize:22, fontWeight:300, color:'#fff', textDecoration:'none' }}>
-              Curate<em style={{ fontStyle:'italic', color:'#C99A6A' }}>Kin</em>
+            <a href="/" className="dash-brand" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:24, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#fff', textDecoration:'none', whiteSpace:'nowrap' }}>
+              <span><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ color:'#C99A6A' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span>
             </a>
           </div>
 
