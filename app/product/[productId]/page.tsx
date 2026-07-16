@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 
 type Props = { params: Promise<{ productId: string }> }
 
@@ -99,7 +100,7 @@ export default async function ProductPage({ params }: Props) {
         }
       `}</style>
       <nav className="product-nav">
-        <a className="product-logo" href="/">Curate<em>Kin</em></a>
+        <Link className="product-logo" href="/">Curate<em>Kin</em></Link>
         <a className="back-link" href={backHref}>Back to {creator.display_name}&apos;s collection</a>
       </nav>
       <div className="product-shell">
