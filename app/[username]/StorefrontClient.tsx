@@ -61,7 +61,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .makeup-subtab.on{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
 
         /* ── Product grid ── */
-        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+        .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 
         /* ── Product card — fixed body height so titles of any length
                produce equal cards. The image area is already equal
@@ -113,6 +113,10 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .cbuy { margin: 6px 10px 10px !important; padding: 8px !important; font-size: 10px !important }
           .empty-state { padding: 60px 20px !important }
           .footer-wrap { padding: 16px 20px !important; flex-direction: column !important; gap: 10px !important; align-items: flex-start !important }
+        }
+
+        @media (min-width: 769px) and (max-width: 1100px) {
+          .grid { grid-template-columns: repeat(3, minmax(0, 1fr)) }
         }
 
         @media (max-width: 480px) {
