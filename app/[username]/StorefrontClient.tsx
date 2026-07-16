@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase'
 
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','NAILS','HOME DECOR','WISHLIST']
 const MAKEUP_SUBCATS = [
@@ -30,6 +31,59 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
   const [makeupTab, setMakeupTab] = useState('MAKEUP')
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const supabase = createClient()
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadSavedProducts = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('saved_products')
+        .select('product_id')
+        .eq('user_id', user.id)
+
+      if (mounted && data) setSavedIds(new Set(data.map(row => row.product_id)))
+    }
+
+    loadSavedProducts()
+    return () => { mounted = false }
+  }, [])
+
+  const toggleSaved = async (event: React.MouseEvent<HTMLButtonElement>, productId: string) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      window.location.href = '/login'
+      return
+    }
+
+    const wasSaved = savedIds.has(productId)
+    setSavedIds(previous => {
+      const next = new Set(previous)
+      if (wasSaved) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+
+    const result = wasSaved
+      ? await supabase.from('saved_products').delete().eq('user_id', user.id).eq('product_id', productId)
+      : await supabase.from('saved_products').insert({ user_id: user.id, product_id: productId })
+
+    if (result.error) {
+      setSavedIds(previous => {
+        const next = new Set(previous)
+        if (wasSaved) next.add(productId)
+        else next.delete(productId)
+        return next
+      })
+    }
+  }
 
   const filtered = initialProducts.filter(p => {
     const activeCategory = tab === 'MAKEUP' ? makeupTab : tab
@@ -72,6 +126,9 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .cimg{aspect-ratio:4/5;background:#E8E4DE;position:relative;overflow:hidden}
         .cimg-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
         .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;object-position:center;padding:12px}
+        .save-star{position:absolute;top:12px;right:12px;z-index:4;width:34px;height:34px;border:1px solid rgba(26,26,26,0.14);border-radius:50%;background:rgba(255,255,255,0.94);color:#8c867e;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color 0.15s,background 0.15s,transform 0.15s}
+        .save-star:hover{background:#fff;color:#8B1A1A;transform:scale(1.04)}
+        .save-star.saved{color:#8B1A1A}
         .cph{font-family:'Fanwood Text',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
         .cbody{padding:12px 14px 16px;display:flex;flex-direction:column;height:174px}
         .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#aaa;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -84,6 +141,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
         /* ── Search input ── */
         .search-input{padding:9px 16px;border:1px solid rgba(26,26,26,0.15);background:#fff;font-size:12px;outline:none;color:#1a1a1a;font-family:inherit}
+        .wishlist-nav-link{padding:9px 14px;color:#8B1A1A;font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
+        .wishlist-nav-link:hover{text-decoration:underline}
 
         /* ── Mobile search bar (shown below nav on mobile) ── */
         .mobile-search{display:none;padding:12px 20px;background:#F0EDE8;border-bottom:1px solid rgba(26,26,26,0.1)}
@@ -138,6 +197,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
             className="search-input"
             style={{ width:200 }}
           />
+          <a href="/wishlist" className="wishlist-nav-link">★ WISHLIST</a>
           {isOwner && (
             <a href="/dashboard"
               style={{ padding:'9px 18px', background:'#8B1A1A', color:'#fff', fontSize:11, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600, whiteSpace:'nowrap' }}>
@@ -232,6 +292,15 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                       <img src={p.image} alt={p.title}
                         onError={e => { e.currentTarget.style.display = 'none' }} />
                     )}
+                    <button
+                      type="button"
+                      className={`save-star${savedIds.has(p.id) ? ' saved' : ''}`}
+                      aria-label={savedIds.has(p.id) ? `Remove ${p.title} from wishlist` : `Save ${p.title} to wishlist`}
+                      aria-pressed={savedIds.has(p.id)}
+                      onClick={event => toggleSaved(event, p.id)}
+                    >
+                      {savedIds.has(p.id) ? '★' : '☆'}
+                    </button>
                   </div>
                   <div className="cbody">
                     <p className="cbrand">{p.brand}</p>
