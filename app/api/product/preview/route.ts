@@ -321,7 +321,18 @@ function detectCategory(title: string, description: string, url: string): string
   // e.g. "hair serum" matches Haircare before generic "serum" matches Skincare
   const map: [string[], string][] = [
     [['hair','shampoo','conditioner','scalp','leave-in','leave in'], 'Haircare'],
-    [['lipstick','foundation','concealer','mascara','eyeliner','eyeshadow','blush','bronzer','bronzing','highlighter','makeup','kajal','kohl','primer','setting spray','contour','lip gloss','lip liner','bb cream','cc cream'], 'Makeup'],
+    // Makeup is deliberately split into the exact storefront filters. Specific
+    // terms must stay above the general "makeup" fallback at the end.
+    [['makeup remover','makeup removal','cleansing balm','cleansing oil'], 'Makeup - Makeup Remover'],
+    [['brush set','makeup brush','makeup sponge','beauty blender','blending sponge','powder puff','makeup tool'], 'Makeup - Brushes, Sponges & Tools'],
+    [['eyebrow','brow pencil','brow gel','brow pomade','brow powder','brow definer'], 'Makeup - Brows'],
+    [['lipstick','lip gloss','lip liner','lip tint','lip stain','lip crayon','lip lacquer'], 'Makeup - Lipstick, Gloss & Liner'],
+    [['makeup palette','eyeshadow palette','face palette','blush palette'], 'Makeup - Palettes'],
+    [['eyeshadow','eye shadow','eyeliner','eye liner','mascara','kajal','kohl','eye pencil'], 'Makeup - Eyeshadow, Eyeliner & Mascara'],
+    [['blush','bronzer','bronzing','highlighter','contour','illuminator'], 'Makeup - Blush, Bronzer & Highlighter'],
+    [['foundation','concealer','bb cream','cc cream','tinted moisturiser','tinted moisturizer'], 'Makeup - Foundation & Concealer'],
+    [['primer','setting powder','loose powder','compact powder','pressed powder','setting spray','fixing spray','makeup fixer'], 'Makeup - Primer, Powder & Setting'],
+    [['makeup'], 'Makeup'],
     [['face serum','face wash','face cream','face mask','moisturiser','moisturizer','sunscreen','spf','toner','cleanser','retinol','vitamin c serum','hyaluronic','niacinamide','exfoliant','scrub','micellar','skincare','skin care'], 'Skincare'],
     [['sneaker','boot','heel','sandal','loafer','flat shoe','pump','mule','slipper','footwear','stiletto','wedge','kolhapuri','mojari'], 'Footwear'],
     [['handbag','tote bag','clutch','backpack','sling bag','wallet','purse','satchel','crossbody','pouch','duffel'], 'Bags & Purses'],

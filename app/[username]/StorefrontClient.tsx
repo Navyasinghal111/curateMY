@@ -3,6 +3,11 @@
 import { useState } from 'react'
 
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','NAILS','HOME DECOR','WISHLIST']
+const MAKEUP_SUBCATS = [
+  'Foundation & Concealer', 'Primer, Powder & Setting', 'Blush, Bronzer & Highlighter',
+  'Lipstick, Gloss & Liner', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
+  'Brushes, Sponges & Tools', 'Makeup Remover',
+]
 
 type Product = { id: string; title: string; brand: string; price: string; image: string; url: string; category: string; description?: string }
 type Creator = { id: string; username: string; display_name: string; avatar_url?: string; city?: string; bio?: string; instagram_handle?: string; instagram_verified?: boolean; primary_platform?: string; primary_followers?: number }
@@ -14,16 +19,21 @@ function formatFollowers(n?: number) {
   return String(n)
 }
 
-const matchesCategory = (productCategory: string, selectedCategory: string) =>
-  productCategory?.toUpperCase() === selectedCategory || (productCategory?.toUpperCase() === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
+const matchesCategory = (productCategory: string, selectedCategory: string) => {
+  const category = productCategory?.toUpperCase()
+  if (selectedCategory === 'MAKEUP') return category === 'MAKEUP' || category?.startsWith('MAKEUP - ')
+  return category === selectedCategory || (category === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
+}
 
 export default function StorefrontClient({ creator, initialProducts, isOwner }: { creator: Creator; initialProducts: Product[]; isOwner: boolean }) {
   const [tab, setTab]       = useState('ALL')
+  const [makeupTab, setMakeupTab] = useState('MAKEUP')
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
 
   const filtered = initialProducts.filter(p => {
-    const catOk  = tab === 'ALL' || matchesCategory(p.category, tab)
+    const activeCategory = tab === 'MAKEUP' ? makeupTab : tab
+    const catOk  = activeCategory === 'ALL' || matchesCategory(p.category, activeCategory)
     const srchOk = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase())
     return catOk && srchOk
   })
@@ -45,6 +55,10 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .tab:hover{color:#1a1a1a}
         .tab.on{color:#1a1a1a;border-bottom-color:#8B1A1A;font-weight:600}
         .tab-n{font-size:10px;font-weight:400;color:#aaa}
+        .makeup-subtabs{display:flex;gap:8px;overflow-x:auto;padding:10px 48px;background:#E8E4DE;border-bottom:1px solid rgba(26,26,26,0.1);-webkit-overflow-scrolling:touch}
+        .makeup-subtabs::-webkit-scrollbar{display:none}
+        .makeup-subtab{flex-shrink:0;border:1px solid rgba(26,26,26,0.16);background:#F0EDE8;color:#514b45;padding:7px 10px;font-size:10px;letter-spacing:0.04em;cursor:pointer;font-family:inherit}
+        .makeup-subtab.on{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
 
         /* ── Product grid ── */
         .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
@@ -86,6 +100,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .bio-avatar { width: 52px !important; height: 52px !important }
           .tab-bar-inner { padding: 0 20px !important }
           .tab { padding: 12px 14px !important; font-size: 10px !important }
+          .makeup-subtabs { padding: 10px 20px !important }
           .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important }
           .grid-wrap { padding: 20px 16px 60px !important }
           .cbody { padding: 8px 10px 10px !important; height: 158px !important }
@@ -173,12 +188,22 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       <div className="tab-bar">
         <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
           {CATS.filter(c => c !== 'WISHLIST').map(c => (
-            <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => setTab(c)}>
+            <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
               {c} <span className="tab-n">{count(c)}</span>
             </button>
           ))}
         </div>
       </div>
+
+      {tab === 'MAKEUP' && (
+        <div className="makeup-subtabs" aria-label="Makeup categories">
+          <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
+          {MAKEUP_SUBCATS.map(category => {
+            const value = `MAKEUP - ${category.toUpperCase()}`
+            return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+          })}
+        </div>
+      )}
 
       {/* ── Product grid ── */}
       <div className="grid-wrap" style={{ padding:'32px 48px 80px' }}>

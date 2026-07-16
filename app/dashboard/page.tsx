@@ -5,15 +5,23 @@ import { createClient } from '@/lib/supabase'
 import { logEvent } from '@/lib/logEvent'
 
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','NAILS','HOME DECOR','WISHLIST']
-const PRODUCT_CATS = ['Apparel','Activewear','Coats & Outerwear','Footwear','Bags & Purses','Jewelry','Watches','Eyewear','Makeup','Skincare','Bath & Body','Haircare','Nails','Home Decor']
+const MAKEUP_SUBCATS = [
+  'Foundation & Concealer', 'Primer, Powder & Setting', 'Blush, Bronzer & Highlighter',
+  'Lipstick, Gloss & Liner', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
+  'Brushes, Sponges & Tools', 'Makeup Remover',
+]
+const PRODUCT_CATS = ['Apparel','Activewear','Coats & Outerwear','Footwear','Bags & Purses','Jewelry','Watches','Eyewear','Makeup', ...MAKEUP_SUBCATS.map(c => `Makeup - ${c}`), 'Skincare','Bath & Body','Haircare','Nails','Home Decor']
 const SERIF = 'Cormorant Garamond, serif'
 
 type Product = { id:string; title:string; brand:string; price:string; image_url:string; product_url:string; category:string; wishlisted?:boolean; description?:string }
 type Profile  = { name:string; username:string; avatar_url:string; followers:number }
 
 const db  = () => createClient()
-const matchesCategory = (productCategory: string, selectedCategory: string) =>
-  productCategory?.toUpperCase() === selectedCategory || (productCategory?.toUpperCase() === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
+const matchesCategory = (productCategory: string, selectedCategory: string) => {
+  const category = productCategory?.toUpperCase()
+  if (selectedCategory === 'MAKEUP') return category === 'MAKEUP' || category?.startsWith('MAKEUP - ')
+  return category === selectedCategory || (category === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
+}
 const INP: React.CSSProperties = { width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }
 const LBL: React.CSSProperties = { display:'block', fontSize:10, letterSpacing:'0.1em', color:'#8C867E', textTransform:'uppercase', marginBottom:5 }
 
@@ -280,6 +288,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
 export default function DashboardHome() {
   const [products,        setProducts]        = useState<Product[]>([])
   const [tab,             setTab]             = useState('ALL')
+  const [makeupTab,       setMakeupTab]       = useState('MAKEUP')
   const [search,          setSearch]          = useState('')
   const [modal,           setModal]           = useState(false)
   const [editProduct,     setEditProduct]     = useState<Product|null>(null)
@@ -347,8 +356,9 @@ export default function DashboardHome() {
 
   const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>matchesCategory(p.category, t)).length
 
+  const activeCategory = tab === 'MAKEUP' ? makeupTab : tab
   const filtered = products.filter(p => {
-    const catOk  = tab==='ALL' || (tab==='WISHLIST' ? p.wishlisted : matchesCategory(p.category, tab))
+    const catOk  = activeCategory==='ALL' || (activeCategory==='WISHLIST' ? p.wishlisted : matchesCategory(p.category, activeCategory))
     const srchOk = !search || [p.title,p.brand].some(s=>s?.toLowerCase().includes(search.toLowerCase()))
     return catOk && srchOk
   })
@@ -380,6 +390,10 @@ export default function DashboardHome() {
         .cat-tab.on{color:#0A0A0A;border-bottom-color:#0A0A0A}
         .cat-tab.wl{color:#C53030}
         .cat-tab.wl.on{border-bottom-color:#C53030}
+        .makeup-subtabs{display:flex;gap:8px;overflow-x:auto;padding:10px 32px;background:#F8F6F2;border-bottom:0.5px solid #EBEBEB;-webkit-overflow-scrolling:touch}
+        .makeup-subtabs::-webkit-scrollbar{display:none}
+        .makeup-subtab{flex-shrink:0;border:1px solid #DDD8D0;background:#fff;color:#6C6255;padding:7px 10px;font-size:10px;letter-spacing:0.04em;cursor:pointer;font-family:inherit}
+        .makeup-subtab.on{background:#0A0A0A;border-color:#0A0A0A;color:#fff}
         .pcard{background:#fff;border:0.5px solid #E8E4DC;overflow:visible;transition:box-shadow 0.2s;position:relative}
         .pcard:hover{box-shadow:0 8px 28px rgba(0,0,0,0.09)}
         .tdot{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:#fff;border:0.5px solid #E5E5E5;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08);z-index:10;font-size:14px;color:#666;letter-spacing:1px}
@@ -440,11 +454,21 @@ export default function DashboardHome() {
       {/* Category tabs */}
       <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
         {CATS.map(c => (
-          <button key={c} onClick={() => setTab(c)} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
+          <button key={c} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
             {c==='WISHLIST' && '♥ '}{c} <span style={{ fontSize:10, opacity:0.5, marginLeft:2 }}>{count(c)}</span>
           </button>
         ))}
       </div>
+
+      {tab === 'MAKEUP' && (
+        <div className="makeup-subtabs" aria-label="Makeup categories">
+          <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
+          {MAKEUP_SUBCATS.map(category => {
+            const value = `MAKEUP - ${category.toUpperCase()}`
+            return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+          })}
+        </div>
+      )}
 
       {/* Content */}
       <div className="dash-content" style={{ background:'#F8F6F2', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
