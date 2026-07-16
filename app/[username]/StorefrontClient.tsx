@@ -67,6 +67,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                produce equal cards. The image area is already equal
                (aspect-ratio:4/5); .cbody now locks the same way. ── */
         .card{background:#fff;overflow:hidden;transition:box-shadow 0.2s;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+        .card-detail-link{display:flex;flex:1;flex-direction:column;color:inherit;text-decoration:none}
         .card:hover{box-shadow:0 8px 32px rgba(26,26,26,0.12)}
         .cimg{aspect-ratio:4/5;background:#E8E4DE;position:relative;overflow:hidden}
         .cimg-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
@@ -220,24 +221,26 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           <div className="grid">
             {filtered.map(p => (
               <div key={p.id} className="card">
-                <div className="cimg">
-                  <div className="cimg-fallback"><span className="cph">{p.title[0]}</span></div>
-                  {p.image && (
-                    <img src={p.image} alt={p.title}
-                      onError={e => { e.currentTarget.style.display = 'none' }} />
-                  )}
-                </div>
-                <div className="cbody">
-                  <p className="cbrand">{p.brand}</p>
-                  <p className="ctitle">{p.title}</p>
-                  {p.description && (
-                    <>
-                      <p className="cwhy-label">Why this curator picked it</p>
-                      <p className="cwhy">{p.description}</p>
-                    </>
-                  )}
-                  <p className="cprice">{p.price}</p>
-                </div>
+                <a href={`/product/${p.id}`} className="card-detail-link">
+                  <div className="cimg">
+                    <div className="cimg-fallback"><span className="cph">{p.title[0]}</span></div>
+                    {p.image && (
+                      <img src={p.image} alt={p.title}
+                        onError={e => { e.currentTarget.style.display = 'none' }} />
+                    )}
+                  </div>
+                  <div className="cbody">
+                    <p className="cbrand">{p.brand}</p>
+                    <p className="ctitle">{p.title}</p>
+                    {p.description && (
+                      <>
+                        <p className="cwhy-label">Why this curator picked it</p>
+                        <p className="cwhy">{p.description}</p>
+                      </>
+                    )}
+                    <p className="cprice">{p.price}</p>
+                  </div>
+                </a>
                 <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer" className="cbuy">
                   SHOP NOW
                 </a>
