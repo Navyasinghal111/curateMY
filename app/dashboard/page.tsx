@@ -4,14 +4,16 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { logEvent } from '@/lib/logEvent'
 
-const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
-const PRODUCT_CATS = ['Apparel','Coats & Outerwear','Footwear','Bags & Purses','Jewelry & Watches','Makeup','Skincare','Haircare']
+const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','NAILS','HOME DECOR','WISHLIST']
+const PRODUCT_CATS = ['Apparel','Activewear','Coats & Outerwear','Footwear','Bags & Purses','Jewelry','Watches','Eyewear','Makeup','Skincare','Bath & Body','Haircare','Nails','Home Decor']
 const SERIF = 'Cormorant Garamond, serif'
 
 type Product = { id:string; title:string; brand:string; price:string; image_url:string; product_url:string; category:string; wishlisted?:boolean; description?:string }
 type Profile  = { name:string; username:string; avatar_url:string; followers:number }
 
 const db  = () => createClient()
+const matchesCategory = (productCategory: string, selectedCategory: string) =>
+  productCategory?.toUpperCase() === selectedCategory || (productCategory?.toUpperCase() === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
 const INP: React.CSSProperties = { width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }
 const LBL: React.CSSProperties = { display:'block', fontSize:10, letterSpacing:'0.1em', color:'#8C867E', textTransform:'uppercase', marginBottom:5 }
 
@@ -343,10 +345,10 @@ export default function DashboardHome() {
     setUploadingAvatar(false)
   }
 
-  const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>p.category?.toUpperCase()===t).length
+  const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>matchesCategory(p.category, t)).length
 
   const filtered = products.filter(p => {
-    const catOk  = tab==='ALL' || (tab==='WISHLIST' ? p.wishlisted : p.category?.toUpperCase()===tab)
+    const catOk  = tab==='ALL' || (tab==='WISHLIST' ? p.wishlisted : matchesCategory(p.category, tab))
     const srchOk = !search || [p.title,p.brand].some(s=>s?.toLowerCase().includes(search.toLowerCase()))
     return catOk && srchOk
   })

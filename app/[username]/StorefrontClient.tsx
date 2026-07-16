@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
+const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','NAILS','HOME DECOR','WISHLIST']
 
 type Product = { id: string; title: string; brand: string; price: string; image: string; url: string; category: string; description?: string }
 type Creator = { id: string; username: string; display_name: string; avatar_url?: string; city?: string; bio?: string; instagram_handle?: string; instagram_verified?: boolean; primary_platform?: string; primary_followers?: number }
@@ -14,18 +14,21 @@ function formatFollowers(n?: number) {
   return String(n)
 }
 
+const matchesCategory = (productCategory: string, selectedCategory: string) =>
+  productCategory?.toUpperCase() === selectedCategory || (productCategory?.toUpperCase() === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
+
 export default function StorefrontClient({ creator, initialProducts, isOwner }: { creator: Creator; initialProducts: Product[]; isOwner: boolean }) {
   const [tab, setTab]       = useState('ALL')
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
 
   const filtered = initialProducts.filter(p => {
-    const catOk  = tab === 'ALL' || p.category?.toUpperCase() === tab.toUpperCase()
+    const catOk  = tab === 'ALL' || matchesCategory(p.category, tab)
     const srchOk = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase())
     return catOk && srchOk
   })
 
-  const count = (t: string) => t === 'ALL' ? initialProducts.length : initialProducts.filter(p => p.category === t).length
+  const count = (t: string) => t === 'ALL' ? initialProducts.length : initialProducts.filter(p => matchesCategory(p.category, t)).length
   const initials = creator.display_name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) ?? 'CK'
 
   return (
