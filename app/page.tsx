@@ -123,12 +123,12 @@ export default function Home() {
           color: var(--gold); font-weight: 500; margin-bottom: 32px;
         }
         .hero-eyebrow-line { width: 24px; height: 0.5px; background: var(--gold); }
-        h1 {
-          font-family: var(--serif); font-size: clamp(44px, 5vw, 68px);
-          font-weight: 300; line-height: 1.08; color: var(--ink);
-          margin-bottom: 24px; letter-spacing: -0.01em;
-        }
-        h1 em { font-style: italic; color: var(--gold); }
+          h1 {
+            font-family: 'Cormorant Garamond', var(--serif); font-size: clamp(50px, 6vw, 82px);
+            font-weight: 300; line-height: 0.96; color: var(--ink);
+            margin-bottom: 28px; letter-spacing: 0;
+          }
+          h1 em { display: inline-block; margin-top: 12px; font-style: italic; color: var(--gold); }
         .hero-sub {
           font-size: 15px; font-weight: 300; color: var(--ink2);
           line-height: 1.8; max-width: 440px; margin-bottom: 40px;
@@ -259,7 +259,7 @@ export default function Home() {
             <div className="hero-eyebrow-line" />
             Trusted curation · Real people
           </div>
-          <h1>Curated by people,<br/>not <em>algorithms.</em></h1>
+          <h1>Curated by creators<br/><em>you trust.</em></h1>
           <p className="hero-sub">
             The creators, doctors, stylists, and tastemakers you trust — sharing the products they genuinely use.
           </p>
