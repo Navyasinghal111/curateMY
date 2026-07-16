@@ -140,13 +140,16 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .cbuy:hover{background:#333}
 
         /* ── Search input ── */
-        .search-input{padding:9px 16px;border:1px solid rgba(26,26,26,0.15);background:#fff;font-size:12px;outline:none;color:#1a1a1a;font-family:inherit}
-        .wishlist-nav-link{padding:9px 14px;color:#8B1A1A;font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
-        .wishlist-nav-link:hover{text-decoration:underline}
+        .search-input{height:42px;padding:0 16px;border:1px solid #1a1a1a;background:rgba(255,255,255,0.34);font-size:12px;outline:none;color:#1a1a1a;font-family:inherit;letter-spacing:0.01em}
+        .search-input::placeholder{color:#8c867e}
+        .search-input:focus{background:#fff;box-shadow:0 0 0 2px rgba(139,26,26,0.12)}
+        .wishlist-icon-link{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;color:#8B1A1A;font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
+        .wishlist-icon-link:hover{text-decoration:underline}
+        .wishlist-icon{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
         /* ── Mobile search bar (shown below nav on mobile) ── */
         .mobile-search{display:none;padding:12px 20px;background:#F0EDE8;border-bottom:1px solid rgba(26,26,26,0.1)}
-        .mobile-search input{width:100%;padding:10px 14px;border:1px solid rgba(26,26,26,0.15);background:#fff;font-size:13px;outline:none;color:#1a1a1a;font-family:inherit}
+        .mobile-search input{width:100%;height:42px;padding:0 14px;border:1px solid #1a1a1a;background:rgba(255,255,255,0.34);font-size:13px;outline:none;color:#1a1a1a;font-family:inherit}
 
         /* ── MOBILE BREAKPOINT ── */
         @media (max-width: 768px) {
@@ -195,9 +198,16 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
             onChange={e => setSearch(e.target.value)}
             placeholder="Search products…"
             className="search-input"
-            style={{ width:200 }}
+            style={{ width:300 }}
           />
-          <a href="/wishlist" className="wishlist-nav-link">★ WISHLIST</a>
+          <a href="/wishlist" className="wishlist-icon-link" aria-label="Open wishlist">
+            <svg className="wishlist-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 5h2l2.2 10.2a2 2 0 0 0 2 1.6h8.9a2 2 0 0 0 1.9-1.5L21.5 8H6" />
+              <circle cx="9" cy="20" r="1" />
+              <circle cx="18" cy="20" r="1" />
+            </svg>
+            WISHLIST
+          </a>
           {isOwner && (
             <a href="/dashboard"
               style={{ padding:'9px 18px', background:'#8B1A1A', color:'#fff', fontSize:11, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600, whiteSpace:'nowrap' }}>
