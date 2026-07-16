@@ -59,7 +59,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      window.location.href = '/login'
+      window.location.assign('/login')
       return
     }
 
