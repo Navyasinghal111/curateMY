@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import SaveProductButton from './SaveProductButton'
 
 type Props = { params: Promise<{ productId: string }> }
 
@@ -81,6 +82,7 @@ export default async function ProductPage({ params }: Props) {
         .product-kicker{margin:0 0 18px;color:#8c867e;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
         .product-title{max-width:620px;margin:0 0 24px;font-family:'Fanwood Text',Georgia,serif;font-size:clamp(38px,4.5vw,68px);font-weight:400;line-height:.98;letter-spacing:-.02em}
         .product-price{margin:0 0 32px;font-family:'Cormorant Garamond',Georgia,serif;font-size:27px;color:#312d29}
+        .product-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px}
         .curator-line{display:flex;align-items:center;gap:10px;margin:0 0 34px;color:#8c867e;font-size:12px}
         .curator-line img,.curator-initials{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#c8a47a}
         .curator-initials{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Fanwood Text',Georgia,serif;font-size:14px;font-style:italic}
@@ -88,8 +90,11 @@ export default async function ProductPage({ params }: Props) {
         .recommendation{max-width:540px;margin:0 0 34px;padding-top:20px;border-top:1px solid rgba(26,26,26,.16)}
         .recommendation-label{margin-bottom:7px;color:#a08f7c;font-size:10px;letter-spacing:.12em;text-transform:uppercase}
         .recommendation-text{font-family:'Fanwood Text',Georgia,serif;font-size:20px;font-style:italic;line-height:1.35;color:#5e574f}
-        .shop-link{display:flex;align-items:center;justify-content:center;min-height:52px;max-width:420px;background:#1a1a1a;color:#fff;text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+        .shop-link{display:flex;align-items:center;justify-content:center;min-height:52px;min-width:240px;background:#1a1a1a;color:#fff;text-decoration:none;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
         .shop-link:hover{background:#38332e}
+        .product-save{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:52px;padding:0 18px;border:1px solid rgba(26,26,26,.22);background:transparent;color:#4f4942;font:500 11px/1 DM Sans,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+        .product-save:hover,.product-save.saved{border-color:#8B1A1A;color:#8B1A1A}
+        .product-save:disabled{opacity:.55;cursor:default}
         .category-note{margin-top:18px;color:#a09a92;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
         @media (max-width:768px){
           .product-nav{height:62px;padding:0 20px}.product-logo{font-size:23px}.back-link{font-size:9px}
@@ -129,9 +134,12 @@ export default async function ProductPage({ params }: Props) {
               <p className="recommendation-text">{product.description}</p>
             </div>
           )}
-          <a className="shop-link" href={`/r/${product.id}`} target="_blank" rel="noopener noreferrer">
-            Shop now at {retailer}
-          </a>
+          <div className="product-actions">
+            <a className="shop-link" href={`/r/${product.id}`} target="_blank" rel="noopener noreferrer">
+              Shop now at {retailer}
+            </a>
+            <SaveProductButton productId={product.id} productTitle={product.title} />
+          </div>
           <p className="category-note">Curated on CurateKin</p>
         </section>
       </div>
