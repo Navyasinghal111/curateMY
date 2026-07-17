@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','FRAGRANCES','NAILS','HOME DECOR','WISHLIST']
@@ -32,12 +32,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const [railPinned, setRailPinned] = useState(false)
-  const [railHeight, setRailHeight] = useState(0)
-  const [headerHeight, setHeaderHeight] = useState(0)
-  const headerRef = useRef<HTMLDivElement>(null)
-  const categorySlotRef = useRef<HTMLDivElement>(null)
-  const categoryRailRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -58,37 +52,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
     loadSavedProducts()
     return () => { mounted = false }
   }, [])
-
-  useEffect(() => {
-    const syncCategoryRail = () => {
-      const header = headerRef.current
-      const slot = categorySlotRef.current
-      const rail = categoryRailRef.current
-      if (!header || !slot || !rail) return
-
-      const nextHeaderHeight = Math.ceil(header.getBoundingClientRect().height)
-      const nextRailHeight = Math.ceil(rail.getBoundingClientRect().height)
-      const slotTop = slot.getBoundingClientRect().top + window.scrollY
-      const shouldPin = window.scrollY >= slotTop - nextHeaderHeight
-
-      setHeaderHeight(previous => previous === nextHeaderHeight ? previous : nextHeaderHeight)
-      setRailHeight(previous => previous === nextRailHeight ? previous : nextRailHeight)
-      setRailPinned(previous => previous === shouldPin ? previous : shouldPin)
-    }
-
-    syncCategoryRail()
-    window.addEventListener('scroll', syncCategoryRail, { passive: true })
-    window.addEventListener('resize', syncCategoryRail)
-    const observer = new ResizeObserver(syncCategoryRail)
-    if (headerRef.current) observer.observe(headerRef.current)
-    if (categoryRailRef.current) observer.observe(categoryRailRef.current)
-
-    return () => {
-      window.removeEventListener('scroll', syncCategoryRail)
-      window.removeEventListener('resize', syncCategoryRail)
-      observer.disconnect()
-    }
-  }, [tab])
 
   const toggleSaved = async (event: React.MouseEvent<HTMLButtonElement>, productId: string) => {
     event.preventDefault()
@@ -140,10 +103,9 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .bio-name, .bio-text, .bio-meta a{overflow-wrap:break-word;word-break:break-word}
 
         /* ── Persistent storefront navigation ── */
-        .storefront-header{position:sticky;top:0;z-index:50}
+        .storefront-header{position:relative}
         .nav-wrap{border-bottom:1px solid rgba(255,255,255,0.12)}
-        .category-sticky{position:relative;z-index:49;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
-        .category-sticky.pinned{position:fixed;left:0;right:0;width:100%}
+        .category-sticky{position:sticky;top:0;z-index:50;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
 
         /* ── Tab bar ── */
         .tab-bar{overflow-x:auto;white-space:nowrap;border-bottom:1px solid rgba(26,26,26,0.1);background:#fff;-webkit-overflow-scrolling:touch}
@@ -227,7 +189,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       `}</style>
 
       {/* ── Nav ── */}
-      <div ref={headerRef} className="storefront-header">
+      <div className="storefront-header">
       <nav className="nav-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 48px', background:'#1a1a1a' }}>
         <a href="/" className="nav-logo" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:28, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#fff', textDecoration:'none', whiteSpace:'nowrap' }}>
           <span style={{ display:'inline-block' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ display:'inline-block', color:'#C99A6A' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span>
@@ -301,12 +263,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       </div>
 
       {/* ── Sticky category rail ── */}
-      <div ref={categorySlotRef} style={railPinned ? { height: railHeight } : undefined}>
-      <div
-        ref={categoryRailRef}
-        className={`category-sticky${railPinned ? ' pinned' : ''}`}
-        style={railPinned ? { top: headerHeight } : undefined}
-      >
+      <div className="category-sticky">
         <div className="tab-bar">
           <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
             {CATS.filter(c => c !== 'WISHLIST').map(c => (
@@ -326,7 +283,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
             })}
           </div>
         )}
-      </div>
       </div>
 
       {/* ── Product grid ── */}
