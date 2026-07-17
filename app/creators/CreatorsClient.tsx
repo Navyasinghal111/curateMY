@@ -10,16 +10,20 @@ type Creator = {
   avatar_url: string
   bio: string
   city?: string
+  instagram_handle?: string
   productCount: number
 }
 
 export default function CreatorsClient({ creators }: { creators: Creator[] }) {
   const [search, setSearch] = useState('')
 
+  const query = search.trim().replace(/^@/, '').toLowerCase()
   const filtered = creators.filter(c =>
-    !search ||
-    c.display_name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.city?.toLowerCase().includes(search.toLowerCase())
+    !query ||
+    c.display_name?.toLowerCase().includes(query) ||
+    c.username?.toLowerCase().includes(query) ||
+    c.instagram_handle?.replace(/^@/, '').toLowerCase().includes(query) ||
+    c.city?.toLowerCase().includes(query)
   )
 
   return (
@@ -49,7 +53,7 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
 
       <nav className="nav">
         <a href="/" className="logo"><span className="logo-word"><span className="logo-cap">C</span>urate</span><span className="logo-word logo-kin"><span className="logo-cap">K</span>in</span></a>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search curators…" className="search-input" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search a name or @Instagram…" className="search-input" />
       </nav>
 
       <div style={{ padding:'56px 48px 24px' }}>
@@ -67,7 +71,7 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
               {creators.length === 0 ? 'The first curators are just getting started.' : 'No curators match that search.'}
             </p>
             <p style={{ fontSize:13, color:'#8C867E' }}>
-              {creators.length === 0 ? 'Check back soon, or be the first to apply.' : 'Try a different name or city.'}
+              {creators.length === 0 ? 'Check back soon, or be the first to apply.' : 'Try a name, CurateKin handle, or Instagram handle.'}
             </p>
           </div>
         ) : (
@@ -82,6 +86,7 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
                   )}
                 </div>
                 <div className="cname">{c.display_name}</div>
+                {c.instagram_handle && <div className="cmeta" style={{ marginBottom:3 }}>@{c.instagram_handle.replace(/^@/, '')}</div>}
                 <div className="cmeta">{[c.city, `${c.productCount} pieces`].filter(Boolean).join(' · ')}</div>
               </Link>
             ))}
