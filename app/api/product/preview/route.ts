@@ -320,6 +320,7 @@ function detectCategory(title: string, description: string, url: string): string
   // Order matters: more specific / compound terms checked first so
   // e.g. "hair serum" matches Haircare before generic "serum" matches Skincare
   const map: [string[], string][] = [
+    [['eau de parfum','eau de toilette','eau de cologne','perfume','fragrance','cologne','attar','body mist','parfum','scent'], 'Fragrances'],
     [['hair','shampoo','conditioner','scalp','leave-in','leave in'], 'Haircare'],
     // Makeup is deliberately split into the exact storefront filters. Specific
     // terms must stay above the general "makeup" fallback at the end.
