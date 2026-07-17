@@ -17,6 +17,7 @@ const SANS   = "'DM Sans', sans-serif"
 
 type Creator = {
   id: string
+  applicationId?: string
   display_name: string
   username: string
   city: string
@@ -38,12 +39,35 @@ type Creator = {
   email?: string
 }
 
+type CreatorApplication = {
+  id: string
+  user_id: string
+  email: string
+  display_name: string
+  phone: string
+  primary_platform: string
+  primary_handle: string
+  primary_followers: string
+  secondary_platform: string
+  secondary_handle: string
+  secondary_followers: string
+  engagement_rate: string
+  niches: string[]
+  content_language: string
+  bio: string
+  instagram_handle: string
+  instagram_verified: boolean
+  status: string
+  submitted_at: string
+}
+
 // Deliberately excludes upi_id and pan_number — this page never needs to
 // see payout details, so we don't even fetch them. Also excludes
 // brands_worked_with — it's collected in the creator signup form's auth
 // metadata, but profiles has no matching column yet, so selecting it here
 // would fail the entire query (PostgREST errors on a nonexistent column).
 const REVIEW_COLUMNS = 'id, display_name, username, city, bio, status, primary_platform, primary_handle, primary_followers, secondary_platform, secondary_handle, niches, content_language, instagram_handle, instagram_verified, phone, created_at'
+const APPLICATION_REVIEW_COLUMNS = 'id, user_id, email, display_name, phone, primary_platform, primary_handle, primary_followers, secondary_platform, secondary_handle, secondary_followers, engagement_rate, niches, content_language, bio, instagram_handle, instagram_verified, status, submitted_at'
 
 function platformHandleFor(c: Creator, platform: string): string {
   if (c.primary_platform === platform && c.primary_handle) return c.primary_handle
@@ -102,12 +126,40 @@ export default function AdminPage() {
 
   const loadCreators = async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select(REVIEW_COLUMNS)
-      .eq('role', 'creator')
-      .order('created_at', { ascending: false })
-    setCreators((data as unknown as Creator[]) ?? [])
+    const [{ data: applications }, { data: profiles }] = await Promise.all([
+      supabase.from('creator_applications').select(APPLICATION_REVIEW_COLUMNS).order('submitted_at', { ascending: false }),
+      supabase.from('profiles').select(REVIEW_COLUMNS).eq('role', 'creator').order('created_at', { ascending: false }),
+    ])
+
+    const profileById = new Map(((profiles as unknown as Creator[]) ?? []).map(profile => [profile.id, profile]))
+    const reviewedUserIds = new Set<string>()
+    const applicationCreators = ((applications as unknown as CreatorApplication[]) ?? []).map(application => {
+      reviewedUserIds.add(application.user_id)
+      const profile = profileById.get(application.user_id)
+      return {
+        id: application.user_id,
+        applicationId: application.id,
+        display_name: application.display_name || profile?.display_name || 'Not provided',
+        username: profile?.username ?? '',
+        city: profile?.city ?? '',
+        bio: application.bio ?? profile?.bio ?? '',
+        status: application.status,
+        primary_platform: application.primary_platform ?? profile?.primary_platform ?? '',
+        primary_handle: application.primary_handle ?? profile?.primary_handle ?? '',
+        primary_followers: application.primary_followers ?? profile?.primary_followers ?? '',
+        secondary_platform: application.secondary_platform ?? profile?.secondary_platform ?? '',
+        secondary_handle: application.secondary_handle ?? profile?.secondary_handle ?? '',
+        niches: application.niches ?? profile?.niches ?? [],
+        content_language: application.content_language ?? profile?.content_language ?? '',
+        instagram_handle: application.instagram_handle ?? profile?.instagram_handle ?? '',
+        instagram_verified: application.instagram_verified ?? profile?.instagram_verified ?? false,
+        phone: application.phone ?? profile?.phone ?? '',
+        created_at: application.submitted_at,
+        email: application.email,
+      }
+    })
+    const legacyCreators = ((profiles as unknown as Creator[]) ?? []).filter(profile => !reviewedUserIds.has(profile.id))
+    setCreators([...applicationCreators, ...legacyCreators])
     setLoading(false)
   }
 
@@ -142,10 +194,27 @@ export default function AdminPage() {
 
   const approve = async (creator: Creator) => {
     setAction(true)
-    const { error: updateErr } = await supabase.from('profiles').update({ status: 'approved' }).eq('id', creator.id)
-    if (updateErr) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       setAction(false)
-      showToast(`Failed to approve: ${updateErr.message}`, true)
+      showToast('Your admin session expired. Please sign in again.', true)
+      return
+    }
+    const reviewedAt = new Date().toISOString()
+    if (creator.applicationId) {
+      const { error: applicationErr } = await supabase.from('creator_applications')
+        .update({ status: 'approved', reviewed_at: reviewedAt, reviewed_by: user.id })
+        .eq('id', creator.applicationId)
+      if (applicationErr) {
+        setAction(false)
+        showToast(`Failed to approve application: ${applicationErr.message}`, true)
+        return
+      }
+    }
+    const { error: profileErr } = await supabase.from('profiles').update({ status: 'approved' }).eq('id', creator.id)
+    if (profileErr) {
+      setAction(false)
+      showToast(`Application approved, but dashboard access failed: ${profileErr.message}`, true)
       return
     }
 
@@ -176,10 +245,27 @@ export default function AdminPage() {
 
   const reject = async (creator: Creator) => {
     setAction(true)
-    const { error: updateErr } = await supabase.from('profiles').update({ status: 'rejected' }).eq('id', creator.id)
-    if (updateErr) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       setAction(false)
-      showToast(`Failed to reject: ${updateErr.message}`, true)
+      showToast('Your admin session expired. Please sign in again.', true)
+      return
+    }
+    const reviewedAt = new Date().toISOString()
+    if (creator.applicationId) {
+      const { error: applicationErr } = await supabase.from('creator_applications')
+        .update({ status: 'rejected', reviewed_at: reviewedAt, reviewed_by: user.id })
+        .eq('id', creator.applicationId)
+      if (applicationErr) {
+        setAction(false)
+        showToast(`Failed to reject application: ${applicationErr.message}`, true)
+        return
+      }
+    }
+    const { error: profileErr } = await supabase.from('profiles').update({ status: 'rejected' }).eq('id', creator.id)
+    if (profileErr) {
+      setAction(false)
+      showToast(`Application rejected, but profile update failed: ${profileErr.message}`, true)
       return
     }
     setCreators(prev => prev.map(c => c.id === creator.id ? { ...c, status: 'rejected' } : c))
