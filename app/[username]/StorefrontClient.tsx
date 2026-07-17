@@ -102,54 +102,56 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         *{box-sizing:border-box;margin:0;padding:0}
         .bio-name, .bio-text, .bio-meta a{overflow-wrap:break-word;word-break:break-word}
 
+        /* ── Persistent storefront navigation ── */
+        .nav-wrap{position:sticky;top:0;z-index:50;border-bottom:1px solid rgba(255,255,255,0.12)}
+        .category-sticky{position:sticky;top:81px;z-index:49;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
+
         /* ── Tab bar ── */
-        .tab-bar{overflow-x:auto;white-space:nowrap;border-top:1px solid rgba(26,26,26,0.1);border-bottom:1px solid rgba(26,26,26,0.1);background:#F0EDE8;-webkit-overflow-scrolling:touch}
+        .tab-bar{overflow-x:auto;white-space:nowrap;border-bottom:1px solid rgba(26,26,26,0.1);background:#fff;-webkit-overflow-scrolling:touch}
         .tab-bar::-webkit-scrollbar{display:none}
-        .tab{display:inline-flex;align-items:center;gap:5px;padding:13px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:500;letter-spacing:0.09em;color:#3a3530;cursor:pointer;white-space:nowrap;font-family:inherit}
+        .tab{display:inline-flex;align-items:center;gap:5px;padding:14px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:500;letter-spacing:0.09em;color:#7f7972;cursor:pointer;white-space:nowrap;font-family:inherit}
         .tab:hover{color:#1a1a1a}
-        .tab.on{color:#1a1a1a;border-bottom-color:#8B1A1A;font-weight:600}
+        .tab.on{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:600}
         .tab-n{font-size:10px;font-weight:400;color:#aaa}
-        .makeup-subtabs{display:flex;gap:8px;overflow-x:auto;padding:10px 48px;background:#E8E4DE;border-bottom:1px solid rgba(26,26,26,0.1);-webkit-overflow-scrolling:touch}
+        .makeup-subtabs{display:flex;gap:8px;overflow-x:auto;padding:10px 48px;background:#fff;border-bottom:1px solid rgba(26,26,26,0.1);-webkit-overflow-scrolling:touch}
         .makeup-subtabs::-webkit-scrollbar{display:none}
-        .makeup-subtab{flex-shrink:0;border:1px solid rgba(26,26,26,0.16);background:#F0EDE8;color:#514b45;padding:7px 10px;font-size:10px;letter-spacing:0.04em;cursor:pointer;font-family:inherit}
+        .makeup-subtab{flex-shrink:0;border:1px solid rgba(26,26,26,0.16);background:#fff;color:#514b45;padding:7px 10px;font-size:10px;letter-spacing:0.04em;cursor:pointer;font-family:inherit}
         .makeup-subtab.on{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
 
         /* ── Product grid ── */
-        .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+        .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:rgba(26,26,26,0.1)}
 
-        /* ── Product card — fixed body height so titles of any length
-               produce equal cards. The image area is already equal
-               (aspect-ratio:4/5); .cbody now locks the same way. ── */
-        .card{background:#fff;overflow:hidden;transition:box-shadow 0.2s;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+        /* ── Product card ── */
+        .card{position:relative;background:#fff;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;min-width:0}
         .card-detail-link{display:flex;flex:1;flex-direction:column;color:inherit;text-decoration:none}
-        .card:hover{box-shadow:0 8px 32px rgba(26,26,26,0.12)}
-        .cimg{aspect-ratio:4/5;background:#E8E4DE;position:relative;overflow:hidden}
+        .card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
+        .cimg{aspect-ratio:4/5;background:#fff;position:relative;overflow:hidden}
         .cimg-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-        .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;object-position:center;padding:12px}
+        .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;object-position:center;padding:12px}
         .save-star{position:absolute;top:12px;right:12px;z-index:4;width:34px;height:34px;border:1px solid rgba(26,26,26,0.14);border-radius:50%;background:rgba(255,255,255,0.94);color:#8c867e;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color 0.15s,background 0.15s,transform 0.15s}
         .save-star:hover{background:#fff;color:#8B1A1A;transform:scale(1.04)}
         .save-star.saved{color:#8B1A1A}
         .cph{font-family:'Fanwood Text',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
-        .cbody{padding:12px 14px 16px;display:flex;flex-direction:column;height:174px}
-        .cbrand{font-size:9px;letter-spacing:0.13em;text-transform:uppercase;color:#aaa;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .ctitle{font-size:13px;font-weight:500;color:#1a1a1a;line-height:1.4;margin-bottom:6px;height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-        .cwhy-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#b0aa9c;margin-bottom:3px}
-        .cwhy{font-family:'Fanwood Text',serif;font-style:italic;font-size:11px;line-height:1.4;color:#8a8478;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-        .cprice{font-family:'Cormorant Garamond',serif;font-size:17px;color:#1a1a1a;margin-top:auto}
-        .cbuy{display:block;margin:0 14px 14px;padding:9px;background:#1a1a1a;color:#fff;font-size:11px;letter-spacing:0.08em;text-align:center;text-decoration:none;border:none;cursor:pointer;font-family:inherit;transition:background 0.15s}
-        .cbuy:hover{background:#333}
+        .cbody{padding:16px 18px 20px;display:flex;flex-direction:column;height:158px}
+        .ccurator{display:flex;align-items:center;gap:7px;min-width:0;margin-bottom:9px;color:#746d65;font-size:10px;line-height:1}
+        .ccurator img,.ccurator-initials{width:20px;height:20px;flex:0 0 20px;border-radius:50%;object-fit:cover;background:#c8a47a}
+        .ccurator-initials{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Fanwood Text',serif;font-size:11px;font-style:italic}
+        .ccurator span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .cbrand{font-size:9px;letter-spacing:0.04em;color:#756e66;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .ctitle{font-size:14px;font-weight:500;color:#1a1a1a;line-height:1.35;margin-bottom:7px;height:2.7em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+        .cprice{font-family:'Cormorant Garamond',serif;font-size:18px;color:#8a847c;margin-top:auto}
 
         /* ── Search input ── */
-        .search-input{height:42px;padding:0 16px;border:1px solid #1a1a1a;background:rgba(255,255,255,0.34);font-size:12px;outline:none;color:#1a1a1a;font-family:inherit;letter-spacing:0.01em}
-        .search-input::placeholder{color:#8c867e}
-        .search-input:focus{background:#fff;box-shadow:0 0 0 2px rgba(139,26,26,0.12)}
-        .wishlist-icon-link{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;color:#8B1A1A;font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
-        .wishlist-icon-link:hover{text-decoration:underline}
+        .search-input{height:40px;padding:0 16px;border:0;border-radius:999px;background:rgba(255,255,255,0.2);font-size:12px;outline:none;color:#fff;font-family:inherit;letter-spacing:0.01em}
+        .search-input::placeholder{color:rgba(255,255,255,0.7)}
+        .search-input:focus{background:rgba(255,255,255,0.28);box-shadow:0 0 0 2px rgba(201,154,106,0.35)}
+        .wishlist-icon-link{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;color:rgba(255,255,255,0.82);font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
+        .wishlist-icon-link:hover{color:#fff}
         .wishlist-icon{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
         /* ── Mobile search bar (shown below nav on mobile) ── */
-        .mobile-search{display:none;padding:12px 20px;background:#F0EDE8;border-bottom:1px solid rgba(26,26,26,0.1)}
-        .mobile-search input{width:100%;height:42px;padding:0 14px;border:1px solid #1a1a1a;background:rgba(255,255,255,0.34);font-size:13px;outline:none;color:#1a1a1a;font-family:inherit}
+        .mobile-search{display:none;padding:12px 20px;background:#1a1a1a}
+        .mobile-search input{width:100%;height:40px;padding:0 14px;border:0;border-radius:999px;background:rgba(255,255,255,0.2);font-size:13px;outline:none;color:#fff;font-family:inherit}
 
         /* ── MOBILE BREAKPOINT ── */
         @media (max-width: 768px) {
@@ -164,15 +166,14 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .tab-bar-inner { padding: 0 20px !important }
           .tab { padding: 12px 14px !important; font-size: 10px !important }
           .makeup-subtabs { padding: 10px 20px !important }
-          .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important }
-          .grid-wrap { padding: 20px 16px 60px !important }
-          .cbody { padding: 8px 10px 10px !important; height: 158px !important }
+          .category-sticky { top: 120px !important }
+          .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0 !important }
+          .grid-wrap { padding: 0 0 60px !important }
+          .cbody { padding: 12px 12px 14px !important; height: 144px !important }
           .ctitle { font-size: 12px !important }
           .cbrand { font-size: 8px !important }
-          .cwhy-label { font-size: 8px !important }
-          .cwhy { font-size: 10px !important }
           .cprice { font-size: 15px !important }
-          .cbuy { margin: 6px 10px 10px !important; padding: 8px !important; font-size: 10px !important }
+          .ccurator { font-size: 9px !important; margin-bottom: 7px !important }
           .empty-state { padding: 60px 20px !important }
           .footer-wrap { padding: 16px 20px !important; flex-direction: column !important; gap: 10px !important; align-items: flex-start !important }
         }
@@ -188,9 +189,9 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       `}</style>
 
       {/* ── Nav ── */}
-      <nav className="nav-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 48px', background:'#F0EDE8' }}>
-        <a href="/" className="nav-logo" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:28, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#1a1a1a', textDecoration:'none', whiteSpace:'nowrap' }}>
-          <span style={{ display:'inline-block' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ display:'inline-block', color:'#7A1028' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span>
+      <nav className="nav-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 48px', background:'#1a1a1a' }}>
+        <a href="/" className="nav-logo" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:28, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#fff', textDecoration:'none', whiteSpace:'nowrap' }}>
+          <span style={{ display:'inline-block' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ display:'inline-block', color:'#C99A6A' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span>
         </a>
         <div className="nav-desktop-search" style={{ display:'flex', alignItems:'center', gap:12 }}>
           <input
@@ -210,7 +211,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           </a>
           {isOwner && (
             <a href="/dashboard"
-              style={{ padding:'9px 18px', background:'#8B1A1A', color:'#fff', fontSize:11, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600, whiteSpace:'nowrap' }}>
+              style={{ padding:'9px 18px', background:'#F0EDE8', color:'#1a1a1a', fontSize:11, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600, whiteSpace:'nowrap' }}>
               + ADD PIECE
             </a>
           )}
@@ -218,7 +219,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         {isOwner && (
           <a href="/dashboard"
             className="mobile-add-btn"
-            style={{ display:'none', padding:'8px 14px', background:'#8B1A1A', color:'#fff', fontSize:10, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600 }}>
+            style={{ display:'none', padding:'8px 14px', background:'#F0EDE8', color:'#1a1a1a', fontSize:10, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600 }}>
             + ADD
           </a>
         )}
@@ -259,29 +260,31 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         </div>
       </div>
 
-      {/* ── Category tabs ── */}
-      <div className="tab-bar">
-        <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
-          {CATS.filter(c => c !== 'WISHLIST').map(c => (
-            <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
-              {c} <span className="tab-n">{count(c)}</span>
-            </button>
-          ))}
+      {/* ── Sticky category rail ── */}
+      <div className="category-sticky">
+        <div className="tab-bar">
+          <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
+            {CATS.filter(c => c !== 'WISHLIST').map(c => (
+              <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
+                {c} <span className="tab-n">{count(c)}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
+        {tab === 'MAKEUP' && (
+          <div className="makeup-subtabs" aria-label="Makeup categories">
+            <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
+            {MAKEUP_SUBCATS.map(category => {
+              const value = `MAKEUP - ${category.toUpperCase()}`
+              return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+            })}
+          </div>
+        )}
       </div>
 
-      {tab === 'MAKEUP' && (
-        <div className="makeup-subtabs" aria-label="Makeup categories">
-          <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
-          {MAKEUP_SUBCATS.map(category => {
-            const value = `MAKEUP - ${category.toUpperCase()}`
-            return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
-          })}
-        </div>
-      )}
-
       {/* ── Product grid ── */}
-      <div className="grid-wrap" style={{ padding:'32px 48px 80px' }}>
+      <div className="grid-wrap" style={{ padding:'0 0 80px', background:'#fff' }}>
         {filtered.length === 0 ? (
           <div className="empty-state" style={{ textAlign:'center', padding:'80px 20px' }}>
             <p style={{ fontFamily:'Cormorant Garamond, serif', fontSize:28, fontWeight:400, color:'#1a1a1a', marginBottom:8 }}>
@@ -302,31 +305,29 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                       <img src={p.image} alt={p.title}
                         onError={e => { e.currentTarget.style.display = 'none' }} />
                     )}
-                    <button
-                      type="button"
-                      className={`save-star${savedIds.has(p.id) ? ' saved' : ''}`}
-                      aria-label={savedIds.has(p.id) ? `Remove ${p.title} from wishlist` : `Save ${p.title} to wishlist`}
-                      aria-pressed={savedIds.has(p.id)}
-                      onClick={event => toggleSaved(event, p.id)}
-                    >
-                      {savedIds.has(p.id) ? '★' : '☆'}
-                    </button>
                   </div>
                   <div className="cbody">
-                    <p className="cbrand">{p.brand}</p>
+                    <div className="ccurator">
+                      {creator.avatar_url
+                        ? <img src={creator.avatar_url} alt="" />
+                        : <span className="ccurator-initials">{initials}</span>
+                      }
+                      <span>{creator.display_name}</span>
+                    </div>
+                    <p className="cbrand">{p.brand} <span aria-hidden="true">•</span> {p.category}</p>
                     <p className="ctitle">{p.title}</p>
-                    {p.description && (
-                      <>
-                        <p className="cwhy-label">Why this curator picked it</p>
-                        <p className="cwhy">{p.description}</p>
-                      </>
-                    )}
                     <p className="cprice">{p.price}</p>
                   </div>
                 </a>
-                <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer" className="cbuy">
-                  SHOP NOW
-                </a>
+                <button
+                  type="button"
+                  className={`save-star${savedIds.has(p.id) ? ' saved' : ''}`}
+                  aria-label={savedIds.has(p.id) ? `Remove ${p.title} from wishlist` : `Save ${p.title} to wishlist`}
+                  aria-pressed={savedIds.has(p.id)}
+                  onClick={event => toggleSaved(event, p.id)}
+                >
+                  {savedIds.has(p.id) ? '★' : '☆'}
+                </button>
               </div>
             ))}
           </div>
