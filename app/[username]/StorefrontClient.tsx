@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','FRAGRANCES','NAILS','HOME DECOR','WISHLIST']
@@ -32,10 +32,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const [railPinned, setRailPinned] = useState(false)
-  const [railHeight, setRailHeight] = useState(0)
-  const categorySlotRef = useRef<HTMLDivElement>(null)
-  const categoryRailRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -56,29 +52,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
     loadSavedProducts()
     return () => { mounted = false }
   }, [])
-
-  useEffect(() => {
-    const syncCategoryRail = () => {
-      const slot = categorySlotRef.current
-      const rail = categoryRailRef.current
-      if (!slot || !rail) return
-
-      const nextRailHeight = Math.ceil(rail.getBoundingClientRect().height)
-      const shouldPin = slot.getBoundingClientRect().top <= 0
-
-      setRailHeight(previous => previous === nextRailHeight ? previous : nextRailHeight)
-      setRailPinned(previous => previous === shouldPin ? previous : shouldPin)
-    }
-
-    syncCategoryRail()
-    window.addEventListener('scroll', syncCategoryRail, { passive: true })
-    window.addEventListener('resize', syncCategoryRail)
-
-    return () => {
-      window.removeEventListener('scroll', syncCategoryRail)
-      window.removeEventListener('resize', syncCategoryRail)
-    }
-  }, [tab])
 
   const toggleSaved = async (event: React.MouseEvent<HTMLButtonElement>, productId: string) => {
     event.preventDefault()
@@ -132,8 +105,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         /* ── Persistent storefront navigation ── */
         .storefront-header{position:relative}
         .nav-wrap{border-bottom:1px solid rgba(255,255,255,0.12)}
-        .category-sticky{position:relative;z-index:50;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
-        .category-sticky.pinned{position:fixed;top:0;left:0;right:0;width:100%;z-index:100}
+        .category-sticky{position:sticky;top:0;z-index:50;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
 
         /* ── Tab bar ── */
         .tab-bar{overflow-x:auto;white-space:nowrap;border-bottom:1px solid rgba(26,26,26,0.1);background:#fff;-webkit-overflow-scrolling:touch}
@@ -291,8 +263,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       </div>
 
       {/* ── Sticky category rail ── */}
-      <div ref={categorySlotRef} style={railPinned ? { height: railHeight } : undefined}>
-      <div ref={categoryRailRef} className={`category-sticky${railPinned ? ' pinned' : ''}`}>
+      <div className="category-sticky">
         <div className="tab-bar">
           <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
             {CATS.filter(c => c !== 'WISHLIST').map(c => (
@@ -312,7 +283,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
             })}
           </div>
         )}
-      </div>
       </div>
 
       {/* ── Product grid ── */}
