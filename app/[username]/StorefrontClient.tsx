@@ -103,6 +103,9 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .bio-name, .bio-text, .bio-meta a{overflow-wrap:break-word;word-break:break-word}
 
         /* ── Persistent storefront navigation ── */
+        /* clip keeps the storefront from scrolling sideways without turning the page
+           into a scroll container, which lets this header stay pinned to the viewport. */
+        html:has(.storefront-header),body:has(.storefront-header){overflow-x:clip!important}
         .storefront-header{position:sticky;top:0;z-index:60;background:#1a1a1a}
         .nav-wrap{border-bottom:1px solid rgba(255,255,255,0.12)}
         .category-sticky{position:relative;z-index:1;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
