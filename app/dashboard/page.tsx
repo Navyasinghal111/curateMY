@@ -69,18 +69,18 @@ function ImageFraming({ preview, framing, onChange }: { preview:string; framing:
 function ProductForm({ state, set, fileRef, framing, onFramingChange }: { state:FormState; set:FormSet; fileRef:{ current:HTMLInputElement|null }; framing:Framing; onFramingChange:(next:Framing)=>void }) {
   const { img, name, brand, price, cat, shopLink, notes, preview, error } = state
   return (
-    <div style={{ display:'flex', gap:24, padding:'20px 28px', overflowY:'auto', flex:1 }}>
-      <div style={{ width:180, flexShrink:0 }}>
-        <div onClick={() => fileRef.current?.click()} style={{ width:'100%', aspectRatio:'4/5', border:'1px dashed #C8C4BC', background:'#F0EDE8', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', position:'relative' }}>
+    <div className="product-form" style={{ display:'flex', gap:28, padding:'24px 28px', overflowY:'auto', flex:1 }}>
+      <div className="product-form-media" style={{ width:224, flexShrink:0 }}>
+        <div onClick={() => fileRef.current?.click()} style={{ width:'100%', aspectRatio:'4/5', border:'1px dashed #C8C4BC', background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', position:'relative' }}>
           {preview
-            ? <img src={preview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', transform:`translate(${framing.x}%, ${framing.y}%) scale(${framing.zoom})` }} />
+            ? <img src={preview} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center', padding:12, transform:`translate(${framing.x}%, ${framing.y}%) scale(${framing.zoom})` }} />
             : <><span style={{ fontSize:22, color:'#C8C4BC' }}>+</span><span style={{ fontSize:11, color:'#C8C4BC', marginTop:4 }}>Add photo</span></>}
         </div>
         <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) { set.file(f); set.preview(URL.createObjectURL(f)) } }} />
         {preview && <ImageFraming preview={preview} framing={framing} onChange={onFramingChange} />}
       </div>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
+      <div className="product-form-fields" style={{ flex:1, display:'flex', flexDirection:'column', gap:12, minWidth:0 }}>
         <div><label style={LBL}>Or paste image URL</label><input value={img} onChange={e => set.img(e.target.value)} placeholder="https://…/photo.jpg" style={INP} /></div>
         <div><label style={LBL}>Name *</label><input value={name} onChange={e => set.name(e.target.value)} placeholder="Product name" style={INP} /></div>
         <div><label style={LBL}>Brand</label><input value={brand} onChange={e => set.brand(e.target.value)} placeholder="Nykaa, Zara…" style={INP} /></div>
@@ -105,7 +105,7 @@ function ProductForm({ state, set, fileRef, framing, onFramingChange }: { state:
 function ModalShell({ title, onClose, onSubmit, submitLabel, disabled, children }: { title:string; onClose:()=>void; onSubmit:()=>void; submitLabel:string; disabled?:boolean; children:React.ReactNode }) {
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:300, padding:16 }}>
-      <div style={{ background:'#FAFAF8', width:'100%', maxWidth:640, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', borderRadius:4 }}>
+      <div style={{ background:'#FAFAF8', width:'100%', maxWidth:840, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', borderRadius:4 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 28px 16px', borderBottom:'1px solid #E8E4DE' }}>
           <h2 style={{ fontFamily:SERIF, fontSize:24, fontWeight:400, color:'#1a1a1a' }}>{title}</h2>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:22, color:'#aaa', cursor:'pointer' }}>×</button>
@@ -414,6 +414,7 @@ export default function DashboardHome() {
         .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
         .dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
         .dash-actions{display:flex;align-items:center;gap:24px}
+        .product-form{min-height:0}
 
         @media (max-width: 900px) {
           .dash-grid{grid-template-columns:repeat(3,1fr) !important}
@@ -428,9 +429,13 @@ export default function DashboardHome() {
           .dash-topbar{flex-direction:column !important;align-items:flex-start !important;gap:16px !important}
           .dash-actions{width:100% !important;justify-content:space-between !important;flex-wrap:wrap !important;gap:12px !important}
           .dash-stat-n{font-size:20px !important}
+          .product-form{padding:20px !important;gap:20px !important}
+          .product-form-media{width:184px !important}
         }
         @media (max-width: 420px) {
           .dash-actions .addbtn{order:-1;width:100%;justify-content:center}
+          .product-form{flex-direction:column !important}
+          .product-form-media{width:100% !important;max-width:240px !important;margin:0 auto}
         }
       `}</style>
 
@@ -499,7 +504,7 @@ export default function DashboardHome() {
             {products.length===0 && <button onClick={() => setModal(true)} className="addbtn">+ ADD YOUR FIRST PIECE</button>}
           </div>
         ) : (
-          <div className="dash-grid">
+          <div className="dash-grid" style={{ gap:0, background:'#E8E4DC' }}>
             {filtered.map(p => (
               <div key={p.id} className="pcard">
                 <button className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
@@ -517,16 +522,12 @@ export default function DashboardHome() {
                       ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
                       : <span style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.1)' }}>{p.title?.[0]}</span>}
                   </div>
-                  <div style={{ padding:'10px 12px 8px', display:'flex', flexDirection:'column', height:96, overflow:'hidden' }}>
-                    <p style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#9B9B9B', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.brand}</p>
-                    <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:5, height:'2.8em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
-                    <p style={{ ...S, fontSize:15, marginTop:'auto' }}>{p.price}</p>
+                  <div style={{ padding:'16px 18px 20px', display:'flex', flexDirection:'column', height:132, overflow:'hidden' }}>
+                    <p style={{ fontSize:9, letterSpacing:'0.04em', textTransform:'uppercase', color:'#756E66', marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.brand} <span aria-hidden="true">•</span> {p.category}</p>
+                    <p style={{ fontSize:14, fontWeight:500, color:'#0A0A0A', lineHeight:1.35, marginBottom:7, height:'2.7em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
+                    <p style={{ ...S, fontSize:18, marginTop:'auto' }}>{p.price}</p>
                   </div>
                 </Link>
-                <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'block', margin:'0 12px 12px', padding:'7px', background:'#0A0A0A', color:'#fff', fontSize:10, letterSpacing:'0.1em', textAlign:'center', textDecoration:'none' }}>
-                  SHOP NOW
-                </a>
               </div>
             ))}
           </div>
