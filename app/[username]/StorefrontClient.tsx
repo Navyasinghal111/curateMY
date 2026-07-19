@@ -103,9 +103,9 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .bio-name, .bio-text, .bio-meta a{overflow-wrap:break-word;word-break:break-word}
 
         /* ── Persistent storefront navigation ── */
-        .storefront-header{position:relative}
+        .storefront-header{position:sticky;top:0;z-index:60;background:#1a1a1a}
         .nav-wrap{border-bottom:1px solid rgba(255,255,255,0.12)}
-        .category-sticky{position:sticky;top:0;z-index:50;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
+        .category-sticky{position:relative;z-index:1;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
 
         /* ── Tab bar ── */
         .tab-bar{overflow-x:auto;white-space:nowrap;border-bottom:1px solid rgba(26,26,26,0.1);background:#fff;-webkit-overflow-scrolling:touch}
@@ -234,6 +234,29 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           placeholder="Search products…"
         />
       </div>
+
+      {/* Persistent category rail */}
+      <div className="category-sticky">
+        <div className="tab-bar">
+          <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
+            {CATS.filter(c => c !== 'WISHLIST').map(c => (
+              <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
+                {c} <span className="tab-n">{count(c)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === 'MAKEUP' && (
+          <div className="makeup-subtabs" aria-label="Makeup categories">
+            <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
+            {MAKEUP_SUBCATS.map(category => {
+              const value = `MAKEUP - ${category.toUpperCase()}`
+              return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+            })}
+          </div>
+        )}
+      </div>
       </div>
 
       {/* ── Creator bio ── */}
@@ -260,29 +283,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           <span style={{ display:'block', fontFamily:'Cormorant Garamond, serif', fontSize:32, color:'#1a1a1a', lineHeight:1 }}>{initialProducts.length}</span>
           <span style={{ fontSize:9, letterSpacing:'0.14em', color:'#888', textTransform:'uppercase' }}>Pieces</span>
         </div>
-      </div>
-
-      {/* ── Sticky category rail ── */}
-      <div className="category-sticky">
-        <div className="tab-bar">
-          <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
-            {CATS.filter(c => c !== 'WISHLIST').map(c => (
-              <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
-                {c} <span className="tab-n">{count(c)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {tab === 'MAKEUP' && (
-          <div className="makeup-subtabs" aria-label="Makeup categories">
-            <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
-            {MAKEUP_SUBCATS.map(category => {
-              const value = `MAKEUP - ${category.toUpperCase()}`
-              return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
-            })}
-          </div>
-        )}
       </div>
 
       {/* ── Product grid ── */}
