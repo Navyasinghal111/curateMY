@@ -85,7 +85,7 @@ function ShopperForm({ onBack }: { onBack: () => void }) {
     const { data, error: err } = await supabase.auth.signUp({
       email, password,
       options: {
-        emailRedirectTo: `${window.location.origin}/signup/confirm`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: { role: 'shopper', display_name: name },
       },
     })

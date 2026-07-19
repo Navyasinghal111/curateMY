@@ -157,7 +157,7 @@ export default function CreatorSignupPage() {
       const { data, error: authErr } = await supabase.auth.signUp({
         email, password,
         options: {
-          emailRedirectTo: `${window.location.origin}/signup/confirm`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/pending`,
           data: profileFields,
         },
       })
