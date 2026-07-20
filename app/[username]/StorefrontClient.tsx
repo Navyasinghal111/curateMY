@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
 const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','FRAGRANCES','NAILS','HOME DECOR','WISHLIST']
@@ -32,6 +32,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [categoryPinned, setCategoryPinned] = useState(false)
+  const categoryRailRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -51,6 +53,23 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
     loadSavedProducts()
     return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    const syncCategoryRail = () => {
+      const rail = categoryRailRef.current
+      if (!rail) return
+      const navigationHeight = window.innerWidth <= 768 ? 128 : 64
+      setCategoryPinned(window.scrollY + navigationHeight >= rail.offsetTop)
+    }
+
+    syncCategoryRail()
+    window.addEventListener('scroll', syncCategoryRail, { passive:true })
+    window.addEventListener('resize', syncCategoryRail)
+    return () => {
+      window.removeEventListener('scroll', syncCategoryRail)
+      window.removeEventListener('resize', syncCategoryRail)
+    }
   }, [])
 
   const toggleSaved = async (event: React.MouseEvent<HTMLButtonElement>, productId: string) => {
@@ -107,8 +126,9 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
            into a scroll container, which lets this header stay pinned to the viewport. */
         html:has(.storefront-header),body:has(.storefront-header){overflow-x:clip!important}
         .storefront-header{position:sticky;top:0;z-index:60;background:#1a1a1a}
-        .nav-wrap{border-bottom:1px solid rgba(255,255,255,0.12)}
-        .category-sticky{position:relative;z-index:1;background:#fff;box-shadow:0 2px 14px rgba(26,26,26,0.08)}
+        .nav-wrap{height:64px;padding:0 48px!important;border-bottom:1px solid rgba(255,255,255,0.12)}
+        .category-sticky{position:sticky;top:64px;z-index:50;background:#fff}
+        .category-sticky.is-pinned{box-shadow:0 2px 14px rgba(26,26,26,0.08)}
 
         /* ── Tab bar ── */
         .tab-bar{overflow-x:auto;white-space:nowrap;border-bottom:1px solid rgba(26,26,26,0.1);background:#fff;-webkit-overflow-scrolling:touch}
@@ -123,6 +143,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .makeup-subtab.on{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
 
         /* ── Product grid ── */
+        .grid-wrap{max-width:1600px;margin:0 auto}
         .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:rgba(26,26,26,0.1)}
 
         /* ── Product card ── */
@@ -149,6 +170,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .search-input{height:40px;padding:0 16px;border:0;border-radius:999px;background:rgba(255,255,255,0.2);font-size:12px;outline:none;color:#fff;font-family:inherit;letter-spacing:0.01em}
         .search-input::placeholder{color:rgba(255,255,255,0.7)}
         .search-input:focus{background:rgba(255,255,255,0.28);box-shadow:0 0 0 2px rgba(201,154,106,0.35)}
+        .nav-discover{color:rgba(255,255,255,0.82);font-size:11px;font-weight:500;letter-spacing:0.1em;text-decoration:none;white-space:nowrap}
+        .nav-discover:hover{color:#fff}
         .wishlist-icon-link{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;color:rgba(255,255,255,0.82);font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
         .wishlist-icon-link:hover{color:#fff}
         .wishlist-icon{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
@@ -161,8 +184,10 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         @media (max-width: 768px) {
           .nav-desktop-search { display: none !important }
           .mobile-search { display: block }
-          .nav-wrap { padding: 16px 20px !important }
+          .nav-wrap { height:64px; padding:0 20px!important }
+          .category-sticky { top:128px }
           .nav-logo { font-size: 24px !important }
+          .nav-discover { font-size:10px;letter-spacing:0.08em }
           .bio-wrap { padding: 24px 20px 20px !important }
           .bio-name { font-size: 22px !important }
           .bio-meta { gap: 10px !important }
@@ -197,6 +222,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         <a href="/" className="nav-logo" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:28, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#fff', textDecoration:'none', whiteSpace:'nowrap' }}>
           <span style={{ display:'inline-block' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ display:'inline-block', color:'#C99A6A' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span>
         </a>
+        <a href="/creators" className="nav-discover">CURATORS</a>
         <div className="nav-desktop-search" style={{ display:'flex', alignItems:'center', gap:12 }}>
           <input
             value={search}
@@ -238,28 +264,6 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         />
       </div>
 
-      {/* Persistent category rail */}
-      <div className="category-sticky">
-        <div className="tab-bar">
-          <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
-            {CATS.filter(c => c !== 'WISHLIST').map(c => (
-              <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
-                {c} <span className="tab-n">{count(c)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {tab === 'MAKEUP' && (
-          <div className="makeup-subtabs" aria-label="Makeup categories">
-            <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
-            {MAKEUP_SUBCATS.map(category => {
-              const value = `MAKEUP - ${category.toUpperCase()}`
-              return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
-            })}
-          </div>
-        )}
-      </div>
       </div>
 
       {/* ── Creator bio ── */}
@@ -286,6 +290,29 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           <span style={{ display:'block', fontFamily:'Cormorant Garamond, serif', fontSize:32, color:'#1a1a1a', lineHeight:1 }}>{initialProducts.length}</span>
           <span style={{ fontSize:9, letterSpacing:'0.14em', color:'#888', textTransform:'uppercase' }}>Pieces</span>
         </div>
+      </div>
+
+      {/* Category rail starts below the curator profile, then sticks beneath navigation. */}
+      <div ref={categoryRailRef} className={`category-sticky${categoryPinned ? ' is-pinned' : ''}`}>
+        <div className="tab-bar">
+          <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
+            {CATS.filter(c => c !== 'WISHLIST').map(c => (
+              <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
+                {c} <span className="tab-n">{count(c)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === 'MAKEUP' && (
+          <div className="makeup-subtabs" aria-label="Makeup categories">
+            <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
+            {MAKEUP_SUBCATS.map(category => {
+              const value = `MAKEUP - ${category.toUpperCase()}`
+              return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Product grid ── */}
