@@ -181,7 +181,10 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
         if (!crop.ok) throw new Error('image_preparation_failed')
         const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
         finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
-      } catch { setError('Could not prepare a clean product image. Upload a clearer product photo and try again.'); setLoading(false); return }
+      } catch {
+        // Framing improves presentation but must never prevent a valid product from being saved.
+        // Keep the already-uploaded or retailer-provided image URL as the fallback.
+      }
     }
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
       creator_id: user.id, title: name.trim(), brand: brand.trim(),
@@ -280,8 +283,6 @@ export default function DashboardHome() {
   const [openMenu,        setOpenMenu]        = useState<string|null>(null)
   const [profile,         setProfile]         = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0 })
   const [categoryPinned,  setCategoryPinned]  = useState(false)
-  const [categoryRailHeight, setCategoryRailHeight] = useState(0)
-  const categoryRailSlotRef = useRef<HTMLDivElement>(null)
   const categoryRailRef = useRef<HTMLDivElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -354,13 +355,11 @@ export default function DashboardHome() {
 
   useEffect(() => {
     const syncCategoryRail = () => {
-      const slot = categoryRailSlotRef.current
       const rail = categoryRailRef.current
-      if (!slot || !rail) return
+      if (!rail) return
 
-      const nextHeight = rail.offsetHeight
-      setCategoryRailHeight(current => current === nextHeight ? current : nextHeight)
-      setCategoryPinned(slot.getBoundingClientRect().top <= 52)
+      const navigationHeight = 52
+      setCategoryPinned(window.scrollY + navigationHeight >= rail.offsetTop)
     }
 
     syncCategoryRail()
@@ -417,8 +416,8 @@ export default function DashboardHome() {
         .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
         .addbtn:hover{background:#333}
         .av-wrap:hover .av-overlay{opacity:1}
-        .dash-category-rail{position:relative;z-index:40;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.04)}
-        .dash-category-rail.is-pinned{position:fixed;top:52px;left:0;right:0;width:100%;z-index:90}
+        .dash-category-rail{position:sticky;top:52px;z-index:40;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.04)}
+        .dash-category-rail.is-pinned{box-shadow:0 4px 12px rgba(0,0,0,0.08)}
         .dash-tabs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
         .dash-tabs-wrap::-webkit-scrollbar{display:none}
         .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -468,8 +467,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Category controls stay together beneath the dashboard navigation while browsing. */}
-      <div ref={categoryRailSlotRef} style={{ height:categoryPinned ? categoryRailHeight : undefined }}>
-        <div ref={categoryRailRef} className={`dash-category-rail${categoryPinned ? ' is-pinned' : ''}`}>
+      <div ref={categoryRailRef} className={`dash-category-rail${categoryPinned ? ' is-pinned' : ''}`}>
         <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px' }}>
           {STORE_CATEGORIES.map(c => (
             <button key={c} onClick={() => { setTab(c); setSubCategory('') }} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
@@ -487,7 +485,6 @@ export default function DashboardHome() {
             })}
           </div>
         )}
-        </div>
       </div>
 
       {/* Content */}
@@ -518,7 +515,7 @@ export default function DashboardHome() {
             {products.length===0 && <button onClick={() => setModal(true)} className="addbtn">+ ADD YOUR FIRST PIECE</button>}
           </div>
         ) : (
-          <div className="dash-grid" style={{ gap:0, background:'#E8E4DC' }}>
+          <div className="dash-grid" style={{ gap:0, background:'#fff' }}>
             {filtered.map(p => (
               <div key={p.id} className="pcard">
                 <button className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
@@ -531,7 +528,7 @@ export default function DashboardHome() {
                   </div>
                 )}
                 <Link href={`/product/${p.id}`} style={{ display:'block', color:'inherit', textDecoration:'none' }}>
-                  <div style={{ aspectRatio:'4/5', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', padding:12 }}>
+                  <div style={{ aspectRatio:'4/5', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', padding:12 }}>
                     {p.image_url
                       ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
                       : <span style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.1)' }}>{p.title?.[0]}</span>}
