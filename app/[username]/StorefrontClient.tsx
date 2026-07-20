@@ -100,6 +100,9 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
   })
 
   const count = (t: string) => t === 'ALL' ? initialProducts.length : initialProducts.filter(p => matchesProductCategory(p.category, t)).length
+  const visibleSubcategories = (CATEGORY_SUBCATEGORIES[tab] ?? []).filter(category =>
+    count(`${tab} - ${category.toUpperCase()}`) > 0
+  )
   const initials = creator.display_name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) ?? 'CK'
 
   return (
@@ -292,10 +295,10 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           </div>
         </div>
 
-        {CATEGORY_SUBCATEGORIES[tab] && (
+        {visibleSubcategories.length > 0 && (
           <div className="makeup-subtabs" aria-label={`${tab} categories`}>
             <button onClick={() => setSubCategory('')} className={`makeup-subtab${!subCategory ? ' on' : ''}`}>All {tab.toLowerCase()} <span style={{ opacity:0.7 }}>{count(tab)}</span></button>
-            {CATEGORY_SUBCATEGORIES[tab].map(category => {
+            {visibleSubcategories.map(category => {
               const value = `${tab} - ${category.toUpperCase()}`
               return <button key={category} onClick={() => setSubCategory(value)} className={`makeup-subtab${subCategory === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
             })}

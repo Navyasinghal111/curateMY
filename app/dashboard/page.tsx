@@ -279,6 +279,10 @@ export default function DashboardHome() {
   const [editProduct,     setEditProduct]     = useState<Product|null>(null)
   const [openMenu,        setOpenMenu]        = useState<string|null>(null)
   const [profile,         setProfile]         = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0 })
+  const [categoryPinned,  setCategoryPinned]  = useState(false)
+  const [categoryRailHeight, setCategoryRailHeight] = useState(0)
+  const categoryRailSlotRef = useRef<HTMLDivElement>(null)
+  const categoryRailRef = useRef<HTMLDivElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const supabase = db()
@@ -348,6 +352,26 @@ export default function DashboardHome() {
     return catOk && srchOk
   })
 
+  useEffect(() => {
+    const syncCategoryRail = () => {
+      const slot = categoryRailSlotRef.current
+      const rail = categoryRailRef.current
+      if (!slot || !rail) return
+
+      const nextHeight = rail.offsetHeight
+      setCategoryRailHeight(current => current === nextHeight ? current : nextHeight)
+      setCategoryPinned(slot.getBoundingClientRect().top <= 52)
+    }
+
+    syncCategoryRail()
+    window.addEventListener('scroll', syncCategoryRail, { passive:true })
+    window.addEventListener('resize', syncCategoryRail)
+    return () => {
+      window.removeEventListener('scroll', syncCategoryRail)
+      window.removeEventListener('resize', syncCategoryRail)
+    }
+  }, [tab])
+
   const totalValue = products.reduce((s,p) => s + (parseFloat(p.price?.replace(/[^0-9.]/g,'')||'0')||0), 0)
 
   const toggleWish = async (id:string) => {
@@ -393,7 +417,8 @@ export default function DashboardHome() {
         .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
         .addbtn:hover{background:#333}
         .av-wrap:hover .av-overlay{opacity:1}
-        .dash-category-rail{position:sticky;top:52px;z-index:40;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.04)}
+        .dash-category-rail{position:relative;z-index:40;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.04)}
+        .dash-category-rail.is-pinned{position:fixed;top:52px;left:0;right:0;width:100%;z-index:90}
         .dash-tabs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
         .dash-tabs-wrap::-webkit-scrollbar{display:none}
         .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -425,9 +450,9 @@ export default function DashboardHome() {
       `}</style>
 
       {/* Profile header */}
-      <div className="dash-header" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+      <div className="dash-header" style={{ background:'#F0EDE8', borderBottom:'0.5px solid #DED9D1', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
         <div className="av-wrap" onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
-          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F0EDE8', border:'1.5px solid #C8C4BC', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, cursor:'pointer' }}>
+          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#fff', border:'1.5px solid #C8C4BC', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, cursor:'pointer' }}>
           {profile.avatar_url
             ? <img src={profile.avatar_url} alt={profile.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
             : <span style={{ ...S, fontSize:40, fontWeight:400, color:'#B07D4A' }}>{profile.name?.[0]?.toUpperCase() || '?'}</span>}
@@ -443,7 +468,8 @@ export default function DashboardHome() {
       </div>
 
       {/* Category controls stay together beneath the dashboard navigation while browsing. */}
-      <div className="dash-category-rail">
+      <div ref={categoryRailSlotRef} style={{ height:categoryPinned ? categoryRailHeight : undefined }}>
+        <div ref={categoryRailRef} className={`dash-category-rail${categoryPinned ? ' is-pinned' : ''}`}>
         <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px' }}>
           {STORE_CATEGORIES.map(c => (
             <button key={c} onClick={() => { setTab(c); setSubCategory('') }} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
@@ -461,10 +487,11 @@ export default function DashboardHome() {
             })}
           </div>
         )}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="dash-content" style={{ background:'#F8F6F2', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
+      <div className="dash-content" style={{ background:'#fff', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
         <div className="dash-topbar">
           <div>
             <p style={{ fontSize:10, letterSpacing:'0.16em', color:'#B07D4A', textTransform:'uppercase', marginBottom:6 }}>YOUR WARDROBE, CURATED</p>
