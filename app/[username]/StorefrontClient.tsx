@@ -2,13 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-
-const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','FRAGRANCES','NAILS','HOME DECOR','WISHLIST']
-const MAKEUP_SUBCATS = [
-  'Foundation & Concealer', 'Primer, Powder & Setting', 'Blush, Bronzer & Highlighter',
-  'Lipstick, Gloss & Liner', 'Lip & Cheek Tint', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
-  'Brushes, Sponges & Tools', 'Makeup Remover',
-]
+import { CATEGORY_SUBCATEGORIES, matchesProductCategory, STORE_CATEGORIES } from '@/lib/productCategories'
 
 type Product = { id: string; title: string; brand: string; price: string; image: string; url: string; category: string; description?: string }
 type Creator = { id: string; username: string; display_name: string; avatar_url?: string; city?: string; bio?: string; instagram_handle?: string; instagram_verified?: boolean; primary_platform?: string; primary_followers?: number }
@@ -20,15 +14,9 @@ function formatFollowers(n?: number) {
   return String(n)
 }
 
-const matchesCategory = (productCategory: string, selectedCategory: string) => {
-  const category = productCategory?.toUpperCase()
-  if (selectedCategory === 'MAKEUP') return category === 'MAKEUP' || category?.startsWith('MAKEUP - ')
-  return category === selectedCategory || (category === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
-}
-
 export default function StorefrontClient({ creator, initialProducts, isOwner }: { creator: Creator; initialProducts: Product[]; isOwner: boolean }) {
   const [tab, setTab]       = useState('ALL')
-  const [makeupTab, setMakeupTab] = useState('MAKEUP')
+  const [subCategory, setSubCategory] = useState('')
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
@@ -105,13 +93,13 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
   }
 
   const filtered = initialProducts.filter(p => {
-    const activeCategory = tab === 'MAKEUP' ? makeupTab : tab
-    const catOk  = activeCategory === 'ALL' || matchesCategory(p.category, activeCategory)
+    const activeCategory = subCategory || tab
+    const catOk  = activeCategory === 'ALL' || matchesProductCategory(p.category, activeCategory)
     const srchOk = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase())
     return catOk && srchOk
   })
 
-  const count = (t: string) => t === 'ALL' ? initialProducts.length : initialProducts.filter(p => matchesCategory(p.category, t)).length
+  const count = (t: string) => t === 'ALL' ? initialProducts.length : initialProducts.filter(p => matchesProductCategory(p.category, t)).length
   const initials = creator.display_name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) ?? 'CK'
 
   return (
@@ -296,20 +284,20 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       <div ref={categoryRailRef} className={`category-sticky${categoryPinned ? ' is-pinned' : ''}`}>
         <div className="tab-bar">
           <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
-            {CATS.filter(c => c !== 'WISHLIST').map(c => (
-              <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }}>
+            {STORE_CATEGORIES.filter(c => c !== 'WISHLIST').map(c => (
+              <button key={c} className={`tab${tab === c ? ' on' : ''}`} onClick={() => { setTab(c); setSubCategory('') }}>
                 {c} <span className="tab-n">{count(c)}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {tab === 'MAKEUP' && (
-          <div className="makeup-subtabs" aria-label="Makeup categories">
-            <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
-            {MAKEUP_SUBCATS.map(category => {
-              const value = `MAKEUP - ${category.toUpperCase()}`
-              return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+        {CATEGORY_SUBCATEGORIES[tab] && (
+          <div className="makeup-subtabs" aria-label={`${tab} categories`}>
+            <button onClick={() => setSubCategory('')} className={`makeup-subtab${!subCategory ? ' on' : ''}`}>All {tab.toLowerCase()} <span style={{ opacity:0.7 }}>{count(tab)}</span></button>
+            {CATEGORY_SUBCATEGORIES[tab].map(category => {
+              const value = `${tab} - ${category.toUpperCase()}`
+              return <button key={category} onClick={() => setSubCategory(value)} className={`makeup-subtab${subCategory === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
             })}
           </div>
         )}

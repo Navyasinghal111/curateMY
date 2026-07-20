@@ -4,25 +4,14 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { logEvent } from '@/lib/logEvent'
+import { CATEGORY_SUBCATEGORIES, matchesProductCategory, PRODUCT_CATEGORIES, STORE_CATEGORIES } from '@/lib/productCategories'
 
-const CATS = ['ALL','APPAREL','ACTIVEWEAR','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY','WATCHES','EYEWEAR','MAKEUP','SKINCARE','BATH & BODY','HAIRCARE','FRAGRANCES','NAILS','HOME DECOR','WISHLIST']
-const MAKEUP_SUBCATS = [
-  'Foundation & Concealer', 'Primer, Powder & Setting', 'Blush, Bronzer & Highlighter',
-  'Lipstick, Gloss & Liner', 'Lip & Cheek Tint', 'Eyeshadow, Eyeliner & Mascara', 'Brows', 'Palettes',
-  'Brushes, Sponges & Tools', 'Makeup Remover',
-]
-const PRODUCT_CATS = ['Apparel','Activewear','Coats & Outerwear','Footwear','Bags & Purses','Jewelry','Watches','Eyewear','Makeup', ...MAKEUP_SUBCATS.map(c => `Makeup - ${c}`), 'Skincare','Bath & Body','Haircare','Fragrances','Nails','Home Decor']
 const SERIF = 'Cormorant Garamond, serif'
 
 type Product = { id:string; title:string; brand:string; price:string; image_url:string; product_url:string; category:string; wishlisted?:boolean; description?:string }
 type Profile  = { name:string; username:string; avatar_url:string; followers:number }
 
 const db  = () => createClient()
-const matchesCategory = (productCategory: string, selectedCategory: string) => {
-  const category = productCategory?.toUpperCase()
-  if (selectedCategory === 'MAKEUP') return category === 'MAKEUP' || category?.startsWith('MAKEUP - ')
-  return category === selectedCategory || (category === 'JEWELRY & WATCHES' && selectedCategory === 'JEWELRY')
-}
 const INP: React.CSSProperties = { width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }
 const LBL: React.CSSProperties = { display:'block', fontSize:10, letterSpacing:'0.1em', color:'#8C867E', textTransform:'uppercase', marginBottom:5 }
 
@@ -48,7 +37,7 @@ type Framing = { zoom:number; x:number; y:number }
 
 const DEFAULT_FRAMING: Framing = { zoom: 1, x: 0, y: 0 }
 
-function ImageFraming({ preview, framing, onChange }: { preview:string; framing:Framing; onChange:(next:Framing)=>void }) {
+function ImageFraming({ framing, onChange }: { framing:Framing; onChange:(next:Framing)=>void }) {
   const update = (key:keyof Framing, value:number) => onChange({ ...framing, [key]: value })
 
   return (
@@ -78,7 +67,7 @@ function ProductForm({ state, set, fileRef, framing, onFramingChange }: { state:
         </div>
         <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) { set.file(f); set.preview(URL.createObjectURL(f)) } }} />
-        {preview && <ImageFraming preview={preview} framing={framing} onChange={onFramingChange} />}
+        {preview && <ImageFraming framing={framing} onChange={onFramingChange} />}
       </div>
       <div className="product-form-fields" style={{ flex:1, display:'flex', flexDirection:'column', gap:12, minWidth:0 }}>
         <div><label style={LBL}>Or paste image URL</label><input value={img} onChange={e => set.img(e.target.value)} placeholder="https://…/photo.jpg" style={INP} /></div>
@@ -89,7 +78,7 @@ function ProductForm({ state, set, fileRef, framing, onFramingChange }: { state:
           <div style={{ flex:1 }}>
             <label style={LBL}>Category</label>
             <select value={cat} onChange={e => set.cat(e.target.value)} style={{ ...INP, appearance:'auto' }}>
-              {PRODUCT_CATS.map(c => <option key={c}>{c}</option>)}
+              {PRODUCT_CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
         </div>
@@ -186,17 +175,13 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
     }
     catch { setError('Image upload failed'); setLoading(false); return }
-    // Framing improves the saved image, but it must never block a creator
-    // from adding a valid product when a retailer CDN rejects server-side
-    // image processing. Fall back to the original image in that case.
-    if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
+    if (finalImg) {
       try {
         const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
-        if (crop.ok) {
-          const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
-          finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
-        }
-      } catch {}
+        if (!crop.ok) throw new Error('image_preparation_failed')
+        const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
+        finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
+      } catch { setError('Could not prepare a clean product image. Upload a clearer product photo and try again.'); setLoading(false); return }
     }
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
       creator_id: user.id, title: name.trim(), brand: brand.trim(),
@@ -232,7 +217,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
   const [name,     setName]     = useState(product.title)
   const [brand,    setBrand]    = useState(product.brand)
   const [price,    setPrice]    = useState(product.price?.replace(/[^0-9.]/g,'') || '')
-  const [cat,      setCat]      = useState(PRODUCT_CATS.find(c => c.toUpperCase() === product.category?.toUpperCase()) || PRODUCT_CATS[0])
+  const [cat,      setCat]      = useState(PRODUCT_CATEGORIES.find(c => c.toUpperCase() === product.category?.toUpperCase()) || PRODUCT_CATEGORIES[0])
   const [shopLink, setShopLink] = useState(product.product_url || '')
   const [notes,    setNotes]    = useState(product.description || '')
   const [preview,  setPreview]  = useState(product.image_url || '')
@@ -255,14 +240,13 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
       if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
     }
     catch { setError('Image upload failed'); setLoading(false); return }
-    if (finalImg && (framing.zoom !== 1 || framing.x !== 0 || framing.y !== 0)) {
+    if (finalImg) {
       try {
         const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
-        if (crop.ok) {
-          const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
-          finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
-        }
-      } catch {}
+        if (!crop.ok) throw new Error('image_preparation_failed')
+        const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
+        finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
+      } catch { setError('Could not prepare a clean product image. Upload a clearer product photo and try again.'); setLoading(false); return }
     }
     const updates = {
       title: name.trim(), brand: brand.trim(),
@@ -289,7 +273,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
 export default function DashboardHome() {
   const [products,        setProducts]        = useState<Product[]>([])
   const [tab,             setTab]             = useState('ALL')
-  const [makeupTab,       setMakeupTab]       = useState('MAKEUP')
+  const [subCategory,     setSubCategory]     = useState('')
   const [search,          setSearch]          = useState('')
   const [modal,           setModal]           = useState(false)
   const [editProduct,     setEditProduct]     = useState<Product|null>(null)
@@ -355,11 +339,11 @@ export default function DashboardHome() {
     setUploadingAvatar(false)
   }
 
-  const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>matchesCategory(p.category, t)).length
+  const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>matchesProductCategory(p.category, t)).length
 
-  const activeCategory = tab === 'MAKEUP' ? makeupTab : tab
+  const activeCategory = subCategory || tab
   const filtered = products.filter(p => {
-    const catOk  = activeCategory==='ALL' || (activeCategory==='WISHLIST' ? p.wishlisted : matchesCategory(p.category, activeCategory))
+    const catOk  = activeCategory==='ALL' || (activeCategory==='WISHLIST' ? p.wishlisted : matchesProductCategory(p.category, activeCategory))
     const srchOk = !search || [p.title,p.brand].some(s=>s?.toLowerCase().includes(search.toLowerCase()))
     return catOk && srchOk
   })
@@ -409,6 +393,7 @@ export default function DashboardHome() {
         .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
         .addbtn:hover{background:#333}
         .av-wrap:hover .av-overlay{opacity:1}
+        .dash-category-rail{position:sticky;top:52px;z-index:40;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.04)}
         .dash-tabs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
         .dash-tabs-wrap::-webkit-scrollbar{display:none}
         .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -457,24 +442,26 @@ export default function DashboardHome() {
         <p style={{ fontSize:12, color:'#9B9B9B', letterSpacing:'0.04em' }}>@{profile.username} · {profile.followers.toLocaleString('en-IN')} followers</p>
       </div>
 
-      {/* Category tabs */}
-      <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
-        {CATS.map(c => (
-          <button key={c} onClick={() => { setTab(c); if (c === 'MAKEUP') setMakeupTab('MAKEUP') }} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
-            {c==='WISHLIST' && '♥ '}{c} <span style={{ fontSize:10, opacity:0.5, marginLeft:2 }}>{count(c)}</span>
-          </button>
-        ))}
-      </div>
-
-      {tab === 'MAKEUP' && (
-        <div className="makeup-subtabs" aria-label="Makeup categories">
-          <button onClick={() => setMakeupTab('MAKEUP')} className={`makeup-subtab${makeupTab === 'MAKEUP' ? ' on' : ''}`}>All makeup <span style={{ opacity:0.7 }}>{count('MAKEUP')}</span></button>
-          {MAKEUP_SUBCATS.map(category => {
-            const value = `MAKEUP - ${category.toUpperCase()}`
-            return <button key={category} onClick={() => setMakeupTab(value)} className={`makeup-subtab${makeupTab === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
-          })}
+      {/* Category controls stay together beneath the dashboard navigation while browsing. */}
+      <div className="dash-category-rail">
+        <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px' }}>
+          {STORE_CATEGORIES.map(c => (
+            <button key={c} onClick={() => { setTab(c); setSubCategory('') }} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
+              {c==='WISHLIST' && '♥ '}{c} <span style={{ fontSize:10, opacity:0.5, marginLeft:2 }}>{count(c)}</span>
+            </button>
+          ))}
         </div>
-      )}
+
+        {CATEGORY_SUBCATEGORIES[tab] && (
+          <div className="makeup-subtabs" aria-label={`${tab} categories`}>
+            <button onClick={() => setSubCategory('')} className={`makeup-subtab${!subCategory ? ' on' : ''}`}>All {tab.toLowerCase()} <span style={{ opacity:0.7 }}>{count(tab)}</span></button>
+            {CATEGORY_SUBCATEGORIES[tab].map(category => {
+              const value = `${tab} - ${category.toUpperCase()}`
+              return <button key={category} onClick={() => setSubCategory(value)} className={`makeup-subtab${subCategory === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Content */}
       <div className="dash-content" style={{ background:'#F8F6F2', minHeight:'calc(100vh - 100px)', padding:'32px' }}>

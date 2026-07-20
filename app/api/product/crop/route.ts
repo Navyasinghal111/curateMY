@@ -64,22 +64,51 @@ export async function POST(request: NextRequest) {
     const x = numberInRange(body.x, -100, 100, 0)
     const y = numberInRange(body.y, -100, 100, 0)
     const input = await fetchImage(imageUrl)
-    const normalised = await sharp(input, { limitInputPixels: MAX_PIXELS }).rotate().toBuffer({ resolveWithObject:true })
+    const normalised = await sharp(input, { limitInputPixels: MAX_PIXELS })
+      .rotate()
+      .flatten({ background:'#ffffff' })
+      .jpeg({ quality:92, mozjpeg:true })
+      .toBuffer({ resolveWithObject:true })
     const metadata = normalised.info
-    if (!metadata.width || !metadata.height) throw new Error('invalid_image')
+    if (!metadata.width || !metadata.height || Math.min(metadata.width, metadata.height) < 480) throw new Error('image_too_small')
 
-    const frameRatio = 4 / 5
-    const baseWidth = Math.min(metadata.width, Math.round(metadata.height * frameRatio))
-    const baseHeight = Math.round(baseWidth / frameRatio)
-    const cropWidth = Math.max(1, Math.round(baseWidth / zoom))
-    const cropHeight = Math.max(1, Math.round(baseHeight / zoom))
-    const left = Math.round(((metadata.width - cropWidth) / 2) + ((x / 100) * (metadata.width - cropWidth) / 2))
-    const top = Math.round(((metadata.height - cropHeight) / 2) + ((y / 100) * (metadata.height - cropHeight) / 2))
-    const output = await sharp(normalised.data, { limitInputPixels: MAX_PIXELS })
-      .extract({ left:Math.max(0, Math.min(left, metadata.width - cropWidth)), top:Math.max(0, Math.min(top, metadata.height - cropHeight)), width:cropWidth, height:cropHeight })
-      .resize({ width:1200, height:1500, fit:'fill', withoutEnlargement:true })
-      .jpeg({ quality:90, mozjpeg:true })
-      .toBuffer()
+    const trimmed = await sharp(normalised.data, { limitInputPixels: MAX_PIXELS })
+      .trim({ background:'#ffffff', threshold:12 })
+      .toBuffer({ resolveWithObject:true })
+    const hasUsefulTrim = !!trimmed.info.width && !!trimmed.info.height
+      && trimmed.info.width >= metadata.width * 0.12
+      && trimmed.info.height >= metadata.height * 0.12
+    const source = hasUsefulTrim ? trimmed : normalised
+    const sourceWidth = source.info.width
+    const sourceHeight = source.info.height
+    if (!sourceWidth || !sourceHeight) throw new Error('invalid_image')
+
+    let output: Buffer
+    if (zoom === 1 && x === 0 && y === 0) {
+      const fitted = await sharp(source.data, { limitInputPixels: MAX_PIXELS })
+        .resize({ width:1080, height:1380, fit:'inside', withoutEnlargement:false })
+        .toBuffer({ resolveWithObject:true })
+      if (!fitted.info.width || !fitted.info.height) throw new Error('invalid_fitted_image')
+      output = await sharp({
+        create:{ width:1200, height:1500, channels:3, background:'#ffffff' },
+      })
+        .composite([{ input:fitted.data, left:Math.round((1200 - fitted.info.width) / 2), top:Math.round((1500 - fitted.info.height) / 2) }])
+        .jpeg({ quality:90, mozjpeg:true })
+        .toBuffer()
+    } else {
+      const frameRatio = 4 / 5
+      const baseWidth = Math.min(sourceWidth, Math.round(sourceHeight * frameRatio))
+      const baseHeight = Math.round(baseWidth / frameRatio)
+      const cropWidth = Math.max(1, Math.round(baseWidth / zoom))
+      const cropHeight = Math.max(1, Math.round(baseHeight / zoom))
+      const left = Math.round(((sourceWidth - cropWidth) / 2) + ((x / 100) * (sourceWidth - cropWidth) / 2))
+      const top = Math.round(((sourceHeight - cropHeight) / 2) + ((y / 100) * (sourceHeight - cropHeight) / 2))
+      output = await sharp(source.data, { limitInputPixels: MAX_PIXELS })
+        .extract({ left:Math.max(0, Math.min(left, sourceWidth - cropWidth)), top:Math.max(0, Math.min(top, sourceHeight - cropHeight)), width:cropWidth, height:cropHeight })
+        .resize({ width:1200, height:1500, fit:'fill' })
+        .jpeg({ quality:90, mozjpeg:true })
+        .toBuffer()
+    }
 
     return new NextResponse(new Uint8Array(output), { headers:{ 'Content-Type':'image/jpeg', 'Cache-Control':'no-store' } })
   } catch {
