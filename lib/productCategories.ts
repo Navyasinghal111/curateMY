@@ -31,6 +31,11 @@ export const PRODUCT_CATEGORIES = STORE_CATEGORIES
     ...(CATEGORY_SUBCATEGORIES[category] ?? []).map(subcategory => `${category} - ${subcategory}`),
   ])
 
+export function normalizeProductCategory(value: string | null | undefined) {
+  const normalized = value?.trim().toUpperCase()
+  return PRODUCT_CATEGORIES.find(category => category.toUpperCase() === normalized) || 'SKINCARE'
+}
+
 export function matchesProductCategory(productCategory: string, selectedCategory: string) {
   const category = productCategory?.toUpperCase()
 

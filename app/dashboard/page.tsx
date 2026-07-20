@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { logEvent } from '@/lib/logEvent'
-import { CATEGORY_SUBCATEGORIES, matchesProductCategory, PRODUCT_CATEGORIES, STORE_CATEGORIES } from '@/lib/productCategories'
+import { CATEGORY_SUBCATEGORIES, matchesProductCategory, normalizeProductCategory, PRODUCT_CATEGORIES, STORE_CATEGORIES } from '@/lib/productCategories'
 
 const SERIF = 'Cormorant Garamond, serif'
 
@@ -117,7 +117,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const [name,     setName]     = useState('')
   const [brand,    setBrand]    = useState('')
   const [price,    setPrice]    = useState('')
-  const [cat,      setCat]      = useState('Skincare')
+  const [cat,      setCat]      = useState(normalizeProductCategory('SKINCARE'))
   const [shopLink, setShopLink] = useState('')
   const [notes,    setNotes]    = useState('')
   const [preview,  setPreview]  = useState('')
@@ -142,7 +142,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     // successful fill. The pasted URL itself (the `url` field) is
     // deliberately left untouched. Re-run on every failure path below too,
     // so a partial response can never leave old price/category behind.
-    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat('Skincare') }
+    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat(normalizeProductCategory('SKINCARE')) }
     clearFields()
     setMsg({ text:'Fetching product…', type:'info' })
     try {
@@ -154,7 +154,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       if (d.price)    setPrice(d.price.replace(/[₹$£€]/g,''))
       if (d.image)    { setImg(d.image); setPreview(d.image) }
       if (d.url)      setShopLink(d.url)
-      if (d.category) setCat(d.category)
+      if (d.category) setCat(normalizeProductCategory(d.category))
       // A successful fetch can still be missing a field (e.g. an
       // out-of-stock listing with no current price) — that's a warning
       // to review, not a failure, and the fields it did find stay filled.
@@ -220,7 +220,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
   const [name,     setName]     = useState(product.title)
   const [brand,    setBrand]    = useState(product.brand)
   const [price,    setPrice]    = useState(product.price?.replace(/[^0-9.]/g,'') || '')
-  const [cat,      setCat]      = useState(PRODUCT_CATEGORIES.find(c => c.toUpperCase() === product.category?.toUpperCase()) || PRODUCT_CATEGORIES[0])
+  const [cat,      setCat]      = useState(normalizeProductCategory(product.category))
   const [shopLink, setShopLink] = useState(product.product_url || '')
   const [notes,    setNotes]    = useState(product.description || '')
   const [preview,  setPreview]  = useState(product.image_url || '')
