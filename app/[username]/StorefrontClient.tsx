@@ -116,8 +116,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         /* clip keeps the storefront from scrolling sideways without turning the page
            into a scroll container, which lets this header stay pinned to the viewport. */
         html:has(.storefront-header),body:has(.storefront-header){overflow-x:clip!important}
-        .storefront-header{position:sticky;top:0;z-index:60;background:#F0EDE8}
-        .nav-wrap{height:64px;padding:0 48px!important;border-bottom:1px solid rgba(26,26,26,0.1)}
+        .storefront-header{position:sticky;top:0;z-index:60;background:#0A0A0A}
+        .nav-wrap{height:64px;padding:0 48px!important;border-bottom:1px solid rgba(255,255,255,0.14)}
         .category-sticky{position:sticky;top:64px;z-index:50;background:#fff}
         .category-sticky.is-pinned{box-shadow:0 2px 14px rgba(26,26,26,0.08)}
 
@@ -161,14 +161,14 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .search-input{height:40px;padding:0 16px;border:1px solid rgba(26,26,26,0.14);border-radius:999px;background:#fff;font-size:12px;outline:none;color:#1a1a1a;font-family:inherit;letter-spacing:0.01em}
         .search-input::placeholder{color:#8c867e}
         .search-input:focus{background:#fff;box-shadow:0 0 0 2px rgba(201,154,106,0.28)}
-        .nav-discover{color:#514b45;font-size:11px;font-weight:500;letter-spacing:0.1em;text-decoration:none;white-space:nowrap}
-        .nav-discover:hover{color:#1a1a1a}
-        .wishlist-icon-link{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;color:#514b45;font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
-        .wishlist-icon-link:hover{color:#1a1a1a}
+        .nav-discover{color:#e8e2da;font-size:11px;font-weight:500;letter-spacing:0.1em;text-decoration:none;white-space:nowrap}
+        .nav-discover:hover{color:#fff}
+        .wishlist-icon-link{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;color:#e8e2da;font-size:11px;letter-spacing:0.08em;text-decoration:none;white-space:nowrap}
+        .wishlist-icon-link:hover{color:#fff}
         .wishlist-icon{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
         /* ── Mobile search bar (shown below nav on mobile) ── */
-        .mobile-search{display:none;padding:12px 20px;background:#F0EDE8;border-bottom:1px solid rgba(26,26,26,0.1)}
+        .mobile-search{display:none;padding:12px 20px;background:#0A0A0A;border-bottom:1px solid rgba(255,255,255,0.14)}
         .mobile-search input{width:100%;height:40px;padding:0 14px;border:1px solid rgba(26,26,26,0.14);border-radius:999px;background:#fff;font-size:13px;outline:none;color:#1a1a1a;font-family:inherit}
 
         /* ── MOBILE BREAKPOINT ── */
@@ -209,8 +209,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
 
       {/* ── Nav ── */}
       <div className="storefront-header">
-      <nav className="nav-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 48px', background:'#F0EDE8' }}>
-        <a href="/" className="nav-logo" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:28, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#1a1a1a', textDecoration:'none', whiteSpace:'nowrap' }}>
+      <nav className="nav-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 48px', background:'#0A0A0A' }}>
+        <a href="/" className="nav-logo" style={{ display:'inline-flex', alignItems:'baseline', fontFamily:'Cormorant Garamond, Georgia, serif', fontSize:28, fontStyle:'italic', fontWeight:400, lineHeight:1, color:'#fff', textDecoration:'none', whiteSpace:'nowrap' }}>
           <span style={{ display:'inline-block' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ display:'inline-block', color:'#C99A6A' }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span>
         </a>
         <a href="/creators" className="nav-discover">CURATORS</a>
@@ -232,7 +232,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           </a>
           {isOwner && (
             <a href="/dashboard"
-              style={{ padding:'9px 18px', background:'#1a1a1a', color:'#fff', fontSize:11, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600, whiteSpace:'nowrap' }}>
+              style={{ padding:'9px 18px', background:'#fff', color:'#0A0A0A', fontSize:11, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600, whiteSpace:'nowrap' }}>
               + ADD PIECE
             </a>
           )}
@@ -240,7 +240,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         {isOwner && (
           <a href="/dashboard"
             className="mobile-add-btn"
-            style={{ display:'none', padding:'8px 14px', background:'#1a1a1a', color:'#fff', fontSize:10, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600 }}>
+            style={{ display:'none', padding:'8px 14px', background:'#fff', color:'#0A0A0A', fontSize:10, letterSpacing:'0.08em', textDecoration:'none', fontWeight:600 }}>
             + ADD
           </a>
         )}
