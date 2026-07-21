@@ -47,25 +47,40 @@ async function fetchImageDirect(url: URL) {
   throw new Error('too_many_redirects')
 }
 
-async function fetchImage(url: URL) {
+async function isUsableImage(bytes: Buffer) {
   try {
-    return await fetchImageDirect(url)
-  } catch (directError) {
-    const scraperKey = process.env.SCRAPER_API_KEY
-    if (!scraperKey) throw directError
-
-    const scraperUrl = new URL('https://api.scraperapi.com/')
-    scraperUrl.searchParams.set('api_key', scraperKey)
-    scraperUrl.searchParams.set('url', url.toString())
-    const response = await fetch(scraperUrl, {
-      headers: { Accept:'image/avif,image/webp,image/*,*/*;q=0.8' },
-    })
-    const length = Number(response.headers.get('content-length') || 0)
-    if (!response.ok || length > MAX_IMAGE_BYTES) throw directError
-    const bytes = Buffer.from(await response.arrayBuffer())
-    if (bytes.length > MAX_IMAGE_BYTES) throw new Error('image_too_large')
-    return bytes
+    const metadata = await sharp(bytes, { limitInputPixels: MAX_PIXELS }).metadata()
+    return !!metadata.width && !!metadata.height
+  } catch {
+    return false
   }
+}
+
+async function fetchImage(url: URL) {
+  let directError: unknown
+  try {
+    const bytes = await fetchImageDirect(url)
+    if (await isUsableImage(bytes)) return bytes
+    directError = new Error('image_decode_failed')
+  } catch (error) {
+    directError = error
+  }
+
+  const scraperKey = process.env.SCRAPER_API_KEY
+  if (!scraperKey) throw directError
+
+  const scraperUrl = new URL('https://api.scraperapi.com/')
+  scraperUrl.searchParams.set('api_key', scraperKey)
+  scraperUrl.searchParams.set('url', url.toString())
+  const response = await fetch(scraperUrl, {
+    headers: { Accept:'image/avif,image/webp,image/*,*/*;q=0.8' },
+  })
+  const length = Number(response.headers.get('content-length') || 0)
+  if (!response.ok || length > MAX_IMAGE_BYTES) throw directError
+  const bytes = Buffer.from(await response.arrayBuffer())
+  if (bytes.length > MAX_IMAGE_BYTES) throw new Error('image_too_large')
+  if (!(await isUsableImage(bytes))) throw new Error('image_decode_failed')
+  return bytes
 }
 
 export async function POST(request: NextRequest) {
