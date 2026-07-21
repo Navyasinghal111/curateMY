@@ -151,9 +151,70 @@ const BAD_IMAGE_PATTERN = /(sprite|placeholder|blank[-_.]|1x1|pixel|spacer|loadi
 function resolveProductImage(candidate: string | undefined | null, base: URL): string | null {
   if (!candidate || BAD_IMAGE_PATTERN.test(candidate)) return null
   try {
-    const resolved = new URL(candidate, base).href
+    const cleaned = candidate.replace(/&amp;/gi, '&').replace(/\\u0026/g, '&').replace(/\\\//g, '/')
+    const resolved = new URL(cleaned, base).href
     return BAD_IMAGE_PATTERN.test(resolved) ? null : resolved
   } catch { return null }
+}
+
+type ImageCandidate = { url: string; score: number }
+
+function normalizeRetailImage(url: string, domain: string) {
+  if (!domain.includes('amazon')) return url
+
+  try {
+    const image = new URL(url)
+    // Amazon's URL suffix is a display-size transform, not the source image.
+    image.pathname = image.pathname.replace(/\._[^/]+(?=\.(?:jpe?g|png|webp)$)/i, '')
+    return image.href
+  } catch {
+    return url
+  }
+}
+
+function addImageCandidate(candidates: ImageCandidate[], value: string, score: number, page: URL) {
+  const resolved = resolveProductImage(value, page)
+  if (!resolved || /\.svg(?:$|[?#])/i.test(resolved)) return
+  candidates.push({ url: normalizeRetailImage(resolved, page.hostname), score })
+}
+
+function collectMarkupImageCandidates(html: string, candidates: ImageCandidate[], page: URL) {
+  const addMatches = (pattern: RegExp, score: number) => {
+    for (const match of html.matchAll(pattern)) addImageCandidate(candidates, match[1], score, page)
+  }
+
+  addMatches(/"(?:hiRes|large)":"(https[^"\\]+)"/gi, 125)
+  addMatches(/(?:data-zoom-image|data-large-image|data-original)=["']([^"']+)["']/gi, 115)
+  addMatches(/property=["']og:image(?::secure_url)?["'][^>]*content=["']([^"']+)["']/gi, 80)
+  addMatches(/content=["']([^"']+)["'][^>]*property=["']og:image(?::secure_url)?["']/gi, 80)
+  addMatches(/name=["']twitter:image(?::src)?["'][^>]*content=["']([^"']+)["']/gi, 65)
+}
+
+function embeddedImageSize(url: string) {
+  const values = Array.from(url.matchAll(/(?:[?&](?:w|width|h|height)=|_(?:SX|SY|SL|AC_UF))(\d{2,4})/gi))
+    .map(match => Number.parseInt(match[1], 10))
+  return values.length ? Math.max(...values) : 0
+}
+
+function rankProductImages(candidates: ImageCandidate[]) {
+  const weakImage = /(?:icon|avatar|swatch|variant|thumbnail|thumb|banner|hero|carousel|social|share|review)/i
+  const editorialImage = /(?:hires|hi-res|original|zoom|large|full|studio|packshot|white|product)/i
+  const best = new Map<string, number>()
+
+  for (const candidate of candidates) {
+    const size = embeddedImageSize(candidate.url)
+    let score = candidate.score
+    if (size >= 1200) score += 22
+    else if (size >= 800) score += 14
+    else if (size > 0 && size <= 400) score -= 28
+    if (editorialImage.test(candidate.url)) score += 8
+    if (weakImage.test(candidate.url)) score -= 70
+    best.set(candidate.url, Math.max(best.get(candidate.url) ?? -Infinity, score))
+  }
+
+  return [...best.entries()]
+    .sort(([, left], [, right]) => right - left)
+    .map(([url]) => url)
 }
 
 // ── Data-integrity checks — never silently accept a bot-block page,
@@ -221,16 +282,21 @@ function extract(html: string, domain: string, parsed: URL) {
   let brand = jsonLdBrand(ld?.brand) || ogSiteName || ''
   const { price: ldPrice, outOfStock } = jsonLdOffer(ld?.offers)
   let rawPrice = ldPrice || (outOfStock ? '' : ogPrice)
+  const site = extractSiteSpecific(html, domain)
 
-  const imageCandidates = [...jsonLdImages(ld?.image), ogImage, twitterImage]
-  let image: string | null = null
-  for (const c of imageCandidates) {
-    const resolved = resolveProductImage(c, parsed)
-    if (resolved) { image = resolved; break }
-  }
+  // Retail pages commonly expose several image versions. Collect them all,
+  // then choose the canonical/high-resolution product shot instead of blindly
+  // accepting the first social-preview or thumbnail URL in the document.
+  const imageCandidates: ImageCandidate[] = []
+  jsonLdImages(ld?.image).forEach(image => addImageCandidate(imageCandidates, image, 120, parsed))
+  if (site.image) addImageCandidate(imageCandidates, site.image, 125, parsed)
+  if (ogImage) addImageCandidate(imageCandidates, ogImage, 80, parsed)
+  if (twitterImage) addImageCandidate(imageCandidates, twitterImage, 65, parsed)
+  collectMarkupImageCandidates(html, imageCandidates, parsed)
+  const rankedImages = rankProductImages(imageCandidates)
+  let image = rankedImages[0] || null
 
   if (!title || !brand || (!rawPrice && !outOfStock) || !image) {
-    const site = extractSiteSpecific(html, domain)
     if (!title) title = site.title
     if (!brand) brand = site.brand
     if (!rawPrice && !outOfStock) rawPrice = site.price
@@ -256,14 +322,81 @@ function detectCategory(title: string, description: string, url: string): string
   // Order matters: more specific / compound terms checked first so
   // e.g. "hair serum" matches Haircare before generic "serum" matches Skincare
   const map: [string[], string][] = [
-    [['hair','shampoo','conditioner','scalp','leave-in','leave in'], 'Haircare'],
-    [['lipstick','foundation','concealer','mascara','eyeliner','eyeshadow','blush','bronzer','bronzing','highlighter','makeup','kajal','kohl','primer','setting spray','contour','lip gloss','lip liner','bb cream','cc cream'], 'Makeup'],
-    [['face serum','face wash','face cream','face mask','moisturiser','moisturizer','sunscreen','spf','toner','cleanser','retinol','vitamin c serum','hyaluronic','niacinamide','exfoliant','scrub','micellar','skincare','skin care'], 'Skincare'],
-    [['sneaker','boot','heel','sandal','loafer','flat shoe','pump','mule','slipper','footwear','stiletto','wedge','kolhapuri','mojari'], 'Footwear'],
-    [['handbag','tote bag','clutch','backpack','sling bag','wallet','purse','satchel','crossbody','pouch','duffel'], 'Bags & Purses'],
-    [['necklace','earring','finger ring','bracelet','wrist watch','bangle','anklet','pendant','brooch','jewellery','jewelry','chain necklace','choker'], 'Jewelry & Watches'],
+    // Home fragrance needs to win before perfume/fragrance.
+    [['scented candle','candle','reed diffuser','room diffuser','home fragrance'], 'Home Decor - Candles & Home Fragrance'],
+    [['discovery set','discovery kit','sample set','fragrance set'], 'Fragrances - Discovery Sets'],
+    [['body mist','fragrance mist'], 'Fragrances - Mists'],
+    [['eau de parfum','eau de toilette','eau de cologne','perfume','fragrance','cologne','attar','parfum','scent'], 'Fragrances - Perfume'],
+    [['shampoo'], 'Haircare - Shampoo'],
+    [['conditioner'], 'Haircare - Conditioner'],
+    [['hair mask'], 'Haircare - Hair Masks'],
+    [['scalp'], 'Haircare - Scalp Care'],
+    [['hair dryer','hair straightener','hair curler','hair styler','hair tool'], 'Haircare - Hair Tools'],
+    [['hair clip','hair band','hair accessory','scrunchie'], 'Haircare - Hair Accessories'],
+    [['hair','leave-in','leave in'], 'Haircare - Styling'],
+    // Body products are checked before skincare because body SPF and body oils
+    // often contain otherwise-generic skincare words.
+    [['body wash','shower gel','shower cream'], 'Bath & Body - Body Wash'],
+    [['body lotion','body cream','body butter'], 'Bath & Body - Body Lotion'],
+    [['body oil'], 'Bath & Body - Body Oils'],
+    [['hand cream','hand wash','hand lotion'], 'Bath & Body - Hand Care'],
+    [['deodorant'], 'Bath & Body - Deodorants'],
+    [['bath salt','bath soak','bubble bath'], 'Bath & Body - Bath Soaks'],
+    [['body sunscreen','body spf'], 'Bath & Body - Body SPF'],
+    // Makeup is deliberately split into the exact storefront filters. Specific
+    // terms must stay above the general "makeup" fallback at the end.
+    [['makeup remover','makeup removal','cleansing balm','cleansing oil'], 'Makeup - Makeup Remover'],
+    [['brush set','makeup brush','makeup sponge','beauty blender','blending sponge','powder puff','makeup tool'], 'Makeup - Brushes, Sponges & Tools'],
+    [['eyebrow','brow pencil','brow gel','brow pomade','brow powder','brow definer'], 'Makeup - Brows'],
+    [['lip & cheek','lip and cheek','lip + cheek','multi-use lip','multi use lip','cheek tint'], 'Makeup - Lip & Cheek Tint'],
+    [['lipstick','lip gloss','lip liner','lip tint','lip stain','lip crayon','lip lacquer'], 'Makeup - Lipstick, Gloss & Liner'],
+    [['makeup palette','eyeshadow palette','face palette','blush palette'], 'Makeup - Palettes'],
+    [['eyeshadow','eye shadow','eyeliner','eye liner','mascara','kajal','kohl','eye pencil'], 'Makeup - Eyeshadow, Eyeliner & Mascara'],
+    [['blush','cheek shade','cheek color','cheek colour','bronzer','bronzing','highlighter','contour','illuminator'], 'Makeup - Blush, Bronzer & Highlighter'],
+    [['foundation','concealer','bb cream','cc cream','tinted moisturiser','tinted moisturizer'], 'Makeup - Foundation & Concealer'],
+    [['primer','setting powder','loose powder','compact powder','pressed powder','setting spray','fixing spray','makeup fixer'], 'Makeup - Primer, Powder & Setting'],
+    [['makeup'], 'Makeup'],
+    [['face wash','facial cleanser','cleanser','micellar'], 'Skincare - Cleansers'],
+    [['face serum','vitamin c serum','hyaluronic','niacinamide','retinol'], 'Skincare - Serums'],
+    [['face cream','moisturiser','moisturizer'], 'Skincare - Moisturisers'],
+    [['sunscreen','spf'], 'Skincare - Sunscreen'],
+    [['toner','essence'], 'Skincare - Toners & Essences'],
+    [['face mask','sheet mask'], 'Skincare - Masks'],
+    [['eye cream','eye serum'], 'Skincare - Eye Care'],
+    [['acne','pimple'], 'Skincare - Acne Care'],
+    [['lip balm','lip treatment'], 'Skincare - Lip Care'],
+    [['exfoliant','scrub','skincare','skin care'], 'Skincare'],
+    [['sneaker'], 'Footwear - Sneakers'],
+    [['boot'], 'Footwear - Boots'],
+    [['heel','stiletto','wedge'], 'Footwear - Heels'],
+    [['sandal','kolhapuri','mojari'], 'Footwear - Sandals'],
+    [['loafer'], 'Footwear - Loafers'],
+    [['flat shoe','pump','mule','slipper','footwear'], 'Footwear - Flats'],
+    [['tote bag'], 'Bags & Purses - Totes'],
+    [['shoulder bag'], 'Bags & Purses - Shoulder Bags'],
+    [['crossbody','sling bag'], 'Bags & Purses - Crossbody Bags'],
+    [['clutch'], 'Bags & Purses - Clutches'],
+    [['backpack'], 'Bags & Purses - Backpacks'],
+    [['duffel','travel bag'], 'Bags & Purses - Travel Bags'],
+    [['handbag','wallet','purse','satchel','pouch'], 'Bags & Purses'],
+    [['smartwatch'], 'Watches - Smartwatches'],
+    [['watch strap'], 'Watches - Watch Straps'],
+    [['wrist watch','watch'], 'Watches - Everyday Watches'],
+    [['earring'], 'Jewelry - Earrings'],
+    [['chain necklace','choker','necklace','pendant'], 'Jewelry - Necklaces'],
+    [['finger ring','ring'], 'Jewelry - Rings'],
+    [['bracelet','bangle'], 'Jewelry - Bracelets'],
+    [['anklet'], 'Jewelry - Anklets'],
+    [['hair jewellery','hair jewelry'], 'Jewelry - Hair Accessories'],
+    [['brooch','jewellery','jewelry'], 'Jewelry'],
+    [['sunglasses'], 'Eyewear - Sunglasses'],
+    [['blue light','blue-light'], 'Eyewear - Blue-light Glasses'],
+    [['optical frame','eyeglasses','eye glasses'], 'Eyewear - Optical Frames'],
     [['jacket','overcoat','blazer','trench coat','parka','windbreaker','shrug','cape','outerwear'], 'Coats & Outerwear'],
-    [['dress','kurta','saree','lehenga','jeans','trouser','skirt','shorts','co-ord','jumpsuit','romper','palazzo','salwar','kurti','tshirt','t-shirt','sweater','hoodie','sweatshirt','cardigan','leggings','tank top','blouse','shirt','top'], 'Apparel'],
+    [['sports bra'], 'Activewear - Sports Bras'],
+    [['activewear','workout','gym wear','gymwear','training'], 'Activewear'],
+    [['leggings'], 'Activewear - Leggings'],
+    [['dress','kurta','saree','lehenga','jeans','trouser','skirt','shorts','co-ord','jumpsuit','romper','palazzo','salwar','kurti','tshirt','t-shirt','sweater','hoodie','sweatshirt','cardigan','tank top','blouse','shirt','top'], 'Apparel'],
   ]
 
   for (const [keywords, category] of map) {

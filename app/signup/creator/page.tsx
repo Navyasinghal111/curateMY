@@ -157,7 +157,7 @@ export default function CreatorSignupPage() {
       const { data, error: authErr } = await supabase.auth.signUp({
         email, password,
         options: {
-          emailRedirectTo: `${window.location.origin}/signup/confirm`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/pending`,
           data: profileFields,
         },
       })
@@ -188,6 +188,31 @@ export default function CreatorSignupPage() {
         id: data.user.id, status: 'pending', ...profileFields,
       })
       if (profileErr) throw profileErr
+
+      // When email confirmation is disabled, signUp returns a session and
+      // bypasses /signup/confirm. Create the review-queue row here as well so
+      // the creator never sees "under review" without reaching Admin.
+      const { error: applicationErr } = await supabase.from('creator_applications').upsert({
+        user_id: data.user.id,
+        email: email.trim(),
+        display_name: profileFields.display_name,
+        phone: profileFields.phone,
+        primary_platform: profileFields.primary_platform,
+        primary_handle: profileFields.primary_handle,
+        primary_followers: profileFields.primary_followers,
+        secondary_platform: profileFields.secondary_platform,
+        secondary_handle: profileFields.secondary_handle,
+        secondary_followers: profileFields.secondary_followers,
+        engagement_rate: profileFields.engagement_rate,
+        niches: profileFields.niches,
+        content_language: profileFields.content_language,
+        bio: profileFields.bio,
+        instagram_handle: profileFields.instagram_handle,
+        instagram_verified: false,
+        brands_worked_with: profileFields.brands_worked_with,
+        status: 'pending',
+      }, { onConflict: 'user_id', ignoreDuplicates: true })
+      if (applicationErr) throw applicationErr
       logEvent(supabase, 'signup_complete', { metadata: { type: 'creator' } })
       setDone(true)
     } catch (err: unknown) {

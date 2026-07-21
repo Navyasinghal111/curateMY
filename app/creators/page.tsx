@@ -14,6 +14,7 @@ type Creator = {
   avatar_url: string
   bio: string
   city?: string
+  instagram_handle?: string
   productCount: number
 }
 
@@ -27,7 +28,7 @@ export default async function CreatorsPage() {
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, bio, city')
+    .select('id, username, display_name, avatar_url, bio, city, instagram_handle')
     .eq('status', 'approved')
     .order('created_at', { ascending: true })
 

@@ -93,18 +93,20 @@ export default function Home() {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           height: 64px; display: flex; align-items: center; justify-content: space-between;
           padding: 0 48px;
-          background: rgba(240,237,232,0.92); backdrop-filter: blur(20px);
-          border-bottom: 0.5px solid var(--br);
+          background: rgba(15,15,15,0.96); backdrop-filter: blur(20px);
+          border-bottom: 0.5px solid rgba(255,255,255,0.12);
         }
-        .logo     { font-family: var(--serif); font-size: 22px; font-weight: 400; color: var(--ink); text-decoration: none; }
-        .logo em  { font-style: italic; color: var(--gold); }
+        .logo { display:inline-flex; align-items:baseline; font-family:'Cormorant Garamond', Georgia, serif; font-size:24px; font-style:italic; font-weight:400; line-height:1; color:#fff; text-decoration:none; white-space:nowrap; }
+        .logo-word { display:inline-block; }
+        .logo-kin { color:var(--gold2); }
+        .logo-cap { display:inline-block; font-size:1.18em; line-height:.8; }
         .nav-mid  { display: flex; gap: 36px; }
-        .nav-mid a{ font-size: 13px; color: var(--muted); text-decoration: none; transition: color .15s; }
-        .nav-mid a:hover { color: var(--ink); }
+        .nav-mid a{ font-size: 13px; color: rgba(255,255,255,0.68); text-decoration: none; transition: color .15s; }
+        .nav-mid a:hover { color: #fff; }
         .nav-right{ display: flex; gap: 8px; align-items: center; }
-        .btn-ghost{ font-size: 13px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: var(--sans); padding: 6px 14px; text-decoration: none; }
-        .btn-ghost:hover { color: var(--ink); }
-        .btn-ink  { font-size: 12px; font-weight: 500; font-family: var(--sans); background: var(--ink); color: var(--cream); border: none; padding: 10px 22px; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; }
+        .btn-ghost{ font-size: 13px; color: rgba(255,255,255,0.72); background: none; border: none; cursor: pointer; font-family: var(--sans); padding: 6px 14px; text-decoration: none; }
+        .btn-ghost:hover { color: #fff; }
+        .btn-ink  { font-size: 12px; font-weight: 500; font-family: var(--sans); background: var(--cream); color: var(--ink); border: none; padding: 10px 22px; cursor: pointer; text-decoration: none; letter-spacing: 0.06em; }
         .btn-ink:hover { opacity: 0.85; }
         .btn-gold { font-size: 12px; letter-spacing: 0.06em; font-family: var(--sans); font-weight: 500; background: var(--gold); color: #fff; border: none; padding: 12px 28px; cursor: pointer; text-decoration: none; display: inline-block; }
         .btn-gold:hover { background: var(--gold2); }
@@ -123,12 +125,12 @@ export default function Home() {
           color: var(--gold); font-weight: 500; margin-bottom: 32px;
         }
         .hero-eyebrow-line { width: 24px; height: 0.5px; background: var(--gold); }
-        h1 {
-          font-family: var(--serif); font-size: clamp(44px, 5vw, 68px);
-          font-weight: 300; line-height: 1.08; color: var(--ink);
-          margin-bottom: 24px; letter-spacing: -0.01em;
-        }
-        h1 em { font-style: italic; color: var(--gold); }
+          h1 {
+            font-family: 'Cormorant Garamond', var(--serif); font-size: clamp(50px, 6vw, 82px);
+            font-weight: 300; line-height: 0.96; color: var(--ink);
+            margin-bottom: 28px; letter-spacing: 0;
+          }
+          h1 em { display: inline-block; margin-top: 12px; font-style: italic; color: var(--gold); }
         .hero-sub {
           font-size: 15px; font-weight: 300; color: var(--ink2);
           line-height: 1.8; max-width: 440px; margin-bottom: 40px;
@@ -206,8 +208,10 @@ export default function Home() {
         /* ── Footer ── */
         footer { background: var(--ink); color: #fff; padding: 48px 48px 32px; }
         .ft-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
-        .ft-logo { font-family: var(--serif); font-size: 18px; font-weight: 400; color: #fff; }
-        .ft-logo em { font-style: italic; color: var(--gold2); }
+        .ft-logo { display:inline-flex; align-items:baseline; font-family:'Cormorant Garamond', Georgia, serif; font-size:20px; font-style:italic; font-weight:400; line-height:1; color:#fff; white-space:nowrap; }
+        .ft-logo .logo-word { display:inline-block; }
+        .ft-logo .logo-kin { color:var(--gold2); }
+        .ft-logo .logo-cap { display:inline-block; font-size:1.18em; line-height:.8; }
         .ft-links { display: flex; gap: 28px; flex-wrap: wrap; }
         .ft-links a { font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color .15s; }
         .ft-links a:hover { color: #fff; }
@@ -240,7 +244,7 @@ export default function Home() {
 
       {/* ── 1. Navigation ── */}
       <nav>
-        <Link href="/" className="logo">Curate<em>Kin</em></Link>
+        <Link href="/" className="logo"><span className="logo-word"><span className="logo-cap">C</span>urate</span><span className="logo-word logo-kin"><span className="logo-cap">K</span>in</span></Link>
         <div className="nav-mid">
           <Link href="/creators">Curators</Link>
           <a href="#how">How it works</a>
@@ -259,7 +263,7 @@ export default function Home() {
             <div className="hero-eyebrow-line" />
             Trusted curation · Real people
           </div>
-          <h1>Curated by people,<br/>not <em>algorithms.</em></h1>
+          <h1>Curated by creators<br/><em>you trust.</em></h1>
           <p className="hero-sub">
             The creators, doctors, stylists, and tastemakers you trust — sharing the products they genuinely use.
           </p>
@@ -405,7 +409,7 @@ export default function Home() {
       {/* ── 8. Footer ── */}
       <footer>
         <div className="ft-inner">
-          <div className="ft-logo">Curate<em>Kin</em></div>
+          <div className="ft-logo"><span className="logo-word"><span className="logo-cap">C</span>urate</span><span className="logo-word logo-kin"><span className="logo-cap">K</span>in</span></div>
           <div className="ft-links">
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>

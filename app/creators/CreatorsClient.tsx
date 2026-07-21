@@ -10,16 +10,20 @@ type Creator = {
   avatar_url: string
   bio: string
   city?: string
+  instagram_handle?: string
   productCount: number
 }
 
 export default function CreatorsClient({ creators }: { creators: Creator[] }) {
   const [search, setSearch] = useState('')
 
+  const query = search.trim().replace(/^@/, '').toLowerCase()
   const filtered = creators.filter(c =>
-    !search ||
-    c.display_name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.city?.toLowerCase().includes(search.toLowerCase())
+    !query ||
+    c.display_name?.toLowerCase().includes(query) ||
+    c.username?.toLowerCase().includes(query) ||
+    c.instagram_handle?.replace(/^@/, '').toLowerCase().includes(query) ||
+    c.city?.toLowerCase().includes(query)
   )
 
   return (
@@ -28,8 +32,10 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
       <style>{`
         *{box-sizing:border-box;margin:0;padding:0}
         .nav{display:flex;align-items:center;justify-content:space-between;padding:20px 48px;border-bottom:0.5px solid rgba(20,18,16,0.08)}
-        .logo{font-family:'Fanwood Text',serif;font-size:22px;color:#141210;text-decoration:none}
-        .logo em{font-style:italic;color:#8B1A1A}
+        .logo{display:inline-flex;align-items:baseline;font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-style:italic;font-weight:400;line-height:1;color:#141210;text-decoration:none;white-space:nowrap}
+        .logo-word{display:inline-block}
+        .logo-kin{color:#7A1028}
+        .logo-cap{display:inline-block;font-size:1.18em;line-height:.8}
         .search-input{padding:9px 16px;border:1px solid rgba(20,18,16,0.15);background:#fff;font-size:12px;outline:none;color:#141210;font-family:inherit;width:220px}
         .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;max-width:1100px}
         .ccard{background:#fff;border:0.5px solid rgba(20,18,16,0.08);padding:24px;text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;text-align:center;transition:box-shadow 0.2s}
@@ -46,8 +52,8 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
       `}</style>
 
       <nav className="nav">
-        <a href="/" className="logo">Curate<em>Kin</em></a>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search curators…" className="search-input" />
+        <a href="/" className="logo"><span className="logo-word"><span className="logo-cap">C</span>urate</span><span className="logo-word logo-kin"><span className="logo-cap">K</span>in</span></a>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search a name or @Instagram…" className="search-input" />
       </nav>
 
       <div style={{ padding:'56px 48px 24px' }}>
@@ -65,7 +71,7 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
               {creators.length === 0 ? 'The first curators are just getting started.' : 'No curators match that search.'}
             </p>
             <p style={{ fontSize:13, color:'#8C867E' }}>
-              {creators.length === 0 ? 'Check back soon, or be the first to apply.' : 'Try a different name or city.'}
+              {creators.length === 0 ? 'Check back soon, or be the first to apply.' : 'Try a name, CurateKin handle, or Instagram handle.'}
             </p>
           </div>
         ) : (
@@ -80,6 +86,7 @@ export default function CreatorsClient({ creators }: { creators: Creator[] }) {
                   )}
                 </div>
                 <div className="cname">{c.display_name}</div>
+                {c.instagram_handle && <div className="cmeta" style={{ marginBottom:3 }}>@{c.instagram_handle.replace(/^@/, '')}</div>}
                 <div className="cmeta">{[c.city, `${c.productCount} pieces`].filter(Boolean).join(' · ')}</div>
               </Link>
             ))}

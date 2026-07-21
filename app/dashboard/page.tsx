@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { logEvent } from '@/lib/logEvent'
+import { CATEGORY_SUBCATEGORIES, matchesProductCategory, normalizeProductCategory, PRODUCT_CATEGORIES, STORE_CATEGORIES } from '@/lib/productCategories'
 
-const CATS = ['ALL','APPAREL','COATS & OUTERWEAR','FOOTWEAR','BAGS & PURSES','JEWELRY & WATCHES','MAKEUP','SKINCARE','HAIRCARE','WISHLIST']
-const PRODUCT_CATS = ['Apparel','Coats & Outerwear','Footwear','Bags & Purses','Jewelry & Watches','Makeup','Skincare','Haircare']
 const SERIF = 'Cormorant Garamond, serif'
 
 type Product = { id:string; title:string; brand:string; price:string; image_url:string; product_url:string; category:string; wishlisted?:boolean; description?:string }
@@ -23,24 +23,53 @@ async function uploadImage(supabase: ReturnType<typeof db>, userId: string, file
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
 }
 
+async function uploadFramedImage(supabase: ReturnType<typeof db>, userId: string, image: File, bucket: string) {
+  const path = `${userId}/${Date.now()}-framed.jpg`
+  const { error } = await supabase.storage.from(bucket).upload(path, image, { contentType: 'image/jpeg', upsert: true })
+  if (error) throw error
+  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
+}
+
 // ── shared product form ───────────────────────────────────────────
 type FormState = { img:string; name:string; brand:string; price:string; cat:string; shopLink:string; notes:string; preview:string; error:string; loading:boolean }
 type FormSet   = { img:(v:string)=>void; name:(v:string)=>void; brand:(v:string)=>void; price:(v:string)=>void; cat:(v:string)=>void; shopLink:(v:string)=>void; notes:(v:string)=>void; preview:(v:string)=>void; file:(f:File)=>void }
+type Framing = { zoom:number; x:number; y:number }
 
-function ProductForm({ state, set, fileRef }: { state:FormState; set:FormSet; fileRef:{ current:HTMLInputElement|null } }) {
+const DEFAULT_FRAMING: Framing = { zoom: 1, x: 0, y: 0 }
+
+function ImageFraming({ framing, onChange }: { framing:Framing; onChange:(next:Framing)=>void }) {
+  const update = (key:keyof Framing, value:number) => onChange({ ...framing, [key]: value })
+
+  return (
+    <div style={{ marginTop:12, borderTop:'1px solid #E8E4DE', paddingTop:12 }}>
+      <p style={{ ...LBL, marginBottom:8 }}>Image framing</p>
+      <p style={{ fontSize:11, color:'#8C867E', lineHeight:1.45, marginBottom:10 }}>Zoom or reposition the product before you save it.</p>
+      <label style={{ ...LBL, display:'flex', justifyContent:'space-between', marginBottom:4 }}><span>Zoom</span><span>{framing.zoom.toFixed(1)}x</span></label>
+      <input aria-label="Zoom image" type="range" min="1" max="2.5" step="0.1" value={framing.zoom} onChange={e => update('zoom', Number(e.target.value))} style={{ width:'100%', accentColor:'#1a1a1a' }} />
+      <label style={{ ...LBL, marginTop:8, marginBottom:4 }}>Move left or right</label>
+      <input aria-label="Move image left or right" type="range" min="-100" max="100" value={framing.x} onChange={e => update('x', Number(e.target.value))} style={{ width:'100%', accentColor:'#1a1a1a' }} />
+      <label style={{ ...LBL, marginTop:8, marginBottom:4 }}>Move up or down</label>
+      <input aria-label="Move image up or down" type="range" min="-100" max="100" value={framing.y} onChange={e => update('y', Number(e.target.value))} style={{ width:'100%', accentColor:'#1a1a1a' }} />
+      <button type="button" onClick={() => onChange(DEFAULT_FRAMING)} style={{ marginTop:8, background:'none', border:'none', padding:0, color:'#6C6255', fontSize:11, textDecoration:'underline', cursor:'pointer', fontFamily:'inherit' }}>Reset framing</button>
+    </div>
+  )
+}
+
+function ProductForm({ state, set, fileRef, framing, onFramingChange }: { state:FormState; set:FormSet; fileRef:{ current:HTMLInputElement|null }; framing:Framing; onFramingChange:(next:Framing)=>void }) {
   const { img, name, brand, price, cat, shopLink, notes, preview, error } = state
   return (
-    <div style={{ display:'flex', gap:24, padding:'20px 28px', overflowY:'auto', flex:1 }}>
-      <div style={{ width:180, flexShrink:0 }}>
-        <div onClick={() => fileRef.current?.click()} style={{ width:'100%', aspectRatio:'3/4', border:'1px dashed #C8C4BC', background:'#F0EDE8', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden' }}>
+    <div className="product-form" style={{ display:'flex', gap:28, padding:'24px 28px', overflowY:'auto', flex:1 }}>
+      <div className="product-form-media" style={{ width:224, flexShrink:0 }}>
+        <div onClick={() => fileRef.current?.click()} style={{ width:'100%', aspectRatio:'4/5', border:'1px dashed #C8C4BC', background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer', overflow:'hidden', position:'relative' }}>
           {preview
-            ? <img src={preview} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
+            ? <img src={preview} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center', padding:12, transform:`translate(${framing.x}%, ${framing.y}%) scale(${framing.zoom})` }} />
             : <><span style={{ fontSize:22, color:'#C8C4BC' }}>+</span><span style={{ fontSize:11, color:'#C8C4BC', marginTop:4 }}>Add photo</span></>}
         </div>
         <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) { set.file(f); set.preview(URL.createObjectURL(f)) } }} />
+        {preview && <ImageFraming framing={framing} onChange={onFramingChange} />}
       </div>
-      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
+      <div className="product-form-fields" style={{ flex:1, display:'flex', flexDirection:'column', gap:12, minWidth:0 }}>
         <div><label style={LBL}>Or paste image URL</label><input value={img} onChange={e => set.img(e.target.value)} placeholder="https://…/photo.jpg" style={INP} /></div>
         <div><label style={LBL}>Name *</label><input value={name} onChange={e => set.name(e.target.value)} placeholder="Product name" style={INP} /></div>
         <div><label style={LBL}>Brand</label><input value={brand} onChange={e => set.brand(e.target.value)} placeholder="Nykaa, Zara…" style={INP} /></div>
@@ -49,7 +78,7 @@ function ProductForm({ state, set, fileRef }: { state:FormState; set:FormSet; fi
           <div style={{ flex:1 }}>
             <label style={LBL}>Category</label>
             <select value={cat} onChange={e => set.cat(e.target.value)} style={{ ...INP, appearance:'auto' }}>
-              {PRODUCT_CATS.map(c => <option key={c}>{c}</option>)}
+              {PRODUCT_CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
         </div>
@@ -65,7 +94,7 @@ function ProductForm({ state, set, fileRef }: { state:FormState; set:FormSet; fi
 function ModalShell({ title, onClose, onSubmit, submitLabel, disabled, children }: { title:string; onClose:()=>void; onSubmit:()=>void; submitLabel:string; disabled?:boolean; children:React.ReactNode }) {
   return (
     <div onClick={e => e.target === e.currentTarget && onClose()} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:300, padding:16 }}>
-      <div style={{ background:'#FAFAF8', width:'100%', maxWidth:640, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', borderRadius:4 }}>
+      <div style={{ background:'#FAFAF8', width:'100%', maxWidth:840, maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', borderRadius:4 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 28px 16px', borderBottom:'1px solid #E8E4DE' }}>
           <h2 style={{ fontFamily:SERIF, fontSize:24, fontWeight:400, color:'#1a1a1a' }}>{title}</h2>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:22, color:'#aaa', cursor:'pointer' }}>×</button>
@@ -88,11 +117,12 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const [name,     setName]     = useState('')
   const [brand,    setBrand]    = useState('')
   const [price,    setPrice]    = useState('')
-  const [cat,      setCat]      = useState('Skincare')
+  const [cat,      setCat]      = useState(normalizeProductCategory('SKINCARE'))
   const [shopLink, setShopLink] = useState('')
   const [notes,    setNotes]    = useState('')
   const [preview,  setPreview]  = useState('')
   const [imgFile,  setImgFile]  = useState<File|null>(null)
+  const [framing,  setFraming]  = useState<Framing>(DEFAULT_FRAMING)
   const [loading,  setLoading]  = useState(false)
   const [scraping, setScraping] = useState(false)
   const [msg,      setMsg]      = useState<{text:string;type:'ok'|'err'|'warn'|'info'}>()
@@ -112,7 +142,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     // successful fill. The pasted URL itself (the `url` field) is
     // deliberately left untouched. Re-run on every failure path below too,
     // so a partial response can never leave old price/category behind.
-    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setCat('Skincare') }
+    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat(normalizeProductCategory('SKINCARE')) }
     clearFields()
     setMsg({ text:'Fetching product…', type:'info' })
     try {
@@ -124,7 +154,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       if (d.price)    setPrice(d.price.replace(/[₹$£€]/g,''))
       if (d.image)    { setImg(d.image); setPreview(d.image) }
       if (d.url)      setShopLink(d.url)
-      if (d.category) setCat(d.category)
+      if (d.category) setCat(normalizeProductCategory(d.category))
       // A successful fetch can still be missing a field (e.g. an
       // out-of-stock listing with no current price) — that's a warning
       // to review, not a failure, and the fields it did find stay filled.
@@ -141,8 +171,21 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     if (!price.trim()) { setError('Please enter a price'); return }
     setLoading(true); setError('')
     let finalImg = img.trim()
-    try { if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images') }
+    try {
+      if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
+    }
     catch { setError('Image upload failed'); setLoading(false); return }
+    if (finalImg) {
+      try {
+        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
+        if (!crop.ok) throw new Error('image_preparation_failed')
+        const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
+        finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
+      } catch {
+        // Framing improves presentation but must never prevent a valid product from being saved.
+        // Keep the already-uploaded or retailer-provided image URL as the fallback.
+      }
+    }
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
       creator_id: user.id, title: name.trim(), brand: brand.trim(),
       price: price ? `₹${price}` : '', image_url: finalImg,
@@ -166,7 +209,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
         </button>
       </div>
       {msg && <p style={{ padding:'6px 28px 0', fontSize:11, color: msg.type==='ok' ? '#27ae60' : msg.type==='warn' ? '#b7791f' : msg.type==='info' ? '#888' : '#c0392b' }}>{msg.text}</p>}
-      <ProductForm state={formState} set={formSet} fileRef={fileRef} />
+      <ProductForm state={formState} set={formSet} fileRef={fileRef} framing={framing} onFramingChange={setFraming} />
     </ModalShell>
   )
 }
@@ -177,11 +220,12 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
   const [name,     setName]     = useState(product.title)
   const [brand,    setBrand]    = useState(product.brand)
   const [price,    setPrice]    = useState(product.price?.replace(/[^0-9.]/g,'') || '')
-  const [cat,      setCat]      = useState(PRODUCT_CATS.find(c => c.toUpperCase() === product.category?.toUpperCase()) || PRODUCT_CATS[0])
+  const [cat,      setCat]      = useState(normalizeProductCategory(product.category))
   const [shopLink, setShopLink] = useState(product.product_url || '')
   const [notes,    setNotes]    = useState(product.description || '')
   const [preview,  setPreview]  = useState(product.image_url || '')
   const [imgFile,  setImgFile]  = useState<File|null>(null)
+  const [framing,  setFraming]  = useState<Framing>(DEFAULT_FRAMING)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -195,8 +239,18 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
     if (!name.trim()) { setError('Please enter a product name'); return }
     setLoading(true); setError('')
     let finalImg = img.trim()
-    try { if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images') }
+    try {
+      if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
+    }
     catch { setError('Image upload failed'); setLoading(false); return }
+    if (finalImg) {
+      try {
+        const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
+        if (!crop.ok) throw new Error('image_preparation_failed')
+        const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
+        finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
+      } catch { setError('Could not prepare a clean product image. Upload a clearer product photo and try again.'); setLoading(false); return }
+    }
     const updates = {
       title: name.trim(), brand: brand.trim(),
       price: price ? `₹${price}` : '', image_url: finalImg,
@@ -213,7 +267,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
 
   return (
     <ModalShell title="Edit product" onClose={onClose} onSubmit={save} submitLabel={loading ? 'SAVING…' : 'SAVE CHANGES'} disabled={loading}>
-      <ProductForm state={formState} set={formSet} fileRef={fileRef} />
+      <ProductForm state={formState} set={formSet} fileRef={fileRef} framing={framing} onFramingChange={setFraming} />
     </ModalShell>
   )
 }
@@ -222,11 +276,14 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
 export default function DashboardHome() {
   const [products,        setProducts]        = useState<Product[]>([])
   const [tab,             setTab]             = useState('ALL')
+  const [subCategory,     setSubCategory]     = useState('')
   const [search,          setSearch]          = useState('')
   const [modal,           setModal]           = useState(false)
   const [editProduct,     setEditProduct]     = useState<Product|null>(null)
   const [openMenu,        setOpenMenu]        = useState<string|null>(null)
   const [profile,         setProfile]         = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0 })
+  const [categoryPinned,  setCategoryPinned]  = useState(false)
+  const categoryRailRef = useRef<HTMLDivElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const supabase = db()
@@ -287,13 +344,32 @@ export default function DashboardHome() {
     setUploadingAvatar(false)
   }
 
-  const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>p.category?.toUpperCase()===t).length
+  const count = (t:string) => t==='ALL' ? products.length : t==='WISHLIST' ? products.filter(p=>p.wishlisted).length : products.filter(p=>matchesProductCategory(p.category, t)).length
 
+  const activeCategory = subCategory || tab
   const filtered = products.filter(p => {
-    const catOk  = tab==='ALL' || (tab==='WISHLIST' ? p.wishlisted : p.category?.toUpperCase()===tab)
+    const catOk  = activeCategory==='ALL' || (activeCategory==='WISHLIST' ? p.wishlisted : matchesProductCategory(p.category, activeCategory))
     const srchOk = !search || [p.title,p.brand].some(s=>s?.toLowerCase().includes(search.toLowerCase()))
     return catOk && srchOk
   })
+
+  useEffect(() => {
+    const syncCategoryRail = () => {
+      const rail = categoryRailRef.current
+      if (!rail) return
+
+      const navigationHeight = 52
+      setCategoryPinned(window.scrollY + navigationHeight >= rail.offsetTop)
+    }
+
+    syncCategoryRail()
+    window.addEventListener('scroll', syncCategoryRail, { passive:true })
+    window.addEventListener('resize', syncCategoryRail)
+    return () => {
+      window.removeEventListener('scroll', syncCategoryRail)
+      window.removeEventListener('resize', syncCategoryRail)
+    }
+  }, [tab])
 
   const totalValue = products.reduce((s,p) => s + (parseFloat(p.price?.replace(/[^0-9.]/g,'')||'0')||0), 0)
 
@@ -322,6 +398,10 @@ export default function DashboardHome() {
         .cat-tab.on{color:#0A0A0A;border-bottom-color:#0A0A0A}
         .cat-tab.wl{color:#C53030}
         .cat-tab.wl.on{border-bottom-color:#C53030}
+        .makeup-subtabs{display:flex;gap:8px;overflow-x:auto;padding:10px 32px;background:#F8F6F2;border-bottom:0.5px solid #EBEBEB;-webkit-overflow-scrolling:touch}
+        .makeup-subtabs::-webkit-scrollbar{display:none}
+        .makeup-subtab{flex-shrink:0;border:1px solid #DDD8D0;background:#fff;color:#6C6255;padding:7px 10px;font-size:10px;letter-spacing:0.04em;cursor:pointer;font-family:inherit}
+        .makeup-subtab.on{background:#0A0A0A;border-color:#0A0A0A;color:#fff}
         .pcard{background:#fff;border:0.5px solid #E8E4DC;overflow:visible;transition:box-shadow 0.2s;position:relative}
         .pcard:hover{box-shadow:0 8px 28px rgba(0,0,0,0.09)}
         .tdot{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:#fff;border:0.5px solid #E5E5E5;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08);z-index:10;font-size:14px;color:#666;letter-spacing:1px}
@@ -336,11 +416,14 @@ export default function DashboardHome() {
         .addbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 22px;background:#0A0A0A;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;letter-spacing:0.05em;box-shadow:0 2px 10px rgba(0,0,0,0.18)}
         .addbtn:hover{background:#333}
         .av-wrap:hover .av-overlay{opacity:1}
+        .dash-category-rail{position:sticky;top:52px;z-index:40;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.04)}
+        .dash-category-rail.is-pinned{box-shadow:0 4px 12px rgba(0,0,0,0.08)}
         .dash-tabs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
         .dash-tabs-wrap::-webkit-scrollbar{display:none}
         .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
         .dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
         .dash-actions{display:flex;align-items:center;gap:24px}
+        .product-form{min-height:0}
 
         @media (max-width: 900px) {
           .dash-grid{grid-template-columns:repeat(3,1fr) !important}
@@ -355,16 +438,20 @@ export default function DashboardHome() {
           .dash-topbar{flex-direction:column !important;align-items:flex-start !important;gap:16px !important}
           .dash-actions{width:100% !important;justify-content:space-between !important;flex-wrap:wrap !important;gap:12px !important}
           .dash-stat-n{font-size:20px !important}
+          .product-form{padding:20px !important;gap:20px !important}
+          .product-form-media{width:184px !important}
         }
         @media (max-width: 420px) {
           .dash-actions .addbtn{order:-1;width:100%;justify-content:center}
+          .product-form{flex-direction:column !important}
+          .product-form-media{width:100% !important;max-width:240px !important;margin:0 auto}
         }
       `}</style>
 
       {/* Profile header */}
-      <div className="dash-header" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+      <div className="dash-header" style={{ background:'#F0EDE8', borderBottom:'0.5px solid #DED9D1', padding:'40px 32px 24px', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
         <div className="av-wrap" onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
-          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#F0EDE8', border:'1.5px solid #C8C4BC', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, cursor:'pointer' }}>
+          style={{ position:'relative', width:96, height:96, borderRadius:'50%', overflow:'hidden', background:'#fff', border:'1.5px solid #C8C4BC', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16, cursor:'pointer' }}>
           {profile.avatar_url
             ? <img src={profile.avatar_url} alt={profile.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
             : <span style={{ ...S, fontSize:40, fontWeight:400, color:'#B07D4A' }}>{profile.name?.[0]?.toUpperCase() || '?'}</span>}
@@ -379,17 +466,29 @@ export default function DashboardHome() {
         <p style={{ fontSize:12, color:'#9B9B9B', letterSpacing:'0.04em' }}>@{profile.username} · {profile.followers.toLocaleString('en-IN')} followers</p>
       </div>
 
-      {/* Category tabs */}
-      <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px', position:'sticky', top:52, zIndex:40 }}>
-        {CATS.map(c => (
-          <button key={c} onClick={() => setTab(c)} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
-            {c==='WISHLIST' && '♥ '}{c} <span style={{ fontSize:10, opacity:0.5, marginLeft:2 }}>{count(c)}</span>
-          </button>
-        ))}
+      {/* Category controls stay together beneath the dashboard navigation while browsing. */}
+      <div ref={categoryRailRef} className={`dash-category-rail${categoryPinned ? ' is-pinned' : ''}`}>
+        <div className="dash-tabs-wrap" style={{ background:'#fff', borderBottom:'0.5px solid #EBEBEB', display:'flex', padding:'0 32px' }}>
+          {STORE_CATEGORIES.map(c => (
+            <button key={c} onClick={() => { setTab(c); setSubCategory('') }} className={`cat-tab${tab===c?' on':''}${c==='WISHLIST'?' wl':''}`}>
+              {c==='WISHLIST' && '♥ '}{c} <span style={{ fontSize:10, opacity:0.5, marginLeft:2 }}>{count(c)}</span>
+            </button>
+          ))}
+        </div>
+
+        {CATEGORY_SUBCATEGORIES[tab] && (
+          <div className="makeup-subtabs" aria-label={`${tab} categories`}>
+            <button onClick={() => setSubCategory('')} className={`makeup-subtab${!subCategory ? ' on' : ''}`}>All {tab.toLowerCase()} <span style={{ opacity:0.7 }}>{count(tab)}</span></button>
+            {CATEGORY_SUBCATEGORIES[tab].map(category => {
+              const value = `${tab} - ${category.toUpperCase()}`
+              return <button key={category} onClick={() => setSubCategory(value)} className={`makeup-subtab${subCategory === value ? ' on' : ''}`}>{category} <span style={{ opacity:0.7 }}>{count(value)}</span></button>
+            })}
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className="dash-content" style={{ background:'#F8F6F2', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
+      <div className="dash-content" style={{ background:'#fff', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
         <div className="dash-topbar">
           <div>
             <p style={{ fontSize:10, letterSpacing:'0.16em', color:'#B07D4A', textTransform:'uppercase', marginBottom:6 }}>YOUR WARDROBE, CURATED</p>
@@ -416,7 +515,7 @@ export default function DashboardHome() {
             {products.length===0 && <button onClick={() => setModal(true)} className="addbtn">+ ADD YOUR FIRST PIECE</button>}
           </div>
         ) : (
-          <div className="dash-grid">
+          <div className="dash-grid" style={{ gap:0, background:'#fff' }}>
             {filtered.map(p => (
               <div key={p.id} className="pcard">
                 <button className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
@@ -428,20 +527,18 @@ export default function DashboardHome() {
                     <button className="ditem red" onClick={() => { remove(p.id); setOpenMenu(null) }}><i className="ti ti-trash" aria-hidden="true"></i>Remove from shop</button>
                   </div>
                 )}
-                <div style={{ aspectRatio:'4/5', background:'#F0EDE8', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', padding:12 }}>
-                  {p.image_url
-                    ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
-                    : <span style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.1)' }}>{p.title?.[0]}</span>}
-                </div>
-                <div style={{ padding:'10px 12px 8px', display:'flex', flexDirection:'column', height:96, overflow:'hidden' }}>
-                  <p style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'#9B9B9B', marginBottom:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.brand}</p>
-                  <p style={{ fontSize:13, fontWeight:500, color:'#0A0A0A', lineHeight:1.4, marginBottom:5, height:'2.8em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
-                  <p style={{ ...S, fontSize:15, marginTop:'auto' }}>{p.price}</p>
-                </div>
-                <a href={`/r/${p.id}`} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'block', margin:'0 12px 12px', padding:'7px', background:'#0A0A0A', color:'#fff', fontSize:10, letterSpacing:'0.1em', textAlign:'center', textDecoration:'none' }}>
-                  SHOP NOW
-                </a>
+                <Link href={`/product/${p.id}`} style={{ display:'block', color:'inherit', textDecoration:'none' }}>
+                  <div style={{ aspectRatio:'4/5', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', padding:12 }}>
+                    {p.image_url
+                      ? <img src={p.image_url} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
+                      : <span style={{ ...S, fontSize:36, fontStyle:'italic', color:'rgba(0,0,0,0.1)' }}>{p.title?.[0]}</span>}
+                  </div>
+                  <div style={{ padding:'16px 18px 20px', display:'flex', flexDirection:'column', height:132, overflow:'hidden' }}>
+                    <p style={{ fontSize:9, letterSpacing:'0.04em', textTransform:'uppercase', color:'#756E66', marginBottom:5, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.brand} <span aria-hidden="true">•</span> {p.category}</p>
+                    <p style={{ fontSize:14, fontWeight:500, color:'#0A0A0A', lineHeight:1.35, marginBottom:7, height:'2.7em', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{p.title}</p>
+                    <p style={{ ...S, fontSize:18, marginTop:'auto' }}>{p.price}</p>
+                  </div>
+                </Link>
               </div>
             ))}
           </div>
