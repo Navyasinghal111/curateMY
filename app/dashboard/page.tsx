@@ -30,6 +30,36 @@ async function uploadFramedImage(supabase: ReturnType<typeof db>, userId: string
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
 }
 
+async function createClientFramedImage(imageUrl: string, framing: Framing) {
+  const image = new Image()
+  image.crossOrigin = 'anonymous'
+  image.src = imageUrl.replace(/^http:/i, 'https:')
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve()
+    image.onerror = () => reject(new Error('image_load_failed'))
+  })
+
+  const sourceWidth = image.naturalWidth
+  const sourceHeight = image.naturalHeight
+  const frameRatio = 4 / 5
+  const baseWidth = Math.min(sourceWidth, Math.round(sourceHeight * frameRatio))
+  const baseHeight = Math.round(baseWidth / frameRatio)
+  const cropWidth = Math.max(1, Math.round(baseWidth / framing.zoom))
+  const cropHeight = Math.max(1, Math.round(baseHeight / framing.zoom))
+  const left = Math.round(((sourceWidth - cropWidth) / 2) + ((framing.x / 100) * (sourceWidth - cropWidth) / 2))
+  const top = Math.round(((sourceHeight - cropHeight) / 2) + ((framing.y / 100) * (sourceHeight - cropHeight) / 2))
+  const canvas = document.createElement('canvas')
+  canvas.width = 1200
+  canvas.height = 1500
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('canvas_unavailable')
+  context.fillStyle = '#ffffff'
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  context.drawImage(image, Math.max(0, Math.min(left, sourceWidth - cropWidth)), Math.max(0, Math.min(top, sourceHeight - cropHeight)), cropWidth, cropHeight, 0, 0, canvas.width, canvas.height)
+  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('image_export_failed')), 'image/jpeg', 0.9))
+  return new File([blob], 'framed.jpg', { type:'image/jpeg' })
+}
+
 // ── shared product form ───────────────────────────────────────────
 type FormState = { img:string; name:string; brand:string; price:string; cat:string; shopLink:string; notes:string; preview:string; error:string; loading:boolean }
 type FormSet   = { img:(v:string)=>void; name:(v:string)=>void; brand:(v:string)=>void; price:(v:string)=>void; cat:(v:string)=>void; shopLink:(v:string)=>void; notes:(v:string)=>void; preview:(v:string)=>void; file:(f:File)=>void }
@@ -252,8 +282,14 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
         const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
         finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
       } catch {
-        // Keep the original image and continue saving the product fields. A framing
-        // failure must not make an otherwise valid edit appear unsaved.
+        // Use the browser as a fallback for CDN images that reject server fetching.
+        try {
+          const framedFile = await createClientFramedImage(finalImg, framing)
+          finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
+        } catch {
+          // Keep the original image and continue saving the product fields. A framing
+          // failure must not make an otherwise valid edit appear unsaved.
+        }
       }
     }
     const updates = {
