@@ -251,7 +251,10 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
         if (!crop.ok) throw new Error('image_preparation_failed')
         const framedFile = new File([await crop.blob()], 'framed.jpg', { type:'image/jpeg' })
         finalImg = await uploadFramedImage(supabase, user.id, framedFile, 'product-images')
-      } catch { setError('Could not prepare a clean product image. Upload a clearer product photo and try again.'); setLoading(false); return }
+      } catch {
+        // Keep the original image and continue saving the product fields. A framing
+        // failure must not make an otherwise valid edit appear unsaved.
+      }
     }
     const updates = {
       title: name.trim(), brand: brand.trim(),

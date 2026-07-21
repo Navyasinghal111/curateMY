@@ -28,7 +28,7 @@ function safeImageUrl(value: unknown) {
 async function fetchImage(url: URL) {
   let next = url
   for (let hop = 0; hop < 4; hop += 1) {
-    const response = await fetch(next, { redirect:'manual', headers:{ Accept:'image/avif,image/webp,image/*,*/*;q=0.8', 'User-Agent':'CurateKin image framing' } })
+    const response = await fetch(next, { redirect:'manual', headers:{ Accept:'image/avif,image/webp,image/*,*/*;q=0.8', 'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36' } })
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get('location')
       const redirected = location ? safeImageUrl(new URL(location, next).toString()) : null
@@ -37,7 +37,9 @@ async function fetchImage(url: URL) {
       continue
     }
     const length = Number(response.headers.get('content-length') || 0)
-    if (!response.ok || !response.headers.get('content-type')?.startsWith('image/') || length > MAX_IMAGE_BYTES) throw new Error('image_fetch_failed')
+    // Some retailer CDNs serve valid image bytes as application/octet-stream.
+    // Let sharp validate the bytes instead of rejecting those responses by MIME label.
+    if (!response.ok || length > MAX_IMAGE_BYTES) throw new Error('image_fetch_failed')
     const bytes = Buffer.from(await response.arrayBuffer())
     if (bytes.length > MAX_IMAGE_BYTES) throw new Error('image_too_large')
     return bytes
