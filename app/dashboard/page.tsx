@@ -243,7 +243,9 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
       if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
     }
     catch { setError('Image upload failed'); setLoading(false); return }
-    if (finalImg) {
+    const imageChanged = finalImg !== (product.image_url || '')
+    const framingChanged = framing.zoom !== DEFAULT_FRAMING.zoom || framing.x !== DEFAULT_FRAMING.x || framing.y !== DEFAULT_FRAMING.y
+    if (finalImg && (imgFile || imageChanged || framingChanged)) {
       try {
         const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
         if (!crop.ok) throw new Error('image_preparation_failed')
@@ -257,9 +259,16 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
       product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
       description: notes.trim(),
     }
-    const { error: dbErr } = await supabase.from('storefront_products').update(updates).eq('id', product.id)
+    const { data: savedProduct, error: dbErr } = await supabase
+      .from('storefront_products')
+      .update(updates)
+      .eq('id', product.id)
+      .eq('creator_id', user.id)
+      .select()
+      .single()
     if (dbErr) { setError(dbErr.message); setLoading(false); return }
-    onSave({ ...product, ...updates }); onClose()
+    if (!savedProduct) { setError('We could not save this product. Please try again.'); setLoading(false); return }
+    onSave(savedProduct); onClose()
   }
 
   const formState: FormState = { img, name, brand, price, cat, shopLink, notes, preview, error, loading }
