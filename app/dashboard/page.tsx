@@ -489,6 +489,7 @@ export default function DashboardHome() {
           .dash-stat-n{font-size:20px !important}
           .product-form{padding:20px !important;gap:20px !important}
           .product-form-media{width:184px !important}
+          .tdot{opacity:1}
         }
         @media (max-width: 420px) {
           .dash-actions .addbtn{order:-1;width:100%;justify-content:center}
@@ -567,7 +568,7 @@ export default function DashboardHome() {
           <div className="dash-grid" style={{ gap:0, background:'#fff' }}>
             {filtered.map(p => (
               <div key={p.id} className="pcard">
-                <button className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
+                <button aria-label="More product actions" title="More product actions" className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
                 {openMenu===p.id && (
                   <div className="dmenu" onClick={e => e.stopPropagation()}>
                     <button className="ditem" onClick={() => { setEditProduct(p); setOpenMenu(null) }}><i className="ti ti-edit" aria-hidden="true"></i>Edit product</button>
