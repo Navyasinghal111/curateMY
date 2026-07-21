@@ -25,7 +25,7 @@ function safeImageUrl(value: unknown) {
   }
 }
 
-async function fetchImage(url: URL) {
+async function fetchImageDirect(url: URL) {
   let next = url
   for (let hop = 0; hop < 4; hop += 1) {
     const response = await fetch(next, { redirect:'manual', headers:{ Accept:'image/avif,image/webp,image/*,*/*;q=0.8', 'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36' } })
@@ -45,6 +45,27 @@ async function fetchImage(url: URL) {
     return bytes
   }
   throw new Error('too_many_redirects')
+}
+
+async function fetchImage(url: URL) {
+  try {
+    return await fetchImageDirect(url)
+  } catch (directError) {
+    const scraperKey = process.env.SCRAPER_API_KEY
+    if (!scraperKey) throw directError
+
+    const scraperUrl = new URL('https://api.scraperapi.com/')
+    scraperUrl.searchParams.set('api_key', scraperKey)
+    scraperUrl.searchParams.set('url', url.toString())
+    const response = await fetch(scraperUrl, {
+      headers: { Accept:'image/avif,image/webp,image/*,*/*;q=0.8' },
+    })
+    const length = Number(response.headers.get('content-length') || 0)
+    if (!response.ok || length > MAX_IMAGE_BYTES) throw directError
+    const bytes = Buffer.from(await response.arrayBuffer())
+    if (bytes.length > MAX_IMAGE_BYTES) throw new Error('image_too_large')
+    return bytes
+  }
 }
 
 export async function POST(request: NextRequest) {
