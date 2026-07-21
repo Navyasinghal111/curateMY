@@ -33,10 +33,11 @@ async function uploadFramedImage(supabase: ReturnType<typeof db>, userId: string
 async function createClientFramedImage(imageUrl: string, framing: Framing) {
   const image = new Image()
   image.crossOrigin = 'anonymous'
-  image.src = imageUrl.replace(/^http:/i, 'https:')
   await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve()
-    image.onerror = () => reject(new Error('image_load_failed'))
+    const timeout = window.setTimeout(() => reject(new Error('image_load_timeout')), 15000)
+    image.onload = () => { window.clearTimeout(timeout); resolve() }
+    image.onerror = () => { window.clearTimeout(timeout); reject(new Error('image_load_failed')) }
+    image.src = imageUrl.replace(/^http:/i, 'https:')
   })
 
   const sourceWidth = image.naturalWidth
