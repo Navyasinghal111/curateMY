@@ -317,7 +317,11 @@ function extract(html: string, domain: string, parsed: URL) {
 
 // ── auto-detect category from title/description/url ───────────────
 function detectCategory(title: string, description: string, url: string): string {
-  const text = `${title} ${description} ${url}`.toLowerCase()
+  const sources = [
+    { text: title.toLowerCase(), weight: 6 },
+    { text: description.toLowerCase(), weight: 2 },
+    { text: url.toLowerCase().replace(/[-_]/g, ' '), weight: 1 },
+  ]
 
   // Order matters: more specific / compound terms checked first so
   // e.g. "hair serum" matches Haircare before generic "serum" matches Skincare
@@ -378,7 +382,7 @@ function detectCategory(title: string, description: string, url: string): string
     [['clutch'], 'Bags & Purses - Clutches'],
     [['backpack'], 'Bags & Purses - Backpacks'],
     [['duffel','travel bag'], 'Bags & Purses - Travel Bags'],
-    [['handbag','wallet','purse','satchel','pouch'], 'Bags & Purses'],
+    [['top-handle bag','top handle bag','handbag','hand bag','wallet','purse','satchel','pouch','bag'], 'Bags & Purses'],
     [['smartwatch'], 'Watches - Smartwatches'],
     [['watch strap'], 'Watches - Watch Straps'],
     [['wrist watch','watch'], 'Watches - Everyday Watches'],
@@ -399,10 +403,28 @@ function detectCategory(title: string, description: string, url: string): string
     [['dress','kurta','saree','lehenga','jeans','trouser','skirt','shorts','co-ord','jumpsuit','romper','palazzo','salwar','kurti','tshirt','t-shirt','sweater','hoodie','sweatshirt','cardigan','tank top','blouse','shirt','top'], 'Apparel'],
   ]
 
+  let bestCategory = ''
+  let bestScore = 0
+
+  // Score every signal across the full title, description, and URL. Longer
+  // phrases are stronger than generic single words, and the product title is
+  // the most reliable source for classification.
   for (const [keywords, category] of map) {
-    if (keywords.some(k => text.includes(k))) return category
+    let score = 0
+    for (const keyword of keywords) {
+      const normalizedKeyword = keyword.toLowerCase().replace(/[-_]/g, ' ')
+      const phraseWeight = normalizedKeyword.includes(' ') ? 8 : 2
+      for (const source of sources) {
+        if (source.text.includes(normalizedKeyword)) score += phraseWeight * source.weight
+      }
+    }
+    if (score > bestScore) {
+      bestCategory = category
+      bestScore = score
+    }
   }
-  return 'Skincare' // default
+
+  return bestCategory || 'Skincare'
 }
 
 export async function POST(req: NextRequest) {
