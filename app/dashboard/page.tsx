@@ -453,7 +453,7 @@ export default function DashboardHome() {
         .makeup-subtab.on{background:#0A0A0A;border-color:#0A0A0A;color:#fff}
         .pcard{background:#fff;border:0.5px solid #E8E4DC;overflow:visible;transition:box-shadow 0.2s;position:relative}
         .pcard:hover{box-shadow:0 8px 28px rgba(0,0,0,0.09)}
-        .tdot{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:#fff;border:0.5px solid #E5E5E5;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08);z-index:10;font-size:14px;color:#666;letter-spacing:1px}
+        .tdot{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid #C9C1B8;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:1;transition:background 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08);z-index:10;font-size:14px;color:#333;letter-spacing:1px}
         .pcard:hover .tdot{opacity:1}
         .tdot:hover{background:#F5F5F5}
         .dmenu{position:absolute;top:40px;right:8px;background:#fff;border:0.5px solid #E5E5E5;border-radius:8px;padding:4px 0;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200}
