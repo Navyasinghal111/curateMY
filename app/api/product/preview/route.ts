@@ -132,15 +132,58 @@ function jsonLdImages(image: unknown): string[] {
     .filter((x): x is string => typeof x === 'string' && x.length > 0)
 }
 
+function priceText(value: unknown): string {
+  if (typeof value === 'number') return String(value)
+  if (typeof value === 'string') return value
+  if (value && typeof value === 'object') {
+    const object = value as Record<string, unknown>
+    return priceText(object.price ?? object.value ?? object.amount)
+  }
+  return ''
+}
+
 function jsonLdOffer(offers: unknown): { price: string; outOfStock: boolean } {
   if (!offers) return { price: '', outOfStock: false }
-  const offer = (Array.isArray(offers) ? offers[0] : offers) as Record<string, unknown>
-  const availability = String(offer?.availability ?? '')
-  const outOfStock = /outofstock|soldout|discontinued/i.test(availability)
-  if (outOfStock) return { price: '', outOfStock: true }
-  const priceSpec = offer?.priceSpecification as Record<string, unknown> | undefined
-  const priceRaw = offer?.price ?? priceSpec?.price ?? ''
-  return { price: String(priceRaw ?? ''), outOfStock: false }
+  const offerList = Array.isArray(offers) ? offers : [offers]
+  const candidates: { price: string; rank: number }[] = []
+  let sawOutOfStock = false
+
+  for (const value of offerList) {
+    if (!value || typeof value !== 'object') continue
+    const offer = value as Record<string, unknown>
+    const availability = String(offer.availability ?? '')
+    if (/outofstock|soldout|discontinued/i.test(availability)) {
+      sawOutOfStock = true
+      continue
+    }
+
+    const add = (raw: unknown, rank: number) => {
+      const price = priceText(raw)
+      if (price) candidates.push({ price, rank })
+    }
+
+    add(offer.price, 100)
+    add(offer.lowPrice, 98)
+
+    const specifications = Array.isArray(offer.priceSpecification)
+      ? offer.priceSpecification
+      : offer.priceSpecification ? [offer.priceSpecification] : []
+    for (const specification of specifications) {
+      if (!specification || typeof specification !== 'object') continue
+      const spec = specification as Record<string, unknown>
+      const priceType = String(spec.priceType ?? '').toLowerCase()
+      const rank = /sale|discount|current|offer|selling/i.test(priceType)
+        ? 120
+        : /list|mrp|original|regular/i.test(priceType) ? 75 : 95
+      add(spec.price ?? spec.value, rank)
+    }
+
+    add(offer.salePrice ?? offer.sellingPrice ?? offer.discountedPrice ?? offer.currentPrice ?? offer.offerPrice, 115)
+    add(offer.mrp ?? offer.listPrice ?? offer.originalPrice, 70)
+  }
+
+  candidates.sort((left, right) => right.rank - left.rank)
+  return { price: candidates[0]?.price ?? '', outOfStock: !candidates.length && sawOutOfStock }
 }
 
 // ── Image validation — reject tracking pixels, logos, placeholders,
@@ -251,7 +294,8 @@ function extractSiteSpecific(html: string, domain: string) {
   const price = g(html, [
     ...(is('amazon') ? [/class="[^"]*a-price-whole[^"]*"[^>]*>([0-9,]+)/] : []),
     ...(is('flipkart') ? [/class="[^"]*_30jeq3[^"]*"[^>]*>([0-9,]+)/] : []),
-    /"(?:price|offer_price|discounted_price|discountedPrice|selling_price|mrp)":[\s"]*([0-9,]+)/,
+    /"(?:price|offer_price|discounted_price|discountedPrice|selling_price|sellingPrice|salePrice|currentPrice|offerPrice|finalPrice|mrp)":[\s"]*["']?([0-9,]+(?:\.[0-9]+)?)/i,
+    /(?:data-)?(?:sale-price|selling-price|discounted-price|current-price|offer-price|final-price|price)=["'][^0-9]*([0-9,]+(?:\.[0-9]+)?)/i,
     /class="[^"]*price[^"]*"[^>]*>\s*[^0-9]*([0-9,]+)/,
   ])
   const image = g(html, [
@@ -281,7 +325,10 @@ function extract(html: string, domain: string, parsed: URL) {
   let title = String(ld?.name ?? '') || ogTitle || metaTitle || ''
   let brand = jsonLdBrand(ld?.brand) || ogSiteName || ''
   const { price: ldPrice, outOfStock } = jsonLdOffer(ld?.offers)
-  let rawPrice = ldPrice || (outOfStock ? '' : ogPrice)
+  let rawPrice = ldPrice || (outOfStock ? '' : ogPrice) || g(html, [
+    /itemprop=["']price["'][^>]*content=["']([^"']+)["']/i,
+    /content=["']([^"']+)["'][^>]*itemprop=["']price["']/i,
+  ])
   const site = extractSiteSpecific(html, domain)
 
   // Retail pages commonly expose several image versions. Collect them all,
@@ -501,7 +548,7 @@ export async function POST(req: NextRequest) {
     // not failures: the client fills what it has and asks the creator
     // to complete the rest, rather than discarding a good result.
     const warnings: string[] = []
-    if (!price) warnings.push('Price unavailable — enter manually.')
+    if (!price) warnings.push('Current price unavailable — enter the sale price manually.')
     if (!raw.image) warnings.push('Product image unavailable — add it manually.')
 
     return NextResponse.json({
