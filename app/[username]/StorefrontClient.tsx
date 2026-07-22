@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { CATEGORY_SUBCATEGORIES, matchesProductCategory, STORE_CATEGORIES } from '@/lib/productCategories'
 
-type Product = { id: string; title: string; brand: string; price: string; image: string; url: string; category: string; description?: string }
+type Product = { id: string; title: string; brand: string; price: string; priceOriginal?: string | null; image: string; url: string; category: string; description?: string }
 type Creator = { id: string; username: string; display_name: string; avatar_url?: string; city?: string; bio?: string; instagram_handle?: string; instagram_verified?: boolean; primary_platform?: string; primary_followers?: number }
 
 function formatFollowers(n?: number) {
@@ -155,7 +155,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .ccurator span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .cbrand{font-size:9px;letter-spacing:0.04em;color:#756e66;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .ctitle{font-size:14px;font-weight:500;color:#1a1a1a;line-height:1.35;margin-bottom:7px;height:2.7em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-        .cprice{font-family:'Cormorant Garamond',serif;font-size:18px;color:#8a847c;margin-top:auto}
+        .cprice{font-family:'Cormorant Garamond',serif;font-size:18px;color:#1a1a1a;margin-top:auto}
+        .cprice-original{margin-left:8px;color:#a39b92;text-decoration:line-through;text-decoration-thickness:1px}
 
         /* ── Search input ── */
         .search-input{height:40px;padding:0 16px;border:1px solid rgba(26,26,26,0.14);border-radius:999px;background:#fff;font-size:12px;outline:none;color:#1a1a1a;font-family:inherit;letter-spacing:0.01em}
@@ -319,7 +320,13 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           </div>
         ) : (
           <div className="grid">
-            {filtered.map(p => (
+            {filtered.map(p => {
+              const currentAmount = Number.parseFloat((p.price || '').replace(/[^0-9.]/g, ''))
+              const originalAmount = Number.parseFloat((p.priceOriginal || '').replace(/[^0-9.]/g, ''))
+              const hasDiscount = Boolean(p.priceOriginal && p.priceOriginal !== p.price && (
+                !Number.isFinite(currentAmount) || !Number.isFinite(originalAmount) || originalAmount > currentAmount
+              ))
+              return (
               <div key={p.id} className="card">
                 <a href={`/product/${p.id}`} className="card-detail-link">
                   <div className="cimg">
@@ -339,7 +346,10 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                     </div>
                     <p className="cbrand">{p.brand} <span aria-hidden="true">•</span> {p.category}</p>
                     <p className="ctitle">{p.title}</p>
-                    <p className="cprice">{p.price}</p>
+                    <p className="cprice">
+                      <span>{p.price}</span>
+                      {hasDiscount && <span className="cprice-original">{p.priceOriginal}</span>}
+                    </p>
                   </div>
                 </a>
                 <button
@@ -352,7 +362,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                   {savedIds.has(p.id) ? '★' : '☆'}
                 </button>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

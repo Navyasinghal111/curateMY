@@ -52,7 +52,7 @@ export default async function StorefrontPage({ params }: Props) {
 
   const { data: products } = await supabase
     .from('storefront_products')
-    .select('id, title, brand, price, image_url, product_url, category, description')
+    .select('id, title, brand, price, price_original, image_url, product_url, category, description')
     .eq('creator_id', creator.id)
     .eq('active', true)
     .order('created_at', { ascending: false })
@@ -65,7 +65,7 @@ export default async function StorefrontPage({ params }: Props) {
       creator={creator}
       initialProducts={(products ?? []).map(p => ({
         id: p.id, title: p.title, brand: p.brand,
-        price: p.price, image: p.image_url,
+        price: p.price, priceOriginal: p.price_original, image: p.image_url,
         url: p.product_url, category: p.category,
         description: p.description,
       }))}

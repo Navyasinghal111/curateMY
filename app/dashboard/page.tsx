@@ -148,6 +148,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const [name,     setName]     = useState('')
   const [brand,    setBrand]    = useState('')
   const [price,    setPrice]    = useState('')
+  const [originalPrice, setOriginalPrice] = useState('')
   const [cat,      setCat]      = useState(normalizeProductCategory('SKINCARE'))
   const [shopLink, setShopLink] = useState('')
   const [notes,    setNotes]    = useState('')
@@ -173,7 +174,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     // successful fill. The pasted URL itself (the `url` field) is
     // deliberately left untouched. Re-run on every failure path below too,
     // so a partial response can never leave old price/category behind.
-    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setImg(''); setPreview(''); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat(normalizeProductCategory('SKINCARE')) }
+    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setOriginalPrice(''); setImg(''); setPreview(''); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat(normalizeProductCategory('SKINCARE')) }
     clearFields()
     setMsg({ text:'Fetching product…', type:'info' })
     try {
@@ -183,6 +184,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       if (d.title)    setName(d.title)
       if (d.brand)    setBrand(d.brand)
       if (d.price)    setPrice(d.price.replace(/[₹$£€]/g,''))
+      if (d.originalPrice) setOriginalPrice(d.originalPrice.replace(/[₹$£€]/g,''))
       if (d.image)    { setImg(d.image); setPreview(d.image) }
       if (d.url)      setShopLink(d.url)
       if (d.category) setCat(normalizeProductCategory(d.category))
@@ -220,6 +222,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
       creator_id: user.id, title: name.trim(), brand: brand.trim(),
       price: price ? `₹${price}` : '', image_url: finalImg,
+      price_original: originalPrice ? `₹${originalPrice}` : null,
       price_current: price ? `₹${price}` : null,
       price_status: 'manual', price_checked_at: null,
       product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
@@ -304,6 +307,7 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
       product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
       description: notes.trim(),
       ...(priceChanged ? {
+        price_original: null,
         price_current: nextPrice || null,
         price_status: 'manual',
         price_checked_at: null,

@@ -37,8 +37,9 @@ async function refreshProduct(
       cache: 'no-store',
       signal: AbortSignal.timeout(30000),
     })
-    const payload = await response.json().catch(() => null) as { price?: unknown } | null
+    const payload = await response.json().catch(() => null) as { price?: unknown; originalPrice?: unknown } | null
     const currentPrice = typeof payload?.price === 'string' ? payload.price.trim() : ''
+    const originalPrice = typeof payload?.originalPrice === 'string' ? payload.originalPrice.trim() : ''
 
     if (!response.ok || !currentPrice) {
       const { error } = await supabase
@@ -53,6 +54,7 @@ async function refreshProduct(
       .update({
         price: currentPrice,
         price_current: currentPrice,
+        price_original: originalPrice || null,
         price_status: 'fresh',
         price_checked_at: checkedAt,
       })

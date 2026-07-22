@@ -142,10 +142,11 @@ function priceText(value: unknown): string {
   return ''
 }
 
-function jsonLdOffer(offers: unknown): { price: string; outOfStock: boolean } {
-  if (!offers) return { price: '', outOfStock: false }
+function jsonLdOffer(offers: unknown): { price: string; originalPrice: string; outOfStock: boolean } {
+  if (!offers) return { price: '', originalPrice: '', outOfStock: false }
   const offerList = Array.isArray(offers) ? offers : [offers]
   const candidates: { price: string; rank: number }[] = []
+  const originalCandidates: { price: string; rank: number }[] = []
   let sawOutOfStock = false
 
   for (const value of offerList) {
@@ -161,6 +162,10 @@ function jsonLdOffer(offers: unknown): { price: string; outOfStock: boolean } {
       const price = priceText(raw)
       if (price) candidates.push({ price, rank })
     }
+    const addOriginal = (raw: unknown, rank: number) => {
+      const price = priceText(raw)
+      if (price) originalCandidates.push({ price, rank })
+    }
 
     add(offer.price, 100)
     add(offer.lowPrice, 98)
@@ -172,18 +177,25 @@ function jsonLdOffer(offers: unknown): { price: string; outOfStock: boolean } {
       if (!specification || typeof specification !== 'object') continue
       const spec = specification as Record<string, unknown>
       const priceType = String(spec.priceType ?? '').toLowerCase()
-      const rank = /sale|discount|current|offer|selling/i.test(priceType)
-        ? 120
-        : /list|mrp|original|regular/i.test(priceType) ? 75 : 95
-      add(spec.price ?? spec.value, rank)
+      if (/list|mrp|original|regular/i.test(priceType)) {
+        addOriginal(spec.price ?? spec.value, 100)
+      } else {
+        const rank = /sale|discount|current|offer|selling/i.test(priceType) ? 120 : 95
+        add(spec.price ?? spec.value, rank)
+      }
     }
 
     add(offer.salePrice ?? offer.sellingPrice ?? offer.discountedPrice ?? offer.currentPrice ?? offer.offerPrice, 115)
-    add(offer.mrp ?? offer.listPrice ?? offer.originalPrice, 70)
+    addOriginal(offer.mrp ?? offer.listPrice ?? offer.originalPrice, 100)
   }
 
   candidates.sort((left, right) => right.rank - left.rank)
-  return { price: candidates[0]?.price ?? '', outOfStock: !candidates.length && sawOutOfStock }
+  originalCandidates.sort((left, right) => right.rank - left.rank)
+  return {
+    price: candidates[0]?.price ?? '',
+    originalPrice: originalCandidates[0]?.price ?? '',
+    outOfStock: !candidates.length && sawOutOfStock,
+  }
 }
 
 function explicitCurrentPrice(html: string): string {
@@ -191,6 +203,14 @@ function explicitCurrentPrice(html: string): string {
     /"(?:salePrice|sellingPrice|discountedPrice|discountPrice|currentPrice|offerPrice|finalPrice|effectivePrice)"\s*:\s*["']?([0-9,]+(?:\.[0-9]+)?)/i,
     /(?:data-)?(?:sale|selling|discounted|current|offer|final|effective)[-_ ]?price[^>]*>\s*[^0-9]*([0-9,]+(?:\.[0-9]+)?)/i,
     /class=["'][^"']*(?:sale|selling|discounted|current|offer|final|effective)[^"']*price[^"']*["'][^>]*>\s*[^0-9]*([0-9,]+(?:\.[0-9]+)?)/i,
+  ])
+}
+
+function explicitOriginalPrice(html: string): string {
+  return g(html, [
+    /"(?:mrp|listPrice|originalPrice|regularPrice|wasPrice)"\s*:\s*["']?([0-9,]+(?:\.[0-9]+)?)/i,
+    /(?:data-)?(?:mrp|list|original|regular|was)[-_ ]?price[^>]*>\s*[^0-9]*([0-9,]+(?:\.[0-9]+)?)/i,
+    /class=["'][^"']*(?:mrp|list|original|regular|was)[^"']*price[^"']*["'][^>]*>\s*[^0-9]*([0-9,]+(?:\.[0-9]+)?)/i,
   ])
 }
 
@@ -332,8 +352,9 @@ function extract(html: string, domain: string, parsed: URL) {
 
   let title = String(ld?.name ?? '') || ogTitle || metaTitle || ''
   let brand = jsonLdBrand(ld?.brand) || ogSiteName || ''
-  const { price: ldPrice, outOfStock } = jsonLdOffer(ld?.offers)
+  const { price: ldPrice, originalPrice: ldOriginalPrice, outOfStock } = jsonLdOffer(ld?.offers)
   const currentPrice = explicitCurrentPrice(html)
+  const originalPrice = explicitOriginalPrice(html) || ldOriginalPrice
   let rawPrice = currentPrice || ldPrice || (outOfStock ? '' : ogPrice) || g(html, [
     /itemprop=["']price["'][^>]*content=["']([^"']+)["']/i,
     /content=["']([^"']+)["'][^>]*itemprop=["']price["']/i,
@@ -365,6 +386,7 @@ function extract(html: string, domain: string, parsed: URL) {
     title: cleanTitle(title),
     brand: decodeEntities(brand),
     rawPrice,
+    rawOriginalPrice: originalPrice,
     outOfStock,
     image,
     canonicalUrl: (typeof ld?.url === 'string' ? ld.url : '') || ogUrl || undefined,
@@ -541,8 +563,10 @@ export async function POST(req: NextRequest) {
     }
 
     const priceNum = cleanPrice(raw.rawPrice || '')
+    const originalPriceNum = cleanPrice(raw.rawOriginalPrice || '')
     const isIndian = domain.endsWith('.in') || ['nykaa','myntra','flipkart','ajio','meesho','tirabeauty'].some(s => domain.includes(s))
     const price = priceNum ? `${isIndian ? '₹' : '$'}${priceNum}` : ''
+    const originalPrice = originalPriceNum ? `${isIndian ? '₹' : '$'}${originalPriceNum}` : ''
 
     const description = decodeEntities(g(fetched.html, [
       /property="og:description"[\s\S]{0,20}content="([^"]+)"/i,
@@ -561,7 +585,7 @@ export async function POST(req: NextRequest) {
     if (!raw.image) warnings.push('Product image unavailable — add it manually.')
 
     return NextResponse.json({
-      title: raw.title, description, image: raw.image, price, brand: raw.brand,
+      title: raw.title, description, image: raw.image, price, originalPrice, brand: raw.brand,
       category, url: parsed.href, domain, warnings,
       diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'OK', attemptLog),
     })
