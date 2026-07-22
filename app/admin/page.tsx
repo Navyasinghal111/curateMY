@@ -14,6 +14,7 @@ const MUTED2 = '#9B9B9B'
 const BORDER = '#E5E5E5'
 const SERIF  = "'Cormorant Garamond', 'Fanwood Text', Georgia, serif"
 const SANS   = "'DM Sans', sans-serif"
+const LAST_APPLICATION_CHECK_KEY = 'curatekin.admin.lastApplicationCheckAt'
 
 type Creator = {
   id: string
@@ -121,6 +122,7 @@ export default function AdminPage() {
   const [toast, setToast]           = useState('')
   const [toastErr, setToastErr]     = useState(false)
   const [access, setAccess]         = useState<'checking'|'denied'|'ok'>('checking')
+  const [newApplicationIds, setNewApplicationIds] = useState<Set<string>>(new Set())
   const supabase = createClient()
   const router   = useRouter()
 
@@ -159,6 +161,14 @@ export default function AdminPage() {
       }
     })
     const legacyCreators = ((profiles as unknown as Creator[]) ?? []).filter(profile => !reviewedUserIds.has(profile.id))
+    const lastCheckedAt = window.localStorage.getItem(LAST_APPLICATION_CHECK_KEY)
+    if (lastCheckedAt) {
+      const sinceLastCheck = applicationCreators
+        .filter(creator => creator.applicationId && new Date(creator.created_at).getTime() > new Date(lastCheckedAt).getTime())
+        .map(creator => creator.applicationId as string)
+      setNewApplicationIds(new Set(sinceLastCheck))
+    }
+    window.localStorage.setItem(LAST_APPLICATION_CHECK_KEY, new Date().toISOString())
     setCreators([...applicationCreators, ...legacyCreators])
     setLoading(false)
   }
@@ -182,6 +192,12 @@ export default function AdminPage() {
     approved: creators.filter(c => c.status === 'approved').length,
     rejected: creators.filter(c => c.status === 'rejected').length,
   }
+
+  const newPendingCount = creators.filter(creator => creator.status === 'pending' && creator.applicationId && newApplicationIds.has(creator.applicationId)).length
+
+  useEffect(() => {
+    document.title = newPendingCount > 0 ? `(${newPendingCount}) New creator application${newPendingCount === 1 ? '' : 's'} | CurateKin` : 'Creator review | CurateKin'
+  }, [newPendingCount])
 
   const q = search.trim().toLowerCase()
   const filtered = creators
@@ -320,6 +336,11 @@ export default function AdminPage() {
 <span style={{ fontFamily:'Cormorant Garamond, Georgia, serif', fontStyle:'italic', fontWeight:400, whiteSpace:'nowrap' }}><span><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>C</span>urate</span><span style={{ color:GOLD }}><span style={{ display:'inline-block', fontSize:'1.18em', lineHeight:.8 }}>K</span>in</span></span>
             </span>
             <span style={{ fontSize:11, letterSpacing:'0.14em', color:MUTED2, textTransform:'uppercase' }}>Creator review</span>
+            {newPendingCount > 0 && (
+              <span style={{ padding:'4px 7px', borderRadius:99, background:'#FAF0E6', color:GOLD, fontSize:10, fontWeight:600, letterSpacing:'0.06em', textTransform:'uppercase' }}>
+                {newPendingCount} new
+              </span>
+            )}
           </div>
           <Link href="/dashboard" style={{ fontSize:13, color:MUTED, textDecoration:'none' }}>← Back to dashboard</Link>
         </div>
@@ -335,6 +356,7 @@ export default function AdminPage() {
                     style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px 8px', background: filter===s ? INK : '#fff', border:`1px solid ${filter===s ? INK : BORDER}`, borderRadius:8, cursor:'pointer', color: filter===s ? '#fff' : MUTED, fontSize:12, fontFamily:'inherit', textTransform:'capitalize' }}>
                     {s}
                     <span style={{ fontSize:10, opacity:0.7 }}>{counts[s]}</span>
+                    {s === 'pending' && newPendingCount > 0 && <span aria-label={`${newPendingCount} new applications`} style={{ width:6, height:6, borderRadius:'50%', background: filter===s ? '#fff' : GOLD }} />}
                   </button>
                 ))}
               </div>
@@ -356,12 +378,13 @@ export default function AdminPage() {
                 <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                   {filtered.map(c => {
                     const isSelected = selected?.id === c.id
+                    const isNew = Boolean(c.applicationId && newApplicationIds.has(c.applicationId))
                     return (
                       <button key={c.id} onClick={() => { setSelected(c); setNotes('') }}
                         style={{ textAlign:'left', width:'100%', background: isSelected ? '#FAF7F2' : '#fff', border:`1px solid ${isSelected ? GOLD : BORDER}`, borderRadius:10, padding:'14px 16px', cursor:'pointer', fontFamily:'inherit' }}>
                         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
                           <span style={{ fontSize:14, fontWeight:500, color:INK }}>{c.display_name || 'Not provided'}</span>
-                          <span style={{ fontSize:10, letterSpacing:'0.06em', textTransform:'uppercase', color: c.status==='approved' ? GOLD : c.status==='rejected' ? '#C0392B' : MUTED2 }}>{c.status}</span>
+                          <span style={{ fontSize:10, letterSpacing:'0.06em', textTransform:'uppercase', color: isNew ? GOLD : c.status==='approved' ? GOLD : c.status==='rejected' ? '#C0392B' : MUTED2 }}>{isNew ? 'new' : c.status}</span>
                         </div>
                         <p style={{ fontSize:12, color:MUTED, marginBottom:6 }}>
                           {c.username ? `@${c.username}` : 'No username yet'}
