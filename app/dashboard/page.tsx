@@ -220,6 +220,8 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     const { data, error: dbErr } = await supabase.from('storefront_products').insert({
       creator_id: user.id, title: name.trim(), brand: brand.trim(),
       price: price ? `₹${price}` : '', image_url: finalImg,
+      price_current: price ? `₹${price}` : null,
+      price_status: 'manual', price_checked_at: null,
       product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
       description: notes.trim(), active: true,
     }).select().single()
@@ -294,11 +296,18 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
         }
       }
     }
+    const nextPrice = price ? `₹${price}` : ''
+    const priceChanged = nextPrice !== (product.price || '')
     const updates = {
       title: name.trim(), brand: brand.trim(),
-      price: price ? `₹${price}` : '', image_url: finalImg,
+      price: nextPrice, image_url: finalImg,
       product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
       description: notes.trim(),
+      ...(priceChanged ? {
+        price_current: nextPrice || null,
+        price_status: 'manual',
+        price_checked_at: null,
+      } : {}),
     }
     const { data: savedProduct, error: dbErr } = await supabase
       .from('storefront_products')
