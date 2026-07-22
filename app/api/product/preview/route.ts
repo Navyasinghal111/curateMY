@@ -186,6 +186,14 @@ function jsonLdOffer(offers: unknown): { price: string; outOfStock: boolean } {
   return { price: candidates[0]?.price ?? '', outOfStock: !candidates.length && sawOutOfStock }
 }
 
+function explicitCurrentPrice(html: string): string {
+  return g(html, [
+    /"(?:salePrice|sellingPrice|discountedPrice|discountPrice|currentPrice|offerPrice|finalPrice|effectivePrice)"\s*:\s*["']?([0-9,]+(?:\.[0-9]+)?)/i,
+    /(?:data-)?(?:sale|selling|discounted|current|offer|final|effective)[-_ ]?price[^>]*>\s*[^0-9]*([0-9,]+(?:\.[0-9]+)?)/i,
+    /class=["'][^"']*(?:sale|selling|discounted|current|offer|final|effective)[^"']*price[^"']*["'][^>]*>\s*[^0-9]*([0-9,]+(?:\.[0-9]+)?)/i,
+  ])
+}
+
 // ── Image validation — reject tracking pixels, logos, placeholders,
 // and loader graphics by their conventional naming, then resolve
 // whatever's left to an absolute URL relative to the product page. ────
@@ -325,7 +333,8 @@ function extract(html: string, domain: string, parsed: URL) {
   let title = String(ld?.name ?? '') || ogTitle || metaTitle || ''
   let brand = jsonLdBrand(ld?.brand) || ogSiteName || ''
   const { price: ldPrice, outOfStock } = jsonLdOffer(ld?.offers)
-  let rawPrice = ldPrice || (outOfStock ? '' : ogPrice) || g(html, [
+  const currentPrice = explicitCurrentPrice(html)
+  let rawPrice = currentPrice || ldPrice || (outOfStock ? '' : ogPrice) || g(html, [
     /itemprop=["']price["'][^>]*content=["']([^"']+)["']/i,
     /content=["']([^"']+)["'][^>]*itemprop=["']price["']/i,
   ])
