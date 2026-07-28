@@ -132,7 +132,7 @@ function ModalShell({ title, onClose, onSubmit, submitLabel, disabled, children 
         </div>
         {children}
         <div style={{ padding:'0 28px 20px' }}>
-          <button onClick={onSubmit} disabled={disabled} style={{ width:'100%', padding:'13px', background:'#0A0A0A', color:'#fff', border:'none', fontSize:12, letterSpacing:'0.1em', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: disabled ? 0.6 : 1 }}>
+          <button type="button" onClick={onSubmit} disabled={disabled} style={{ width:'100%', padding:'13px', background:'#0A0A0A', color:'#fff', border:'none', fontSize:12, letterSpacing:'0.1em', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: disabled ? 0.6 : 1 }}>
             {submitLabel}
           </button>
         </div>
@@ -159,6 +159,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   const [scraping, setScraping] = useState(false)
   const [msg,      setMsg]      = useState<{text:string;type:'ok'|'err'|'warn'|'info'}>()
   const [error,    setError]    = useState('')
+  const saveInFlight = useRef(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const supabase = db()
 
@@ -198,16 +199,18 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
   }
 
   const save = async () => {
+    if (saveInFlight.current) return
+    saveInFlight.current = true
     const { data:{ user } } = await supabase.auth.getUser()
-    if (!user) { setError('Please log in.'); return }
-    if (!name.trim()) { setError('Please enter a product name'); return }
-    if (!price.trim()) { setError('Please enter a price'); return }
+    if (!user) { saveInFlight.current = false; setError('Please log in.'); return }
+    if (!name.trim()) { saveInFlight.current = false; setError('Please enter a product name'); return }
+    if (!price.trim()) { saveInFlight.current = false; setError('Please enter a price'); return }
     setLoading(true); setError('')
     let finalImg = img.trim()
     try {
       if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
     }
-    catch { setError('Image upload failed'); setLoading(false); return }
+    catch { saveInFlight.current = false; setError('Image upload failed'); setLoading(false); return }
     if (finalImg) {
       try {
         const crop = await fetch('/api/product/crop', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ imageUrl:finalImg, ...framing }) })
@@ -228,8 +231,9 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       product_url: shopLink.trim(), category: cat.toUpperCase().replace(/ & /g,' & '),
       description: notes.trim(), active: true,
     }).select().single()
-    if (dbErr) { setError(dbErr.message); setLoading(false); return }
+    if (dbErr) { saveInFlight.current = false; setError(dbErr.message); setLoading(false); return }
     logEvent(supabase, 'dashboard_product_add', { creatorId: user.id, productId: data.id })
+    saveInFlight.current = false
     onAdd(data); onClose()
   }
 
@@ -264,21 +268,24 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
   const [framing,  setFraming]  = useState<Framing>(DEFAULT_FRAMING)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
+  const saveInFlight = useRef(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const supabase = db()
 
   useEffect(() => { if (img && !imgFile) setPreview(img) }, [img])
 
   const save = async () => {
+    if (saveInFlight.current) return
+    saveInFlight.current = true
     const { data:{ user } } = await supabase.auth.getUser()
-    if (!user) { setError('Please log in.'); return }
-    if (!name.trim()) { setError('Please enter a product name'); return }
+    if (!user) { saveInFlight.current = false; setError('Please log in.'); return }
+    if (!name.trim()) { saveInFlight.current = false; setError('Please enter a product name'); return }
     setLoading(true); setError('')
     let finalImg = img.trim()
     try {
       if (imgFile) finalImg = await uploadImage(supabase, user.id, imgFile, 'product-images')
     }
-    catch { setError('Image upload failed'); setLoading(false); return }
+    catch { saveInFlight.current = false; setError('Image upload failed'); setLoading(false); return }
     const imageChanged = finalImg !== (product.image_url || '')
     const framingChanged = framing.zoom !== DEFAULT_FRAMING.zoom || framing.x !== DEFAULT_FRAMING.x || framing.y !== DEFAULT_FRAMING.y
     if (finalImg && (imgFile || imageChanged || framingChanged)) {
@@ -320,8 +327,9 @@ function EditModal({ product, onClose, onSave }: { product:Product; onClose:()=>
       .eq('creator_id', user.id)
       .select()
       .single()
-    if (dbErr) { setError(dbErr.message); setLoading(false); return }
-    if (!savedProduct) { setError('We could not save this product. Please try again.'); setLoading(false); return }
+    if (dbErr) { saveInFlight.current = false; setError(dbErr.message); setLoading(false); return }
+    if (!savedProduct) { saveInFlight.current = false; setError('We could not save this product. Please try again.'); setLoading(false); return }
+    saveInFlight.current = false
     onSave(savedProduct); onClose()
   }
 
