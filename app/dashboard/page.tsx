@@ -9,7 +9,7 @@ import { CATEGORY_SUBCATEGORIES, matchesProductCategory, normalizeProductCategor
 const SERIF = 'Cormorant Garamond, serif'
 
 type Product = { id:string; title:string; brand:string; price:string; image_url:string; product_url:string; category:string; wishlisted?:boolean; description?:string }
-type Profile  = { name:string; username:string; avatar_url:string; followers:number }
+type Profile  = { name:string; username:string; avatar_url:string; followers:number; bio:string }
 
 const db  = () => createClient()
 const INP: React.CSSProperties = { width:'100%', padding:'10px 12px', border:'1px solid #E0DCD6', fontSize:13, outline:'none', fontFamily:'inherit', color:'#1a1a1a', background:'#fff' }
@@ -344,7 +344,8 @@ export default function DashboardHome() {
   const [modal,           setModal]           = useState(false)
   const [editProduct,     setEditProduct]     = useState<Product|null>(null)
   const [openMenu,        setOpenMenu]        = useState<string|null>(null)
-  const [profile,         setProfile]         = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0 })
+  const [profile,         setProfile]         = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0, bio:'' })
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [categoryPinned,  setCategoryPinned]  = useState(false)
   const categoryRailRef = useRef<HTMLDivElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -363,6 +364,7 @@ export default function DashboardHome() {
     const load = async () => {
       const { data:{ user } } = await supabase.auth.getUser()
       if (!user) return
+      setIsAuthenticated(true)
       const { data } = await supabase.from('storefront_products').select('*').eq('creator_id', user.id).eq('active', true).order('created_at', { ascending:false })
       setProducts(data ?? [])
     }
@@ -373,17 +375,19 @@ export default function DashboardHome() {
     const load = async () => {
       const { data:{ user } } = await supabase.auth.getUser()
       if (!user) return
+      setIsAuthenticated(true)
       const fallback = {
         name:     (user.user_metadata?.full_name as string) || user.email?.split('@')[0] || 'Creator',
         username: (user.user_metadata?.username  as string) || user.email?.split('@')[0] || '',
         avatar:   (user.user_metadata?.avatar_url as string) || '',
       }
-      const { data } = await supabase.from('profiles').select('display_name, username, avatar_url').eq('id', user.id).maybeSingle()
+      const { data } = await supabase.from('profiles').select('display_name, username, avatar_url, bio').eq('id', user.id).maybeSingle()
       setProfile({
         name:       data?.display_name || fallback.name,
         username:   data?.username     || fallback.username,
         avatar_url: data?.avatar_url   || fallback.avatar,
         followers:  0,
+        bio:        data?.bio          || '',
       })
     }
     load()
@@ -435,6 +439,35 @@ export default function DashboardHome() {
   }, [tab])
 
   const totalValue = products.reduce((s,p) => s + (parseFloat(p.price?.replace(/[^0-9.]/g,'')||'0')||0), 0)
+  const noteCount = products.filter(product => product.description?.trim()).length
+  const launchSteps = [
+    {
+      label: 'Complete your profile',
+      detail: 'Add a photo, bio, and storefront handle.',
+      done: Boolean(profile.avatar_url && profile.bio.trim() && profile.username.trim()),
+      action: 'Open settings',
+      onClick: () => { window.location.href = '/dashboard/settings' },
+    },
+    {
+      label: 'Add five pieces',
+      detail: 'Give shoppers enough of your taste to start browsing.',
+      done: products.length >= 5,
+      action: 'Add piece',
+      onClick: () => setModal(true),
+    },
+    {
+      label: 'Write three curator notes',
+      detail: 'Tell shoppers why each recommendation earns its place.',
+      done: noteCount >= 3,
+      action: 'Add a note',
+      onClick: () => {
+        const productWithoutNote = products.find(product => !product.description?.trim())
+        if (productWithoutNote) setEditProduct(productWithoutNote)
+        else setModal(true)
+      },
+    },
+  ]
+  const completedLaunchSteps = launchSteps.filter(step => step.done).length
 
   const toggleWish = async (id:string) => {
     const p = products.find(x => x.id===id); if (!p) return
@@ -489,6 +522,10 @@ export default function DashboardHome() {
         .dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
         .dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
         .dash-actions{display:flex;align-items:center;gap:24px}
+        .launch-card{background:#fff;border:0.5px solid #E8E4DC;padding:22px 24px;margin:28px 0 30px;max-width:900px}
+        .launch-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+        .launch-step{display:flex;align-items:flex-start;gap:10px;min-width:0}
+        .launch-step-action{border:0;background:none;color:#8F1D2C;font:inherit;font-size:11px;padding:0;text-decoration:underline;cursor:pointer}
         .product-form{min-height:0}
 
         @media (max-width: 900px) {
@@ -503,6 +540,8 @@ export default function DashboardHome() {
           .dash-grid{grid-template-columns:repeat(2,1fr) !important;gap:10px !important}
           .dash-topbar{flex-direction:column !important;align-items:flex-start !important;gap:16px !important}
           .dash-actions{width:100% !important;justify-content:space-between !important;flex-wrap:wrap !important;gap:12px !important}
+          .launch-card{margin:22px 0;padding:18px}
+          .launch-steps{grid-template-columns:1fr;gap:14px}
           .dash-stat-n{font-size:20px !important}
           .product-form{padding:20px !important;gap:20px !important}
           .product-form-media{width:184px !important}
@@ -553,6 +592,32 @@ export default function DashboardHome() {
           </div>
         )}
       </div>
+
+      {isAuthenticated && completedLaunchSteps < launchSteps.length && (
+        <section className="launch-card" aria-labelledby="launch-checklist-title" style={{ marginLeft:32, marginRight:32 }}>
+          <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
+            <div>
+              <p style={{ fontSize:10, letterSpacing:'0.14em', color:'#B07D4A', textTransform:'uppercase', marginBottom:6 }}>Your storefront launch</p>
+              <h2 id="launch-checklist-title" style={{ ...S, fontSize:27, lineHeight:1.1 }}>Make your taste easy to trust.</h2>
+            </div>
+            <p style={{ fontSize:12, color:'#8C867E' }}>{completedLaunchSteps} of {launchSteps.length} complete</p>
+          </div>
+          <div style={{ height:3, background:'#EEEAE4', marginTop:16, overflow:'hidden' }}>
+            <div style={{ width:`${(completedLaunchSteps / launchSteps.length) * 100}%`, height:'100%', background:'#B07D4A', transition:'width 0.2s' }} />
+          </div>
+          <div className="launch-steps">
+            {launchSteps.map(step => (
+              <div className="launch-step" key={step.label}>
+                <span aria-hidden="true" style={{ width:20, height:20, borderRadius:'50%', border:`1px solid ${step.done ? '#B07D4A' : '#C9C1B8'}`, background:step.done ? '#B07D4A' : '#fff', color:step.done ? '#fff' : '#9B9B9B', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:11, flexShrink:0 }}>{step.done ? '✓' : ''}</span>
+                <div style={{ minWidth:0 }}>
+                  <p style={{ fontSize:12, color:step.done ? '#8C867E' : '#141210', textDecoration:step.done ? 'line-through' : 'none', marginBottom:4 }}>{step.label}</p>
+                  {!step.done && <><p style={{ fontSize:11, color:'#8C867E', lineHeight:1.45, marginBottom:5 }}>{step.detail}</p><button type="button" className="launch-step-action" onClick={step.onClick}>{step.action}</button></>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Content */}
       <div className="dash-content" style={{ background:'#fff', minHeight:'calc(100vh - 100px)', padding:'32px' }}>
