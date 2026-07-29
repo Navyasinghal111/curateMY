@@ -145,6 +145,7 @@ function ModalShell({ title, onClose, onSubmit, submitLabel, disabled, children 
 function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>void }) {
   const [url,      setUrl]      = useState('')
   const [img,      setImg]      = useState('')
+  const [imageOptions, setImageOptions] = useState<string[]>([])
   const [name,     setName]     = useState('')
   const [brand,    setBrand]    = useState('')
   const [price,    setPrice]    = useState('')
@@ -175,7 +176,7 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
     // successful fill. The pasted URL itself (the `url` field) is
     // deliberately left untouched. Re-run on every failure path below too,
     // so a partial response can never leave old price/category behind.
-    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setOriginalPrice(''); setImg(''); setPreview(''); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat(normalizeProductCategory('SKINCARE')) }
+    const clearFields = () => { setName(''); setBrand(''); setPrice(''); setOriginalPrice(''); setImg(''); setPreview(''); setImageOptions([]); setImgFile(null); setFraming(DEFAULT_FRAMING); setCat(normalizeProductCategory('SKINCARE')) }
     clearFields()
     setMsg({ text:'Fetching product…', type:'info' })
     try {
@@ -186,7 +187,9 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
       if (d.brand)    setBrand(d.brand)
       if (d.price)    setPrice(d.price.replace(/[₹$£€]/g,''))
       if (d.originalPrice) setOriginalPrice(d.originalPrice.replace(/[₹$£€]/g,''))
-      if (d.image)    { setImg(d.image); setPreview(d.image) }
+      const availableImages = [...new Set([d.image, ...(Array.isArray(d.images) ? d.images : [])].filter((image): image is string => typeof image === 'string' && image.trim().length > 0))].slice(0, 6)
+      setImageOptions(availableImages)
+      if (availableImages[0]) { setImg(availableImages[0]); setPreview(availableImages[0]) }
       if (d.url)      setShopLink(d.url)
       if (d.category) setCat(normalizeProductCategory(d.category))
       // A successful fetch can still be missing a field (e.g. an
@@ -249,6 +252,25 @@ function AddModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(p:Product)=>voi
         </button>
       </div>
       {msg && <p style={{ padding:'6px 28px 0', fontSize:11, color: msg.type==='ok' ? '#27ae60' : msg.type==='warn' ? '#b7791f' : msg.type==='info' ? '#888' : '#c0392b' }}>{msg.text}</p>}
+      {imageOptions.length > 1 && (
+        <div style={{ padding:'10px 28px 0' }}>
+          <p style={{ fontSize:10, letterSpacing:'0.08em', color:'#8C867E', marginBottom:8 }}>CHOOSE RETAILER IMAGE</p>
+          <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:2 }}>
+            {imageOptions.map((option, index) => (
+              <button
+                key={option}
+                type="button"
+                aria-label={`Use retailer image ${index + 1}`}
+                aria-pressed={img === option}
+                onClick={() => { setImg(option); setPreview(option); setImgFile(null); setFraming(DEFAULT_FRAMING) }}
+                style={{ width:58, height:58, flex:'0 0 58px', padding:4, border: img === option ? '2px solid #0A0A0A' : '1px solid #DDD8D0', background:'#fff', cursor:'pointer' }}
+              >
+                <img src={option} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:'center' }} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <ProductForm state={formState} set={formSet} fileRef={fileRef} framing={framing} onFramingChange={setFraming} />
     </ModalShell>
   )
@@ -508,13 +530,15 @@ export default function DashboardHome() {
         .makeup-subtab.on{background:#0A0A0A;border-color:#0A0A0A;color:#fff}
         .pcard{background:#fff;border:0.5px solid #E8E4DC;overflow:visible;transition:box-shadow 0.2s;position:relative}
         .pcard:hover{box-shadow:0 8px 28px rgba(0,0,0,0.09)}
-        .twish{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:#fff;border:1px solid #C9C1B8;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;font-size:20px;line-height:1;color:#7E756C;transition:background 0.15s,color 0.15s}
+        .pcard-actions{position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 18px 14px;min-height:42px}
+        .twish{width:30px;height:30px;border-radius:50%;background:transparent;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;line-height:1;color:#7E756C;transition:background 0.15s,color 0.15s}
         .twish:hover{background:#F5F5F5}
         .twish.active{color:#8F1D2C}
-        .tdot{position:absolute;top:46px;right:10px;width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid #C9C1B8;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:1;transition:background 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.08);z-index:10;font-size:14px;color:#333;letter-spacing:1px}
+        .pcard-menu{position:relative}
+        .tdot{height:30px;padding:0 10px;border-radius:0;background:#fff;border:1px solid #C9C1B8;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:1;transition:background 0.15s;font-size:10px;color:#333;letter-spacing:0.08em;font-family:inherit}
         .pcard:hover .tdot{opacity:1}
         .tdot:hover{background:#F5F5F5}
-        .dmenu{position:absolute;top:40px;right:8px;background:#fff;border:0.5px solid #E5E5E5;border-radius:8px;padding:4px 0;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200}
+        .dmenu{position:absolute;right:0;bottom:36px;background:#fff;border:0.5px solid #E5E5E5;border-radius:8px;padding:4px 0;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200}
         .ditem{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;color:#0A0A0A;cursor:pointer;background:none;border:none;width:100%;text-align:left;font-family:inherit}
         .ditem:hover{background:#F5F5F5}
         .ditem.red{color:#E53E3E}
@@ -658,16 +682,6 @@ export default function DashboardHome() {
           <div className="dash-grid" style={{ gap:0, background:'#fff' }}>
             {filtered.map(p => (
               <div key={p.id} className="pcard">
-                <button aria-label={p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'} aria-pressed={p.wishlisted || false} title={p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'} className={`twish${p.wishlisted ? ' active' : ''}`} onClick={e => { e.stopPropagation(); toggleWish(p.id) }}>{p.wishlisted ? '★' : '☆'}</button>
-                <button aria-label="More product actions" title="More product actions" className="tdot" onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===p.id ? null : p.id) }}>···</button>
-                {openMenu===p.id && (
-                  <div className="dmenu" onClick={e => e.stopPropagation()}>
-                    <button className="ditem" onClick={() => { setEditProduct(p); setOpenMenu(null) }}><i className="ti ti-edit" aria-hidden="true"></i>Edit product</button>
-                    <button className="ditem" onClick={() => { navigator.clipboard.writeText(`curatekin.com/r/${p.id}`); setOpenMenu(null) }}><i className="ti ti-link" aria-hidden="true"></i>Copy shop link</button>
-                    <button className="ditem" onClick={() => { toggleWish(p.id); setOpenMenu(null) }}><i className="ti ti-heart" aria-hidden="true"></i>{p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}</button>
-                    <button className="ditem red" onClick={() => { remove(p.id); setOpenMenu(null) }}><i className="ti ti-trash" aria-hidden="true"></i>Remove from shop</button>
-                  </div>
-                )}
                 <Link href={`/product/${p.id}`} style={{ display:'block', color:'inherit', textDecoration:'none' }}>
                   <div style={{ aspectRatio:'4/5', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', padding:12 }}>
                     {p.image_url
@@ -680,6 +694,20 @@ export default function DashboardHome() {
                     <p style={{ ...S, fontSize:18, marginTop:'auto' }}>{p.price}</p>
                   </div>
                 </Link>
+                <div className="pcard-actions">
+                  <button aria-label={p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'} aria-pressed={p.wishlisted || false} title={p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'} className={`twish${p.wishlisted ? ' active' : ''}`} onClick={() => toggleWish(p.id)}>{p.wishlisted ? '★' : '☆'}</button>
+                  <div className="pcard-menu">
+                    <button aria-label="Manage product" title="Manage product" className="tdot" onClick={() => setOpenMenu(openMenu===p.id ? null : p.id)}>MANAGE</button>
+                    {openMenu===p.id && (
+                      <div className="dmenu" onClick={e => e.stopPropagation()}>
+                        <button className="ditem" onClick={() => { setEditProduct(p); setOpenMenu(null) }}><i className="ti ti-edit" aria-hidden="true"></i>Edit product</button>
+                        <button className="ditem" onClick={() => { navigator.clipboard.writeText(`curatekin.com/r/${p.id}`); setOpenMenu(null) }}><i className="ti ti-link" aria-hidden="true"></i>Copy shop link</button>
+                        <button className="ditem" onClick={() => { toggleWish(p.id); setOpenMenu(null) }}><i className="ti ti-heart" aria-hidden="true"></i>{p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}</button>
+                        <button className="ditem red" onClick={() => { remove(p.id); setOpenMenu(null) }}><i className="ti ti-trash" aria-hidden="true"></i>Remove from shop</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>

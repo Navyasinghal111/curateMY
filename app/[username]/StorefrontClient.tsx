@@ -141,10 +141,11 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .card{position:relative;background:#fff;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;min-width:0}
         .card-detail-link{display:flex;flex:1;flex-direction:column;color:inherit;text-decoration:none}
         .card:hover .ctitle{text-decoration:underline;text-underline-offset:3px}
-        .cimg{aspect-ratio:4/5;background:#fff;position:relative;overflow:hidden}
+        .cimg{aspect-ratio:1/1;background:#fff;position:relative;overflow:hidden}
         .cimg-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-        .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;object-position:center;padding:12px}
-        .save-star{position:absolute;top:12px;right:12px;z-index:4;width:34px;height:34px;border:1px solid rgba(26,26,26,0.14);border-radius:50%;background:rgba(255,255,255,0.94);color:#8c867e;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color 0.15s,background 0.15s,transform 0.15s}
+        .cimg img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;object-position:center;padding:28px}
+        .card-action-row{height:38px;padding:0 18px 10px;display:flex;align-items:center;justify-content:flex-end}
+        .save-star{width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:#8c867e;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:color 0.15s,background 0.15s,transform 0.15s}
         .save-star:hover{background:#fff;color:#8B1A1A;transform:scale(1.04)}
         .save-star.saved{color:#8B1A1A}
         .cph{font-family:'Fanwood Text',serif;font-size:64px;font-style:italic;color:rgba(26,26,26,0.12)}
@@ -190,6 +191,8 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0 !important }
           .grid-wrap { padding: 0 0 60px !important }
           .cbody { padding: 12px 12px 14px !important; height: 144px !important }
+          .cimg img { padding: 20px !important }
+          .card-action-row { height: 34px; padding: 0 12px 8px !important }
           .ctitle { font-size: 12px !important }
           .cbrand { font-size: 8px !important }
           .cprice { font-size: 15px !important }
@@ -352,15 +355,17 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
                     </p>
                   </div>
                 </a>
-                <button
-                  type="button"
-                  className={`save-star${savedIds.has(p.id) ? ' saved' : ''}`}
-                  aria-label={savedIds.has(p.id) ? `Remove ${p.title} from wishlist` : `Save ${p.title} to wishlist`}
-                  aria-pressed={savedIds.has(p.id)}
-                  onClick={event => toggleSaved(event, p.id)}
-                >
-                  {savedIds.has(p.id) ? '★' : '☆'}
-                </button>
+                <div className="card-action-row">
+                  <button
+                    type="button"
+                    className={`save-star${savedIds.has(p.id) ? ' saved' : ''}`}
+                    aria-label={savedIds.has(p.id) ? `Remove ${p.title} from wishlist` : `Save ${p.title} to wishlist`}
+                    aria-pressed={savedIds.has(p.id)}
+                    onClick={event => toggleSaved(event, p.id)}
+                  >
+                    {savedIds.has(p.id) ? '★' : '☆'}
+                  </button>
+                </div>
               </div>
               )
             })}

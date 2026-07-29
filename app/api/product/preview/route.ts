@@ -382,13 +382,19 @@ function extract(html: string, domain: string, parsed: URL) {
 
   if (!brand) brand = domain.split('.')[0].replace(/^./, c => c.toUpperCase())
 
+  // Keep a short, ranked set for the creator to choose from. The first image
+  // remains the sensible default, while the form can now offer alternate
+  // retailer product shots without exposing an unbounded page scrape.
+  const images = [...new Set([image, ...rankedImages].filter((candidate): candidate is string => Boolean(candidate)))].slice(0, 6)
+
   return {
     title: cleanTitle(title),
     brand: decodeEntities(brand),
     rawPrice,
     rawOriginalPrice: originalPrice,
     outOfStock,
-    image,
+    image: images[0] ?? null,
+    images,
     canonicalUrl: (typeof ld?.url === 'string' ? ld.url : '') || ogUrl || undefined,
   }
 }
@@ -585,7 +591,7 @@ export async function POST(req: NextRequest) {
     if (!raw.image) warnings.push('Product image unavailable — add it manually.')
 
     return NextResponse.json({
-      title: raw.title, description, image: raw.image, price, originalPrice, brand: raw.brand,
+      title: raw.title, description, image: raw.image, images: raw.images, price, originalPrice, brand: raw.brand,
       category, url: parsed.href, domain, warnings,
       diagnostics: diagLog(domain, providerUsed, providerResponseStatus, 'OK', attemptLog),
     })
