@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { CATEGORY_SUBCATEGORIES, matchesProductCategory, STORE_CATEGORIES } from '@/lib/productCategories'
 
 type Product = { id: string; title: string; brand: string; price: string; priceOriginal?: string | null; image: string; url: string; category: string; description?: string }
+type Edit = { id: string; title: string; coverImage?: string | null; products: Product[] }
 type Creator = { id: string; username: string; display_name: string; avatar_url?: string; city?: string; bio?: string; instagram_handle?: string; instagram_verified?: boolean; primary_platform?: string; primary_followers?: number }
 
 function formatFollowers(n?: number) {
@@ -14,9 +15,11 @@ function formatFollowers(n?: number) {
   return String(n)
 }
 
-export default function StorefrontClient({ creator, initialProducts, isOwner }: { creator: Creator; initialProducts: Product[]; isOwner: boolean }) {
+export default function StorefrontClient({ creator, initialProducts, initialEdits, isOwner }: { creator: Creator; initialProducts: Product[]; initialEdits: Edit[]; isOwner: boolean }) {
   const [tab, setTab]       = useState('ALL')
   const [subCategory, setSubCategory] = useState('')
+  const [view, setView] = useState<'products' | 'edits'>('products')
+  const [selectedEditId, setSelectedEditId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
@@ -58,7 +61,7 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       window.removeEventListener('scroll', syncCategoryRail)
       window.removeEventListener('resize', syncCategoryRail)
     }
-  }, [])
+  }, [view])
 
   const toggleSaved = async (event: React.MouseEvent<HTMLButtonElement>, productId: string) => {
     event.preventDefault()
@@ -104,6 +107,51 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
     count(`${tab} - ${category.toUpperCase()}`) > 0
   )
   const initials = creator.display_name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) ?? 'CK'
+  const selectedEdit = initialEdits.find(edit => edit.id === selectedEditId) ?? null
+
+  const renderEditProductCard = (p: Product) => {
+    const currentAmount = Number.parseFloat((p.price || '').replace(/[^0-9.]/g, ''))
+    const originalAmount = Number.parseFloat((p.priceOriginal || '').replace(/[^0-9.]/g, ''))
+    const hasDiscount = Boolean(p.priceOriginal && p.priceOriginal !== p.price && (
+      !Number.isFinite(currentAmount) || !Number.isFinite(originalAmount) || originalAmount > currentAmount
+    ))
+
+    return (
+      <div key={p.id} className="card">
+        <a href={`/product/${p.id}`} className="card-detail-link">
+          <div className="cimg">
+            <div className="cimg-fallback"><span className="cph">{p.title[0]}</span></div>
+            {p.image && <img src={p.image} alt={p.title} onError={e => { e.currentTarget.style.display = 'none' }} />}
+          </div>
+          <div className="cbody">
+            <div className="ccurator">
+              {creator.avatar_url
+                ? <img src={creator.avatar_url} alt="" />
+                : <span className="ccurator-initials">{initials}</span>}
+              <span>{creator.display_name}</span>
+            </div>
+            <p className="cbrand">{p.brand} <span aria-hidden="true">â€¢</span> {p.category}</p>
+            <p className="ctitle">{p.title}</p>
+            <p className="cprice">
+              <span>{p.price}</span>
+              {hasDiscount && <span className="cprice-original">{p.priceOriginal}</span>}
+            </p>
+          </div>
+        </a>
+        <div className="card-action-row">
+          <button
+            type="button"
+            className={`save-star${savedIds.has(p.id) ? ' saved' : ''}`}
+            aria-label={savedIds.has(p.id) ? `Remove ${p.title} from wishlist` : `Save ${p.title} to wishlist`}
+            aria-pressed={savedIds.has(p.id)}
+            onClick={event => toggleSaved(event, p.id)}
+          >
+            {savedIds.has(p.id) ? 'â˜…' : 'â˜†'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ background:'#F0EDE8', minHeight:'100vh', fontFamily:'DM Sans, system-ui, sans-serif', color:'#1a1a1a' }}>
@@ -132,6 +180,21 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         .makeup-subtabs::-webkit-scrollbar{display:none}
         .makeup-subtab{flex-shrink:0;border:1px solid rgba(26,26,26,0.16);background:#fff;color:#514b45;padding:7px 10px;font-size:10px;letter-spacing:0.04em;cursor:pointer;font-family:inherit}
         .makeup-subtab.on{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
+        .view-switch{display:flex;justify-content:center;gap:20px;padding:16px 20px 0;background:#F0EDE8}
+        .view-switch button{border:0;border-bottom:2px solid transparent;padding:0 0 10px;background:transparent;color:#8c867e;font-family:inherit;font-size:11px;font-weight:500;letter-spacing:0.13em;cursor:pointer}
+        .view-switch button.on{color:#1a1a1a;border-bottom-color:#1a1a1a}
+        .edits-wrap{max-width:1320px;margin:0 auto;padding:34px 48px 80px;background:#fff}
+        .edits-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+        .edit-card{border:1px solid rgba(26,26,26,0.1);background:#fff;color:inherit;text-align:left;padding:0;cursor:pointer;font-family:inherit;overflow:hidden}
+        .edit-card:hover .edit-title{text-decoration:underline;text-underline-offset:3px}
+        .edit-cover{aspect-ratio:16/10;background:#F0EDE8;display:flex;align-items:center;justify-content:center}
+        .edit-cover img{width:100%;height:100%;object-fit:contain;padding:28px}
+        .edit-title{font-family:'Fanwood Text',serif;font-size:28px;font-weight:400;line-height:1.1}
+        .edit-card-copy{padding:20px 22px 22px}
+        .edit-card-copy p,.edit-heading p{margin:0 0 8px;color:#817970;font-size:10px;letter-spacing:0.12em;text-transform:uppercase}
+        .edit-back{border:0;background:transparent;color:#5f5750;padding:0;margin:0 0 26px;font:inherit;font-size:12px;cursor:pointer}
+        .edit-heading{margin-bottom:28px}
+        .edit-heading h2{margin:0;font-family:'Fanwood Text',serif;font-size:38px;font-weight:400;line-height:1.1}
 
         /* ── Product grid ── */
         .grid-wrap{max-width:1600px;margin:0 auto}
@@ -188,6 +251,11 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
           .tab-bar-inner { padding: 0 20px !important }
           .tab { padding: 12px 14px !important; font-size: 10px !important }
           .makeup-subtabs { padding: 10px 20px !important }
+          .view-switch { padding-top: 14px !important }
+          .edits-wrap { padding: 24px 20px 60px !important }
+          .edits-grid { grid-template-columns: 1fr !important; gap: 14px !important }
+          .edit-title { font-size:24px !important }
+          .edit-heading h2 { font-size:31px !important }
           .grid { grid-template-columns: repeat(2, 1fr) !important; gap: 0 !important }
           .grid-wrap { padding: 0 0 60px !important }
           .cbody { padding: 12px 12px 14px !important; height: 144px !important }
@@ -287,7 +355,13 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
         </div>
       </div>
 
+      <div className="view-switch" aria-label="Storefront content">
+        <button className={view === 'products' ? 'on' : ''} onClick={() => setView('products')}>PRODUCTS</button>
+        <button className={view === 'edits' ? 'on' : ''} onClick={() => { setView('edits'); setSelectedEditId(null) }}>EDITS</button>
+      </div>
+
       {/* Category rail starts below the curator profile, then sticks beneath navigation. */}
+      {view === 'products' && <>
       <div ref={categoryRailRef} className={`category-sticky${categoryPinned ? ' is-pinned' : ''}`}>
         <div className="tab-bar">
           <div className="tab-bar-inner" style={{ display:'inline-flex', padding:'0 48px' }}>
@@ -374,6 +448,44 @@ export default function StorefrontClient({ creator, initialProducts, isOwner }: 
       </div>
 
       {/* ── Footer ── */}
+      </>}
+
+      {view === 'edits' && (
+        <section className="edits-wrap">
+          {selectedEdit ? (
+            <>
+              <button className="edit-back" onClick={() => setSelectedEditId(null)}>← All edits</button>
+              <div className="edit-heading">
+                <p>CURATED EDIT</p>
+                <h2>{selectedEdit.title}</h2>
+              </div>
+              <div className="grid">
+                {selectedEdit.products.map(renderEditProductCard)}
+              </div>
+            </>
+          ) : initialEdits.length ? (
+            <div className="edits-grid">
+              {initialEdits.map(edit => (
+                <button key={edit.id} className="edit-card" onClick={() => setSelectedEditId(edit.id)}>
+                  <div className="edit-cover">
+                    {edit.coverImage ? <img src={edit.coverImage} alt="" /> : <span className="cph">{edit.title[0]}</span>}
+                  </div>
+                  <div className="edit-card-copy">
+                    <p>{edit.products.length} {edit.products.length === 1 ? 'piece' : 'pieces'}</p>
+                    <h2 className="edit-title">{edit.title}</h2>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>Edits coming soon.</p>
+              <span>{creator.display_name} is shaping their first collection.</span>
+            </div>
+          )}
+        </section>
+      )}
+
       <footer className="footer-wrap" style={{ borderTop:'1px solid rgba(26,26,26,0.1)', padding:'20px 48px', display:'flex', alignItems:'center', justifyContent:'space-between', background:'#F0EDE8' }}>
         <p style={{ fontSize:11, color:'#bbb' }}>
           {creator.display_name} earns commission on purchases.{' '}
