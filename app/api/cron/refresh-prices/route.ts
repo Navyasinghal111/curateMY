@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { operationalLog } from '@/lib/operationalLog'
 
 export const maxDuration = 300
 
@@ -72,6 +73,7 @@ async function refreshProduct(
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
+    operationalLog('price_refresh', { outcome: 'unauthorized' })
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -80,6 +82,12 @@ export async function GET(request: NextRequest) {
   const origin = originFor(request)
 
   if (!supabaseUrl || !serviceRoleKey || !origin) {
+    operationalLog('price_refresh', {
+      outcome: 'not_configured',
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceRoleKey: !!serviceRoleKey,
+      hasOrigin: !!origin,
+    })
     return NextResponse.json({ error: 'Price refresh is not configured' }, { status: 503 })
   }
 
@@ -98,6 +106,7 @@ export async function GET(request: NextRequest) {
     .limit(limit)
 
   if (error) {
+    operationalLog('price_refresh', { outcome: 'product_load_failed' })
     return NextResponse.json({ error: 'Could not load products for refresh' }, { status: 500 })
   }
 
@@ -121,5 +130,11 @@ export async function GET(request: NextRequest) {
 
   await Promise.all(Array.from({ length: Math.min(4, typedProducts.length) }, worker))
 
+  operationalLog('price_refresh', {
+    outcome: 'completed',
+    processed: typedProducts.length,
+    updated,
+    failed,
+  })
   return NextResponse.json({ processed: typedProducts.length, updated, failed })
 }

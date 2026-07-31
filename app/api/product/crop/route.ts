@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import sharp from 'sharp'
+import { operationalLog } from '@/lib/operationalLog'
 
 export const runtime = 'nodejs'
 
@@ -91,7 +92,10 @@ export async function POST(request: NextRequest) {
     { cookies: { getAll: () => cookieStore.getAll() } }
   )
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error:'Please log in.' }, { status:401 })
+  if (!user) {
+    operationalLog('product_image_frame', { outcome:'unauthorized' })
+    return NextResponse.json({ error:'Please log in.' }, { status:401 })
+  }
 
   try {
     const body = await request.json()
@@ -148,8 +152,15 @@ export async function POST(request: NextRequest) {
         .toBuffer()
     }
 
+    operationalLog('product_image_frame', {
+      outcome:'success',
+      sourceHost:imageUrl.hostname,
+      zoomed: zoom !== 1,
+      repositioned: x !== 0 || y !== 0,
+    })
     return new NextResponse(new Uint8Array(output), { headers:{ 'Content-Type':'image/jpeg', 'Cache-Control':'no-store' } })
   } catch {
+    operationalLog('product_image_frame', { outcome:'failed' })
     return NextResponse.json({ error:'Could not frame this image. Try a different image or use less zoom.' }, { status:422 })
   }
 }

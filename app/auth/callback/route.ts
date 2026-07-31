@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createServiceRoleClient, type User } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { operationalLog } from '@/lib/operationalLog'
 
 type SignupRole = 'creator' | 'shopper'
 
@@ -116,7 +117,10 @@ export async function GET(request: NextRequest) {
   const fallbackPath = requestedNext === '/pending' ? '/pending' : '/'
   const response = NextResponse.redirect(new URL(fallbackPath, origin))
 
-  if (!code) return NextResponse.redirect(new URL('/signup/confirm?setup=invalid', origin))
+  if (!code) {
+    operationalLog('account_provisioning', { outcome: 'missing_code' })
+    return NextResponse.redirect(new URL('/signup/confirm?setup=invalid', origin))
+  }
 
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -133,14 +137,19 @@ export async function GET(request: NextRequest) {
   )
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-  if (error || !data.user) return NextResponse.redirect(new URL('/signup/confirm?setup=invalid', origin))
+  if (error || !data.user) {
+    operationalLog('account_provisioning', { outcome: 'session_exchange_failed' })
+    return NextResponse.redirect(new URL('/signup/confirm?setup=invalid', origin))
+  }
 
   try {
     const role = await provisionConfirmedUser(data.user)
+    operationalLog('account_provisioning', { outcome: 'success', role })
     response.headers.set('Cache-Control', 'no-store')
     if (role === 'creator' && fallbackPath !== '/pending') response.headers.set('Location', new URL('/pending', origin).toString())
     return response
   } catch {
+    operationalLog('account_provisioning', { outcome: 'failed' })
     // Do not expose database details to a new member. The legacy confirmation
     // page remains a safe retry path for an already-confirmed session.
     response.headers.set('Location', new URL('/signup/confirm?setup=retry', origin).toString())

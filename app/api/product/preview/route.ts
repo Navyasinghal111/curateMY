@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { operationalLog } from '@/lib/operationalLog'
 
 const KEY = process.env.SCRAPER_API_KEY
 const scraperConfigured = !!KEY
@@ -25,7 +26,14 @@ type FetchResult = {
 // of staying opaque. Never includes the key, HTML, or scraped product data.
 function diagLog(domain: string, providerUsed: Provider | null, providerResponseStatus: number | null, errorCode: string, attempts: AttemptOutcome[]) {
   const diagnostics = { providerUsed, scraperConfigured, providerResponseStatus, errorCode, attempts }
-  console.log('[product-preview]', { domain, ...diagnostics })
+  operationalLog('product_preview', {
+    domain,
+    outcome: errorCode,
+    provider: providerUsed,
+    providerStatus: providerResponseStatus,
+    scraperConfigured,
+    attempts: attempts.map(({ attempt, status, error }) => `${attempt}:${status ?? error ?? 'unknown'}`),
+  })
   return diagnostics
 }
 
