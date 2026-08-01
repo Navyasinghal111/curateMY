@@ -126,8 +126,8 @@ export default function AdminPage() {
   const supabase = createClient()
   const router   = useRouter()
 
-  const loadCreators = async () => {
-    setLoading(true)
+  const loadCreators = async (showLoading = true) => {
+    if (showLoading) setLoading(true)
     const [{ data: applications }, { data: profiles }] = await Promise.all([
       supabase.from('creator_applications').select(APPLICATION_REVIEW_COLUMNS).order('submitted_at', { ascending: false }),
       supabase.from('profiles').select(REVIEW_COLUMNS).eq('role', 'creator').order('created_at', { ascending: false }),
@@ -166,14 +166,16 @@ export default function AdminPage() {
       const sinceLastCheck = applicationCreators
         .filter(creator => creator.applicationId && new Date(creator.created_at).getTime() > new Date(lastCheckedAt).getTime())
         .map(creator => creator.applicationId as string)
-      setNewApplicationIds(new Set(sinceLastCheck))
+      setNewApplicationIds(previous => new Set([...previous, ...sinceLastCheck]))
     }
     window.localStorage.setItem(LAST_APPLICATION_CHECK_KEY, new Date().toISOString())
     setCreators([...applicationCreators, ...legacyCreators])
-    setLoading(false)
+    if (showLoading) setLoading(false)
   }
 
   useEffect(() => {
+    let refreshTimer: number | undefined
+
     const checkAccess = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user?.email || !ADMIN_EMAILS.includes(user.email)) {
@@ -182,9 +184,14 @@ export default function AdminPage() {
         return
       }
       setAccess('ok')
-      loadCreators()
+      await loadCreators()
+      refreshTimer = window.setInterval(() => { void loadCreators(false) }, 60_000)
     }
-    checkAccess()
+
+    void checkAccess()
+    return () => {
+      if (refreshTimer) window.clearInterval(refreshTimer)
+    }
   }, [])
 
   const counts = {
@@ -344,6 +351,22 @@ export default function AdminPage() {
           </div>
           <Link href="/dashboard" style={{ fontSize:13, color:MUTED, textDecoration:'none' }}>← Back to dashboard</Link>
         </div>
+
+        {counts.pending > 0 && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, padding:'12px 24px', background:'#FAF7F2', borderBottom:`0.5px solid ${BORDER}`, flexShrink:0 }}>
+            <div>
+              <p style={{ fontSize:13, fontWeight:600, color:INK }}>
+                {counts.pending} creator application{counts.pending === 1 ? '' : 's'} awaiting review
+              </p>
+              <p style={{ fontSize:11, color:MUTED, marginTop:3 }}>
+                {newPendingCount > 0 ? `${newPendingCount} new since your last visit.` : 'This desk refreshes automatically every minute.'}
+              </p>
+            </div>
+            <button type="button" onClick={() => { setFilter('pending'); setSearch(''); setSelected(null) }} style={{ border:`1px solid ${INK}`, background:INK, color:'#fff', padding:'9px 13px', fontSize:11, letterSpacing:'0.06em', textTransform:'uppercase', cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' }}>
+              Review pending
+            </button>
+          </div>
+        )}
 
         <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
 

@@ -376,6 +376,8 @@ export default function DashboardHome() {
   const [openMenu,        setOpenMenu]        = useState<string|null>(null)
   const [profile,         setProfile]         = useState<Profile>({ name:'', username:'', avatar_url:'', followers:0, bio:'' })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [publishedEditCount, setPublishedEditCount] = useState(0)
+  const [shareNotice, setShareNotice] = useState('')
   const [categoryPinned,  setCategoryPinned]  = useState(false)
   const categoryRailRef = useRef<HTMLDivElement>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -399,6 +401,24 @@ export default function DashboardHome() {
       setProducts(data ?? [])
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const loadPublishedEdits = async () => {
+      const { data:{ user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { count, error } = await supabase
+        .from('creator_edits')
+        .select('*', { count:'exact', head:true })
+        .eq('creator_id', user.id)
+        .eq('status', 'published')
+      if (active && !error) setPublishedEditCount(count ?? 0)
+    }
+
+    void loadPublishedEdits()
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
@@ -470,6 +490,20 @@ export default function DashboardHome() {
 
   const totalValue = products.reduce((s,p) => s + (parseFloat(p.price?.replace(/[^0-9.]/g,'')||'0')||0), 0)
   const noteCount = products.filter(product => product.description?.trim()).length
+  const copyStorefrontLink = async () => {
+    if (!profile.username) {
+      window.location.href = '/dashboard/settings'
+      return
+    }
+
+    const storefrontUrl = `${window.location.origin}/${encodeURIComponent(profile.username)}`
+    try {
+      await navigator.clipboard.writeText(storefrontUrl)
+      setShareNotice('Storefront link copied.')
+    } catch {
+      window.prompt('Copy your storefront link:', storefrontUrl)
+    }
+  }
   const launchSteps = [
     {
       label: 'Complete your profile',
@@ -495,6 +529,13 @@ export default function DashboardHome() {
         if (productWithoutNote) setEditProduct(productWithoutNote)
         else setModal(true)
       },
+    },
+    {
+      label: 'Publish your first Edit',
+      detail: 'Group pieces into a themed point of view shoppers can browse.',
+      done: publishedEditCount > 0,
+      action: 'Create an Edit',
+      onClick: () => { window.location.href = '/dashboard/edits' },
     },
   ]
   const completedLaunchSteps = launchSteps.filter(step => step.done).length
@@ -535,7 +576,7 @@ export default function DashboardHome() {
         .twish:hover{background:#F5F5F5}
         .twish.active{color:#8F1D2C}
         .pcard-menu{position:relative}
-        .tdot{height:30px;padding:0 10px;border-radius:0;background:#fff;border:1px solid #C9C1B8;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:1;transition:background 0.15s;font-size:10px;color:#333;letter-spacing:0.08em;font-family:inherit}
+        .tdot{width:30px;height:30px;padding:0;border-radius:50%;background:transparent;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:1;transition:background 0.15s;color:#7E756C;font-size:18px;line-height:1;font-family:inherit}
         .pcard:hover .tdot{opacity:1}
         .tdot:hover{background:#F5F5F5}
         .dmenu{position:absolute;right:0;bottom:36px;background:#fff;border:0.5px solid #E5E5E5;border-radius:8px;padding:4px 0;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200}
@@ -555,7 +596,7 @@ export default function DashboardHome() {
         .dash-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
         .dash-actions{display:flex;align-items:center;gap:24px}
         .launch-card{background:#fff;border:0.5px solid #E8E4DC;padding:22px 24px;margin:28px 0 30px;max-width:900px}
-        .launch-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:18px}
+        .launch-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:18px;margin-top:18px}
         .launch-step{display:flex;align-items:flex-start;gap:10px;min-width:0}
         .launch-step-action{border:0;background:none;color:#8F1D2C;font:inherit;font-size:11px;padding:0;text-decoration:underline;cursor:pointer}
         .product-form{min-height:0}
@@ -625,12 +666,12 @@ export default function DashboardHome() {
         )}
       </div>
 
-      {isAuthenticated && completedLaunchSteps < launchSteps.length && (
+      {isAuthenticated && (completedLaunchSteps < launchSteps.length || Boolean(profile.username)) && (
         <section className="launch-card" aria-labelledby="launch-checklist-title" style={{ marginLeft:32, marginRight:32 }}>
           <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
             <div>
               <p style={{ fontSize:10, letterSpacing:'0.14em', color:'#B07D4A', textTransform:'uppercase', marginBottom:6 }}>Your storefront launch</p>
-              <h2 id="launch-checklist-title" style={{ ...S, fontSize:27, lineHeight:1.1 }}>Make your taste easy to trust.</h2>
+              <h2 id="launch-checklist-title" style={{ ...S, fontSize:27, lineHeight:1.1 }}>{completedLaunchSteps === launchSteps.length ? 'Your storefront is ready to share.' : 'Make your taste easy to trust.'}</h2>
             </div>
             <p style={{ fontSize:12, color:'#8C867E' }}>{completedLaunchSteps} of {launchSteps.length} complete</p>
           </div>
@@ -648,6 +689,12 @@ export default function DashboardHome() {
               </div>
             ))}
           </div>
+          {profile.username && (
+            <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', marginTop:20 }}>
+              <button type="button" className="launch-step-action" onClick={copyStorefrontLink}>Copy storefront link</button>
+              {shareNotice && <span style={{ fontSize:11, color:'#5E7A5C' }}>{shareNotice}</span>}
+            </div>
+          )}
         </section>
       )}
 
@@ -697,7 +744,7 @@ export default function DashboardHome() {
                 <div className="pcard-actions">
                   <button aria-label={p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'} aria-pressed={p.wishlisted || false} title={p.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'} className={`twish${p.wishlisted ? ' active' : ''}`} onClick={() => toggleWish(p.id)}>{p.wishlisted ? '★' : '☆'}</button>
                   <div className="pcard-menu">
-                    <button aria-label="Manage product" title="Manage product" className="tdot" onClick={() => setOpenMenu(openMenu===p.id ? null : p.id)}>MANAGE</button>
+                    <button aria-label="Product options" title="Product options" className="tdot" onClick={() => setOpenMenu(openMenu===p.id ? null : p.id)}>...</button>
                     {openMenu===p.id && (
                       <div className="dmenu" onClick={e => e.stopPropagation()}>
                         <button className="ditem" onClick={() => { setEditProduct(p); setOpenMenu(null) }}><i className="ti ti-edit" aria-hidden="true"></i>Edit product</button>
